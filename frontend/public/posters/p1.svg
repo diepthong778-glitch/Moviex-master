@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="360" viewBox="0 0 240 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0f1a"/>
+      <stop offset="0.45" stop-color="#1b1430"/>
+      <stop offset="1" stop-color="#3b0f12"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e50914" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ff6b6b" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="360" rx="18" fill="url(#bg)"/>
+  <rect x="16" y="18" width="208" height="6" rx="3" fill="#ffffff" opacity="0.14"/>
+  <rect x="16" y="40" width="128" height="10" rx="5" fill="#ffffff" opacity="0.10"/>
+  <rect x="16" y="60" width="90" height="10" rx="5" fill="#ffffff" opacity="0.08"/>
+  <rect x="0" y="250" width="240" height="110" fill="#000" opacity="0.35"/>
+  <rect x="0" y="246" width="240" height="6" fill="url(#stripe)"/>
+  <text x="18" y="292" font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="800" fill="#ffffff" opacity="0.92">NIGHT RUN</text>
+  <text x="18" y="316" font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#ffffff" opacity="0.62" letter-spacing="1.2">ACTION " 2026</text>
+  <circle cx="198" cy="82" r="28" fill="#ffffff" opacity="0.07"/>
+  <circle cx="206" cy="92" r="40" fill="#e50914" opacity="0.08"/>
+</svg>
+

@@ -1,0 +1,53 @@
+package com.moviex.service;
+
+import com.moviex.dto.MovieDto;
+import com.moviex.model.Movie;
+import com.moviex.repository.MovieRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+public class MovieServiceImpl implements MovieService {
+
+    private final MovieRepository movieRepository;
+
+    public MovieServiceImpl(MovieRepository movieRepository) {
+        this.movieRepository = movieRepository;
+    }
+
+    @Override
+    public Page<MovieDto> searchMovies(String title, String genre, Integer year, Pageable pageable) {
+        Page<Movie> movies = movieRepository.searchMovies(title, genre, year, pageable);
+        return movies.map(this::convertToDto);
+    }
+
+    @Override
+    public List<MovieDto> getAllMovies() {
+        List<Movie> movies = movieRepository.findAll();
+        return movies.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<MovieDto> getMovieById(String id) {
+        Optional<Movie> movie = movieRepository.findById(id);
+        return movie.map(this::convertToDto);
+    }
+
+    private MovieDto convertToDto(Movie movie) {
+        return new MovieDto(
+            movie.getId(),
+            movie.getTitle(),
+            movie.getGenre(),
+            movie.getYear(),
+            movie.getDescription(),
+            movie.getVideoUrl(),
+            movie.getTrailerUrl(),
+            movie.getRequiredSubscription()
+        );
+    }
+}
