@@ -4,12 +4,68 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders, cachedGet } from '../utils/api';
+import { resolvePosterUrl } from '../utils/media';
 import WatchlistSection from '../components/WatchlistSection';
 import HistorySection from '../components/HistorySection';
 
 const applyTheme = (isDarkMode) => {
   document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   localStorage.setItem('moviex.theme', isDarkMode ? 'dark' : 'light');
+};
+
+const enrichHistoryItems = async (historyItems, watchlistItems, headers) => {
+  if (!Array.isArray(historyItems)) return [];
+
+  const watchlistMap = new Map();
+  (watchlistItems || []).forEach((movie) => {
+    const id = movie?.id || movie?.movieId;
+    if (id) watchlistMap.set(id, movie);
+  });
+
+  const missingIds = [];
+  historyItems.forEach((item) => {
+    const movieId = item?.movieId;
+    if (movieId && !watchlistMap.has(movieId)) {
+      missingIds.push(movieId);
+    }
+  });
+
+  const fetchedMap = new Map();
+  const uniqueMissing = Array.from(new Set(missingIds));
+  if (uniqueMissing.length) {
+    const results = await Promise.all(
+      uniqueMissing.map((id) =>
+        cachedGet(`/api/movies/${encodeURIComponent(id)}`, {
+          ttlMs: 60000,
+          cacheKey: `movie:${id}`,
+          config: { headers },
+        }).catch(() => null)
+      )
+    );
+
+    results.forEach((movie) => {
+      if (movie?.id) fetchedMap.set(movie.id, movie);
+    });
+  }
+
+  return historyItems.map((item) => {
+    const movieId = item?.movieId;
+    const movieData = (movieId && (watchlistMap.get(movieId) || fetchedMap.get(movieId))) || {};
+
+    const merged = {
+      ...movieData,
+      ...item,
+      movieId,
+      title: item?.movieTitle || movieData?.title,
+      movieTitle: item?.movieTitle || movieData?.title,
+      trailerUrl: movieData?.trailerUrl || item?.trailerUrl,
+      videoUrl: movieData?.videoUrl || item?.videoUrl,
+      duration: item?.duration || movieData?.duration,
+    };
+
+    merged.posterUrl = resolvePosterUrl(merged);
+    return merged;
+  });
 };
 
 function ProfilePage() {
@@ -37,7 +93,12 @@ function ProfilePage() {
 
         setSubscription(subscriptionData || null);
         setWatchlist(Array.isArray(watchlistData) ? watchlistData : []);
-        setHistory(Array.isArray(historyData) ? historyData : []);
+        const hydratedHistory = await enrichHistoryItems(
+          Array.isArray(historyData) ? historyData : [],
+          Array.isArray(watchlistData) ? watchlistData : [],
+          headers
+        );
+        setHistory(hydratedHistory);
       } catch (error) {
         console.error('Profile data fetch failed:', error);
       } finally {
@@ -97,15 +158,29 @@ function ProfilePage() {
   };
 
   const handleHistoryRemove = async (item) => {
-    const movieId = item?.movieId;
-    if (!movieId) return;
+    const movieId = item?.movieId || item?.id;
+    if (!movieId) {
+      console.error('[History] Missing movieId for removal', item);
+      return;
+    }
     try {
-      await axios.delete(`/api/history/me/${encodeURIComponent(movieId)}`, {
-        headers: authHeaders(getToken()),
+      const headers = authHeaders(getToken());
+      const url = `/api/history/me/${encodeURIComponent(movieId)}`;
+      const response = await axios.delete(url, { headers });
+      setHistory((current) =>
+        current.filter((entry) => (entry.movieId || entry.id) !== movieId)
+      );
+      console.debug('[History] Removed entry', {
+        movieId,
+        status: response?.status,
+        data: response?.data,
       });
-      setHistory((current) => current.filter((entry) => entry.movieId !== movieId));
     } catch (error) {
-      console.error('Failed to remove history item', error);
+      console.error('Failed to remove history item', {
+        movieId,
+        message: error?.response?.data?.message || error?.message,
+        status: error?.response?.status,
+      });
     }
   };
 

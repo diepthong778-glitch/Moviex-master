@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { cachedGet } from '../utils/api';
+import { resolvePosterUrl } from '../utils/media';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,6 +33,7 @@ function Landing() {
   const [registeredMessage, setRegisteredMessage] = useState('');
   const passwordRef = useRef(null);
   const emailInputRef = useRef(null);
+  const [featuredMovie, setFeaturedMovie] = useState(null);
 
   const isAuthed = useMemo(() => Boolean(user && getToken()), [user, getToken]);
   const redirectTarget = useMemo(() => {
@@ -48,6 +51,30 @@ function Landing() {
       passwordRef.current?.focus?.();
     }
   }, [step]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFeatured = async () => {
+      try {
+        const data = await cachedGet('/api/movies/search', {
+          ttlMs: 60000,
+          cacheKey: 'landing:featured',
+          config: { params: { page: 0, size: 1, sortBy: 'year', sortDir: 'desc' } },
+        });
+        const movie = data?.content?.[0];
+        if (!cancelled) setFeaturedMovie(movie || null);
+      } catch (err) {
+        if (!cancelled) setFeaturedMovie(null);
+        console.debug('Landing featured fetch failed', err?.message || err);
+      }
+    };
+
+    loadFeatured();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -141,6 +168,12 @@ function Landing() {
     setStep('email');
     emailInputRef.current?.focus?.();
   };
+
+  const featuredPoster = resolvePosterUrl(featuredMovie);
+  const featuredTitle = featuredMovie?.title || 'Featured Preview';
+  const featuredDescription =
+    featuredMovie?.description ||
+    'A curated highlight from the Moviex library. Premium-grade visuals, crafted for a cinematic home experience.';
 
   return (
     <div className="min-h-screen bg-ink text-white relative overflow-hidden">
@@ -379,9 +412,9 @@ function Landing() {
           <div className="grid items-center gap-10 rounded-3xl border border-white/10 bg-carbon/70 p-8 shadow-card md:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate">Featured Preview</p>
-              <h2 className="text-3xl font-display font-bold text-white md:text-4xl">Midnight Archive</h2>
+              <h2 className="text-3xl font-display font-bold text-white md:text-4xl">{featuredTitle}</h2>
               <p className="text-sm text-slate md:text-base">
-                A curated highlight from the Moviex library. Premium-grade visuals, crafted for a cinematic home experience.
+                {featuredDescription}
               </p>
               <Link
                 to="/browse"
@@ -393,10 +426,13 @@ function Landing() {
             <div className="flex justify-center md:justify-end">
               <div className="relative aspect-[2/3] w-full max-w-[320px] overflow-hidden rounded-3xl border border-white/10">
                 <img
-                  src="/posters/p1.svg"
-                  alt="Featured poster"
+                  src={featuredPoster}
+                  alt={featuredTitle}
                   loading="lazy"
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/posters/p1.svg';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
               </div>

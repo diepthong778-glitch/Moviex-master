@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,8 +69,20 @@ public class WatchHistoryServiceImpl implements WatchHistoryService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upgrade required");
         }
 
-        WatchHistory history = watchHistoryRepository.findByUserIdAndMovieId(user.getId(), request.getMovieId())
+        List<WatchHistory> existingHistories = watchHistoryRepository.findAllByUserIdAndMovieId(user.getId(), request.getMovieId());
+        WatchHistory history = existingHistories.stream()
+                .max(Comparator.comparing(WatchHistory::getWatchedAt, Comparator.nullsLast(Comparator.naturalOrder())))
                 .orElseGet(WatchHistory::new);
+
+        if (existingHistories.size() > 1) {
+            List<WatchHistory> duplicates = new ArrayList<>(existingHistories);
+            if (history.getId() != null) {
+                duplicates.removeIf(entry -> history.getId().equals(entry.getId()));
+            }
+            if (!duplicates.isEmpty()) {
+                watchHistoryRepository.deleteAll(duplicates);
+            }
+        }
 
         history.setUserId(user.getId());
         history.setMovieId(request.getMovieId());
@@ -124,9 +138,10 @@ public class WatchHistoryServiceImpl implements WatchHistoryService {
         }
 
         String userId = currentUserService.getCurrentUser().getId();
-        WatchHistory history = watchHistoryRepository.findByUserIdAndMovieId(userId, movieId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "History entry not found"));
-        watchHistoryRepository.delete(history);
+        long deletedCount = watchHistoryRepository.deleteByUserIdAndMovieId(userId, movieId);
+        if (deletedCount == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "History entry not found");
+        }
     }
 
     private WatchHistoryResponse toResponse(WatchHistory history) {

@@ -1,27 +1,8 @@
-import { getYouTubeThumbnail } from '../utils/youtube';
-
-const FALLBACK_POSTER = '/posters/p1.svg';
-
-const normalizeUrl = (value) => {
-  if (!value) return '';
-  if (value.startsWith('http')) return value;
-  if (value.startsWith('/')) return value;
-  return `/${value}`;
-};
-
-const resolvePoster = (item) => {
-  const candidate =
-    item?.posterUrl ||
-    item?.backdropUrl ||
-    item?.thumbnail ||
-    item?.image ||
-    getYouTubeThumbnail(item?.trailerUrl);
-  return normalizeUrl(candidate) || FALLBACK_POSTER;
-};
+import { resolvePosterUrl, IMAGE_FALLBACK } from '../utils/media';
 
 function HistoryCard({ item, onContinue, onRestart, onRemove }) {
   const title = item?.title || item?.movieTitle || 'Unknown';
-  const poster = resolvePoster(item);
+  const poster = resolvePosterUrl(item);
   const progressSeconds = Number.isFinite(item?.lastWatchTime)
     ? item.lastWatchTime
     : Number.isFinite(item?.progress)
@@ -45,7 +26,7 @@ function HistoryCard({ item, onContinue, onRestart, onRemove }) {
           loading="lazy"
           className="h-full w-full object-cover"
           onError={(e) => {
-            e.currentTarget.src = FALLBACK_POSTER;
+            e.currentTarget.src = IMAGE_FALLBACK;
           }}
         />
       </div>

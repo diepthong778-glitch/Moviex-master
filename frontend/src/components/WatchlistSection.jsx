@@ -1,23 +1,4 @@
-import { getYouTubeThumbnail } from '../utils/youtube';
-
-const FALLBACK_POSTER = '/posters/p1.svg';
-
-const normalizeUrl = (value) => {
-  if (!value) return '';
-  if (value.startsWith('http')) return value;
-  if (value.startsWith('/')) return value;
-  return `/${value}`;
-};
-
-const resolvePoster = (movie) => {
-  const candidate =
-    movie?.posterUrl ||
-    movie?.backdropUrl ||
-    movie?.thumbnail ||
-    movie?.image ||
-    getYouTubeThumbnail(movie?.trailerUrl);
-  return normalizeUrl(candidate) || FALLBACK_POSTER;
-};
+import { resolvePosterUrl, IMAGE_FALLBACK } from '../utils/media';
 
 function WatchlistSection({ items = [], loading, onSelect, title, countLabel, emptyLabel }) {
   return (
@@ -40,7 +21,7 @@ function WatchlistSection({ items = [], loading, onSelect, title, countLabel, em
         <div className="max-h-[420px] overflow-y-auto pr-1 scrollbar-slim">
           <div className="grid gap-4 sm:grid-cols-2">
             {items.map((movie) => {
-              const poster = resolvePoster(movie);
+              const poster = resolvePosterUrl(movie);
               const titleText = movie?.title || movie?.movieTitle || 'Untitled';
               const meta = [movie?.genre, movie?.year].filter(Boolean).join(' • ');
               return (
@@ -57,7 +38,7 @@ function WatchlistSection({ items = [], loading, onSelect, title, countLabel, em
                       loading="lazy"
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       onError={(e) => {
-                        e.currentTarget.src = FALLBACK_POSTER;
+                        e.currentTarget.src = IMAGE_FALLBACK;
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
