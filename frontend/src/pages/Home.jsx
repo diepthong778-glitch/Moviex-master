@@ -1,13 +1,14 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { lazy, memo, startTransition, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import MovieCard from '../components/MovieCard';
-import MovieDetailModal from '../components/MovieDetailModal';
-import MoviePlayer from '../components/MoviePlayer';
 import { useAuth } from '../context/AuthContext';
 import { extractYouTubeVideoId, getYouTubeEmbedUrl } from '../utils/youtube';
 import { cachedGet } from '../utils/api';
+
+const MovieDetailModal = lazy(() => import('../components/MovieDetailModal'));
+const MoviePlayer = lazy(() => import('../components/MoviePlayer'));
 
 const WATCH_PROGRESS_KEY = 'moviex.watch.progress';
 const MAX_MOVIES_PER_RAIL = 8;
@@ -26,7 +27,7 @@ const writeProgressMap = (map) => {
   localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(map));
 };
 
-function MovieRail({ title, subtitle, movies, onSelect, watchProgress }) {
+function MovieRailComponent({ title, subtitle, movies, onSelect, watchProgress }) {
   const railMovies = movies.slice(0, MAX_MOVIES_PER_RAIL);
   if (!railMovies.length) return null;
 
@@ -49,6 +50,16 @@ function MovieRail({ title, subtitle, movies, onSelect, watchProgress }) {
   );
 }
 
+const MovieRail = memo(MovieRailComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.title === nextProps.title &&
+    prevProps.subtitle === nextProps.subtitle &&
+    prevProps.movies === nextProps.movies &&
+    prevProps.onSelect === nextProps.onSelect &&
+    prevProps.watchProgress === nextProps.watchProgress
+  );
+});
+
 function Home() {
   const { t } = useTranslation();
   const [movies, setMovies] = useState([]);
@@ -60,8 +71,9 @@ function Home() {
   const [watchProgress, setWatchProgress] = useState({});
   const [visibleCount, setVisibleCount] = useState(24);
   const [subscription, setSubscription] = useState(null);
-  const [requestedStartAtSeconds, setRequestedStartAtSeconds] = useState(null);
   const { user } = useAuth();
+  const [entitlements, setEntitlements] = useState({ unlockedMovieIds: [] });
+  const [requestedStartAtSeconds, setRequestedStartAtSeconds] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -70,12 +82,7 @@ function Home() {
     return t(`common.plansLabel.${plan || 'NONE'}`);
   };
 
-  useEffect(() => {
-    fetchMovies();
-    setWatchProgress(readProgressMap());
-  }, []);
-
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -92,51 +99,64 @@ function Home() {
         },
       });
       const moviesPayload = Array.isArray(data?.content) ? data.content : [];
-      if (Array.isArray(moviesPayload)) {
-        const seen = new Set();
-        const duplicates = new Set();
-        moviesPayload.forEach((movie) => {
-          const id = movie?.id;
-          if (!id) return;
-          if (seen.has(id)) duplicates.add(id);
-          seen.add(id);
-        });
-        if (duplicates.size > 0) {
-          console.error('[Home] Duplicate movie ids detected:', Array.from(duplicates));
-        }
-      }
       setMovies(moviesPayload);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMovies();
+    setWatchProgress(readProgressMap());
+  }, [fetchMovies]);
 
   useEffect(() => {
     const fetchSubscription = async () => {
       if (!user) {
         setSubscription(null);
+        setEntitlements({ unlockedMovieIds: [] });
         return;
       }
       try {
-        const data = await cachedGet('/api/subscription/me', { ttlMs: 10000 });
-        setSubscription(data);
+        const [subscriptionResult, entitlementsResult] = await Promise.allSettled([
+          cachedGet('/api/subscription/me', { ttlMs: 10000 }),
+          cachedGet('/api/payment/entitlements/me', { ttlMs: 5000 }),
+        ]);
+
+        setSubscription(subscriptionResult.status === 'fulfilled' ? subscriptionResult.value : null);
+        setEntitlements(
+          entitlementsResult.status === 'fulfilled'
+            ? entitlementsResult.value
+            : {
+                subscriptionPlan: user?.subscriptionPlan || 'BASIC',
+                unlockedMovieIds: user?.unlockedMovieIds || [],
+              }
+        );
       } catch {
         setSubscription(null);
+        setEntitlements({
+          subscriptionPlan: user?.subscriptionPlan || 'BASIC',
+          unlockedMovieIds: user?.unlockedMovieIds || [],
+        });
       }
     };
 
     fetchSubscription();
   }, [user]);
 
-  const canPlanAccess = (planType, requiredSub) => {
+  const canPlanAccess = useCallback((planType, requiredSub) => {
     if (requiredSub === 'BASIC') return true;
     if (planType === 'PREMIUM') return true;
     return planType === 'STANDARD' && requiredSub === 'STANDARD';
-  };
+  }, []);
 
-  const saveWatchStart = async (movie, startAtSeconds = 0) => {
+  const hasMovieUnlock = useCallback((movieId) => {
+    return Array.isArray(entitlements?.unlockedMovieIds) && entitlements.unlockedMovieIds.includes(movieId);
+  }, [entitlements?.unlockedMovieIds]);
+
+  const saveWatchStart = useCallback(async (movie, startAtSeconds = 0) => {
     if (!movie?.id) return;
     try {
       const resolvedStart = Number.isFinite(startAtSeconds) ? Math.max(0, Math.floor(startAtSeconds)) : 0;
@@ -148,9 +168,9 @@ function Home() {
     } catch {
       // ignore save errors here
     }
-  };
+  }, []);
 
-  const openMoviePlayer = (movie, startAtSeconds = null) => {
+  const openMoviePlayer = useCallback((movie, startAtSeconds = null) => {
     if (!movie || !movie.id) return;
     const canonicalMovie = movies.find((item) => item.id === movie.id) || movie;
     const resolvedStart = Number.isFinite(startAtSeconds) ? Math.max(0, Math.floor(startAtSeconds)) : null;
@@ -160,35 +180,30 @@ function Home() {
       return;
     }
 
-    if (!subscription?.planType || subscription?.status === 'PENDING') {
-      navigate('/plans');
-      return;
-    }
+    const effectivePlan =
+      subscription?.status === 'ACTIVE'
+        ? subscription.planType
+        : entitlements?.subscriptionPlan || user?.subscriptionPlan || 'BASIC';
+    const movieUnlocked = hasMovieUnlock(canonicalMovie.id);
 
-    if (subscription?.status === 'EXPIRED') {
-      alert(t('homePage.subscriptionExpired'));
-      return;
-    }
-
-    if (!canPlanAccess(subscription.planType, canonicalMovie.requiredSubscription)) {
-      alert(t('homePage.upgradeRequired'));
-      navigate('/plans');
+    if (!movieUnlocked && !canPlanAccess(effectivePlan, canonicalMovie.requiredSubscription)) {
+      navigate(`/payment?movieId=${encodeURIComponent(canonicalMovie.id)}`);
       return;
     }
 
     setRequestedStartAtSeconds(resolvedStart);
     saveWatchStart(canonicalMovie, resolvedStart ?? 0);
     setSelectedMovie(canonicalMovie);
-  };
+  }, [movies, navigate, user, subscription, entitlements, canPlanAccess, hasMovieUnlock, saveWatchStart]);
 
-  const playMovie = (movie) => {
+  const playMovie = useCallback((movie) => {
     openMoviePlayer(movie, null);
-  };
+  }, [openMoviePlayer]);
 
   useEffect(() => {
     const movieId = searchParams.get('play');
     if (!movieId) return;
-    if (!user || !subscription) return;
+    if (!user) return;
 
     let cancelled = false;
     const requestedTimeRaw = searchParams.get('t');
@@ -211,14 +226,19 @@ function Home() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, movies, user, subscription, navigate]);
-  const handleSelectMovie = (movie) => {
+  }, [searchParams, movies, user, openMoviePlayer, navigate]);
+  const handleSelectMovie = useCallback((movie) => {
     if (!movie?.id) return;
     const canonicalMovie = movies.find((item) => item.id === movie.id) || movie;
     setDetailMovie(canonicalMovie);
-  };
+  }, [movies]);
 
-  const handleProgressChange = (movieId, progress) => {
+  const handlePurchaseMovie = useCallback((movie) => {
+    if (!movie?.id) return;
+    navigate(`/payment?movieId=${encodeURIComponent(movie.id)}`);
+  }, [navigate]);
+
+  const handleProgressChange = useCallback((movieId, progress) => {
     setWatchProgress((current) => {
       const previous = current[movieId];
       if (
@@ -234,27 +254,28 @@ function Home() {
       writeProgressMap(nextMap);
       return nextMap;
     });
-  };
+  }, []);
 
-  const handleSearchChange = (event) => {
+  const handleSearchChange = useCallback((event) => {
     const value = event.target.value;
     startTransition(() => {
       setSearchQuery(value);
     });
-  };
+  }, []);
 
   const filteredMovies = useMemo(
-    () =>
-      movies.filter((movie) => {
-        const value = deferredSearchQuery.trim().toLowerCase();
-        if (!value) return true;
+    () => {
+      const value = deferredSearchQuery.trim().toLowerCase();
+      if (!value) return movies;
 
+      return movies.filter((movie) => {
         return (
           movie.title?.toLowerCase().includes(value) ||
           movie.genre?.toLowerCase().includes(value) ||
           String(movie.year ?? '').includes(value)
         );
-      }),
+      });
+    },
     [movies, deferredSearchQuery]
   );
 
@@ -263,18 +284,19 @@ function Home() {
     [filteredMovies, movies]
   );
   const featuredMovie = activeQueue[0];
-  const featuredTrailerId = extractYouTubeVideoId(featuredMovie?.trailerUrl);
-  const featuredTrailerUrl = featuredMovie?.trailerUrl
-    ? getYouTubeEmbedUrl(featuredMovie.trailerUrl, {
-        autoplay: 1,
-        mute: 1,
-        loop: 1,
-        controls: 0,
-        playlist: featuredTrailerId,
-        rel: 0,
-        playsinline: 1,
-      })
-    : '';
+  const featuredTrailerUrl = useMemo(() => {
+    if (!featuredMovie?.trailerUrl) return '';
+    const featuredTrailerId = extractYouTubeVideoId(featuredMovie.trailerUrl);
+    return getYouTubeEmbedUrl(featuredMovie.trailerUrl, {
+      autoplay: 1,
+      mute: 1,
+      loop: 1,
+      controls: 0,
+      playlist: featuredTrailerId,
+      rel: 0,
+      playsinline: 1,
+    });
+  }, [featuredMovie?.trailerUrl]);
 
   useEffect(() => {
     setVisibleCount(24);
@@ -310,18 +332,19 @@ function Home() {
         }),
     [movies, watchProgress]
   );
+  const continueWatchingIds = useMemo(() => new Set(continueWatching.map((movie) => movie.id)), [continueWatching]);
   const watchedGenres = useMemo(
-    () => continueWatching.map((movie) => movie.genre).filter(Boolean),
+    () => new Set(continueWatching.map((movie) => movie.genre).filter(Boolean)),
     [continueWatching]
   );
   const recommended = useMemo(
     () =>
       activeQueue.filter(
         (movie) =>
-          !continueWatching.some((watched) => watched.id === movie.id) &&
-          (watchedGenres.length === 0 || watchedGenres.includes(movie.genre))
+          !continueWatchingIds.has(movie.id) &&
+          (watchedGenres.size === 0 || watchedGenres.has(movie.genre))
       ),
-    [activeQueue, continueWatching, watchedGenres]
+    [activeQueue, continueWatchingIds, watchedGenres]
   );
   const premiumPicks = useMemo(
     () => activeQueue.filter((movie) => movie.requiredSubscription === 'PREMIUM'),
@@ -513,33 +536,39 @@ function Home() {
         )}
       </section>
 
-      {detailMovie && (
+      <Suspense fallback={null}>
+        {detailMovie && (
           <MovieDetailModal
-              movie={detailMovie}
-              onClose={() => setDetailMovie(null)}
-              onPlay={(m) => {
-                setDetailMovie(null);
-                playMovie(m);
-              }}
-            />
-      )}
+            movie={detailMovie}
+            onClose={() => setDetailMovie(null)}
+            onPurchaseMovie={(movie) => {
+              setDetailMovie(null);
+              handlePurchaseMovie(movie);
+            }}
+            onPlay={(m) => {
+              setDetailMovie(null);
+              playMovie(m);
+            }}
+          />
+        )}
 
-      {selectedMovie && (
-        <MoviePlayer
-          movie={selectedMovie}
-          moviesQueue={activeQueue}
-          startAtSeconds={requestedStartAtSeconds}
-          onClose={() => {
-            setSelectedMovie(null);
-            setRequestedStartAtSeconds(null);
-          }}
-          onPlayMovie={(next) => {
-            setRequestedStartAtSeconds(null);
-            setSelectedMovie(next);
-          }}
-          onProgress={handleProgressChange}
-        />
-      )}
+        {selectedMovie && (
+          <MoviePlayer
+            movie={selectedMovie}
+            moviesQueue={activeQueue}
+            startAtSeconds={requestedStartAtSeconds}
+            onClose={() => {
+              setSelectedMovie(null);
+              setRequestedStartAtSeconds(null);
+            }}
+            onPlayMovie={(next) => {
+              setRequestedStartAtSeconds(null);
+              setSelectedMovie(next);
+            }}
+            onProgress={handleProgressChange}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

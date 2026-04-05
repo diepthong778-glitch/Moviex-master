@@ -1,19 +1,27 @@
 package com.moviex.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
 @Document(collection = "watch_history")
+@CompoundIndex(name = "watch_history_user_movie_watched_idx", def = "{'userId': 1, 'movieId': 1, 'watchedAt': -1}")
 public class WatchHistory {
     @Id
     private String id;
+    @Indexed
     private String userId;
+    @Indexed
     private String movieId;
+    @Indexed
     private String movieTitle;
+    @Indexed
     private Integer progress;
     private Integer duration;
+    @Indexed
     private LocalDateTime watchedAt;
 
     public WatchHistory() {}

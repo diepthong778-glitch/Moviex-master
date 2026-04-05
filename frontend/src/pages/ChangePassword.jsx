@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
 const phoneRegex = /^\+?[0-9]{10,15}$/;
 
 function ChangePassword() {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -29,19 +31,19 @@ function ChangePassword() {
     const errors = {};
 
     if (!form.currentPassword) {
-      errors.currentPassword = 'Current password is required.';
+      errors.currentPassword = t('changePasswordPage.validation.currentPasswordRequired');
     }
 
     if (form.newPassword.length < 8) {
-      errors.newPassword = 'New password must be at least 8 characters.';
+      errors.newPassword = t('changePasswordPage.validation.newPasswordMin');
     }
 
     if (form.newPassword !== form.confirmNewPassword) {
-      errors.confirmNewPassword = 'New passwords do not match.';
+      errors.confirmNewPassword = t('changePasswordPage.validation.passwordsMismatch');
     }
 
     if (!phoneRegex.test(form.phoneNumber.trim())) {
-      errors.phoneNumber = 'Phone number must be 10 to 15 digits and may start with +.';
+      errors.phoneNumber = t('changePasswordPage.validation.invalidPhone');
     }
 
     setFieldErrors(errors);
@@ -65,14 +67,14 @@ function ChangePassword() {
         confirmNewPassword: form.confirmNewPassword,
         phoneNumber: form.phoneNumber.trim(),
       });
-      setSuccess(data.message || 'Password changed successfully.');
+      setSuccess(data.message || t('changePasswordPage.success'));
       setTimeout(() => {
         logout();
         navigate('/login');
       }, 1200);
     } catch (err) {
       setFieldErrors(err.response?.data?.errors || {});
-      setError(err.response?.data?.message || err.message || 'Unable to change password.');
+      setError(err.response?.data?.message || err.message || t('changePasswordPage.failed'));
     } finally {
       setLoading(false);
     }
@@ -95,34 +97,34 @@ function ChangePassword() {
   return (
     <div className="section" style={{ paddingTop: '120px', minHeight: '80vh', display: 'flex', justifyContent: 'center' }}>
       <div style={{ maxWidth: '440px', width: '100%', background: 'var(--bg-card)', padding: '40px', borderRadius: 'var(--radius-lg)' }}>
-        <h2 style={{ marginBottom: '24px', textAlign: 'center' }}>Change Password</h2>
+        <h2 style={{ marginBottom: '24px', textAlign: 'center' }}>{t('changePasswordPage.title')}</h2>
 
         {error && <div style={{ color: 'var(--accent-secondary)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
         {success && <div style={{ color: '#4caf50', marginBottom: '16px', fontSize: '14px' }}>{success}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Current Password</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('changePasswordPage.currentPassword')}</label>
             <input type="password" name="currentPassword" value={form.currentPassword} onChange={handleChange} required style={inputStyle} />
             {renderFieldError('currentPassword')}
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>New Password</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('changePasswordPage.newPassword')}</label>
             <input type="password" name="newPassword" value={form.newPassword} onChange={handleChange} required style={inputStyle} />
             {renderFieldError('newPassword')}
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Confirm New Password</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('changePasswordPage.confirmNewPassword')}</label>
             <input type="password" name="confirmNewPassword" value={form.confirmNewPassword} onChange={handleChange} required style={inputStyle} />
             {renderFieldError('confirmNewPassword')}
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Phone Number</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('common.phoneNumber')}</label>
             <input type="tel" name="phoneNumber" value={form.phoneNumber} onChange={handleChange} required style={inputStyle} />
             {renderFieldError('phoneNumber')}
           </div>
           <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={loading}>
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? t('changePasswordPage.updating') : t('changePasswordPage.submit')}
           </button>
         </form>
       </div>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders } from '../utils/api';
 
 function History() {
+  const { t } = useTranslation();
   const { getToken } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ function History() {
 
         setHistory(response.data || []);
       } catch (err) {
-        setError('Failed to load watch history.');
+        setError(t('historyPage.loadFailed'));
       } finally {
         setLoading(false);
       }
@@ -34,18 +36,18 @@ function History() {
     <div className="page-shell">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Watch History</h2>
-          <p className="page-subtitle">Recently watched movies and progress</p>
+          <h2 className="page-title">{t('historyPage.title')}</h2>
+          <p className="page-subtitle">{t('historyPage.subtitle')}</p>
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading history...</p>}
+      {loading && <p className="muted-text">{t('historyPage.loading')}</p>}
       {error && <p className="error-text">{error}</p>}
 
       {!loading && !error && history.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">⌛</div>
-          <h3 className="empty-title">No watch history yet</h3>
+          <h3 className="empty-title">{t('historyPage.empty')}</h3>
         </div>
       )}
 
@@ -54,10 +56,10 @@ function History() {
           <div className="history-item" key={`${item.movieId}-${item.updatedAt}`}>
             <div>
               <h3>{item.movieTitle}</h3>
-              <p className="muted-text">Movie ID: {item.movieId}</p>
+              <p className="muted-text">{t('historyPage.movieId', { movieId: item.movieId })}</p>
             </div>
             <div className="history-meta">
-              <span>{item.watchTime} min watched</span>
+              <span>{t('historyPage.minutesWatched', { minutes: item.watchTime })}</span>
               <span>{item.updatedAt ? new Date(item.updatedAt).toLocaleString() : '-'}</span>
             </div>
           </div>

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 function RealtimeActivity() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [error, setError] = useState('');
@@ -12,7 +14,7 @@ function RealtimeActivity() {
         const response = await axios.get('/api/admin/online-users');
         setOnlineUsers(Array.isArray(response.data) ? response.data : []);
       } catch {
-        setError('Failed to load realtime data.');
+        setError(t('realtimeActivityPage.loadFailed'));
       }
     };
 
@@ -33,7 +35,7 @@ function RealtimeActivity() {
     };
 
     socket.onerror = () => {
-      setError('Realtime websocket disconnected.');
+      setError(t('realtimeActivityPage.disconnected'));
     };
 
     return () => socket.close();
@@ -45,8 +47,8 @@ function RealtimeActivity() {
     <div className="page-shell admin-shell">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Realtime Activity</h1>
-          <p className="page-subtitle">Live admin feed: login, logout, watching, subscription activation</p>
+          <h1 className="page-title">{t('realtimeActivityPage.title')}</h1>
+          <p className="page-subtitle">{t('realtimeActivityPage.subtitle')}</p>
         </div>
       </div>
 
@@ -54,25 +56,25 @@ function RealtimeActivity() {
 
       <section className="admin-stats">
         <article className="admin-stat-card">
-          <span className="admin-stat-label">Users Online</span>
+          <span className="admin-stat-label">{t('realtimeActivityPage.usersOnline')}</span>
           <strong className="admin-stat-value">{onlineCount}</strong>
         </article>
       </section>
 
       <section className="account-panel">
         <div className="panel-header">
-          <h2 className="panel-title">Online Users</h2>
+          <h2 className="panel-title">{t('realtimeActivityPage.onlineUsers')}</h2>
         </div>
         <div className="history-list">
-          {onlineUsers.length === 0 && <p className="muted-text">No users online.</p>}
+          {onlineUsers.length === 0 && <p className="muted-text">{t('realtimeActivityPage.noUsersOnline')}</p>}
           {onlineUsers.map((user) => (
             <div key={user.userId} className="history-item">
               <div>
                 <h3>{user.email}</h3>
-                <p className="muted-text">{user.currentlyWatching || 'Idle'}</p>
+                <p className="muted-text">{user.currentlyWatching || t('realtimeActivityPage.idle')}</p>
               </div>
               <div className="history-meta">
-                <span>Last seen: {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString() : '-'}</span>
+                <span>{t('realtimeActivityPage.lastSeen', { value: user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleString() : '-' })}</span>
               </div>
             </div>
           ))}
@@ -81,10 +83,10 @@ function RealtimeActivity() {
 
       <section className="account-panel">
         <div className="panel-header">
-          <h2 className="panel-title">Live Event Feed</h2>
+          <h2 className="panel-title">{t('realtimeActivityPage.liveEventFeed')}</h2>
         </div>
         <div className="history-list">
-          {events.length === 0 && <p className="muted-text">Waiting for events...</p>}
+          {events.length === 0 && <p className="muted-text">{t('realtimeActivityPage.waitingForEvents')}</p>}
           {events.map((event, index) => (
             <div key={`${event.timestamp}-${index}`} className="history-item">
               <div>

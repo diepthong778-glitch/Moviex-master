@@ -1,6 +1,7 @@
 package com.moviex.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "movies")
@@ -8,8 +9,11 @@ public class Movie {
 
     @Id
     private String id;
+    @Indexed
     private String title;
+    @Indexed
     private String genre;
+    @Indexed
     private int year;
     private String description;
     private String videoUrl;

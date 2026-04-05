@@ -9,6 +9,7 @@ const isDirectVideoUrl = (url) => {
 };
 
 const WATCH_PROGRESS_KEY = 'moviex.watch.progress';
+const SUBTITLE_LANGUAGE_STORAGE_KEY = 'moviex.subtitle.language';
 
 const readProgressMap = () => {
   const raw = localStorage.getItem(WATCH_PROGRESS_KEY);
@@ -35,7 +36,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
     () => localStorage.getItem('moviex.subtitle.enabled') !== 'false'
   );
   const [subtitleLanguage, setSubtitleLanguage] = useState(
-    () => localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en'
+    () => localStorage.getItem(SUBTITLE_LANGUAGE_STORAGE_KEY) || localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en'
   );
 
   // All hooks must be declared BEFORE any early returns
@@ -254,8 +255,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
   const handleLanguageChange = (event) => {
     const value = event.target.value;
     setSubtitleLanguage(value);
-    localStorage.setItem('moviex.language', value);
-    i18n.changeLanguage(value);
+    localStorage.setItem(SUBTITLE_LANGUAGE_STORAGE_KEY, value);
   };
 
   return (
@@ -296,7 +296,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
               />
             ) : (
               <div style={{ color: 'var(--text-muted)', padding: '20px' }}>
-                No playable video URL found for this title.
+                {t('movie.noPlayableVideo')}
               </div>
             )}
           </div>
@@ -318,9 +318,11 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
                   <option value="en">EN</option>
                   <option value="vi">VI</option>
                   <option value="ja">JA</option>
+                  <option value="zh">ZH</option>
+                  <option value="ko">KO</option>
                 </select>
                 <button type="button" className="btn btn-outline player-fullscreen-btn" onClick={toggleFullscreen}>
-                  {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                  {isFullscreen ? t('movie.exitFullscreen') : t('movie.fullscreen')}
                 </button>
               </>
             )}

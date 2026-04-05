@@ -2,6 +2,7 @@ package com.moviex.controller;
 
 import com.moviex.model.Movie;
 import com.moviex.repository.MovieRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,12 +22,14 @@ public class AdminMovieController {
     }
 
     @PostMapping
+    @CacheEvict(cacheNames = {"movie-search", "movie-all", "movie-by-id"}, allEntries = true)
     public ResponseEntity<Movie> createMovie(@RequestBody Movie movie) {
         Movie savedMovie = movieRepository.save(movie);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedMovie);
     }
 
     @PutMapping("/{id}")
+    @CacheEvict(cacheNames = {"movie-search", "movie-all", "movie-by-id"}, allEntries = true)
     public ResponseEntity<Movie> updateMovie(@PathVariable String id, @RequestBody Movie movieDetails) {
         Optional<Movie> movieOptional = movieRepository.findById(id);
 
@@ -47,6 +50,7 @@ public class AdminMovieController {
     }
 
     @DeleteMapping("/{id}")
+    @CacheEvict(cacheNames = {"movie-search", "movie-all", "movie-by-id"}, allEntries = true)
     public ResponseEntity<Void> deleteMovie(@PathVariable String id) {
         if (!movieRepository.existsById(id)) {
             return ResponseEntity.notFound().build();

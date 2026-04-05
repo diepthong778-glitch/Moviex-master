@@ -2,97 +2,269 @@ package com.moviex.service;
 
 import com.moviex.dto.PaymentConfirmRequest;
 import com.moviex.dto.PaymentCreateRequest;
-import com.moviex.dto.SubscriptionResponse;
-import com.moviex.model.Payment;
+import com.moviex.dto.PaymentEntitlementsResponse;
+import com.moviex.dto.PaymentTransactionResponse;
+import com.moviex.model.Movie;
 import com.moviex.model.PaymentMethod;
 import com.moviex.model.PaymentStatus;
+import com.moviex.model.PaymentTargetType;
+import com.moviex.model.PaymentTransaction;
 import com.moviex.model.SubscriptionPlan;
 import com.moviex.model.User;
-import com.moviex.repository.PaymentRepository;
+import com.moviex.repository.MovieRepository;
+import com.moviex.repository.PaymentTransactionRepository;
+import com.moviex.repository.UserRepository;
+import com.moviex.service.payment.PaymentProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
+    private static final DateTimeFormatter TXN_DAY_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    private final PaymentRepository paymentRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
     private final CurrentUserService currentUserService;
     private final SubscriptionService subscriptionService;
+    private final MovieRepository movieRepository;
+    private final UserRepository userRepository;
+    private final List<PaymentProvider> paymentProviders;
 
-    public PaymentServiceImpl(PaymentRepository paymentRepository,
+    public PaymentServiceImpl(PaymentTransactionRepository paymentTransactionRepository,
                               CurrentUserService currentUserService,
-                              SubscriptionService subscriptionService) {
-        this.paymentRepository = paymentRepository;
+                              SubscriptionService subscriptionService,
+                              MovieRepository movieRepository,
+                              UserRepository userRepository,
+                              List<PaymentProvider> paymentProviders) {
+        this.paymentTransactionRepository = paymentTransactionRepository;
         this.currentUserService = currentUserService;
         this.subscriptionService = subscriptionService;
+        this.movieRepository = movieRepository;
+        this.userRepository = userRepository;
+        this.paymentProviders = paymentProviders;
     }
 
     @Override
-    public Map<String, Object> createPayment(PaymentCreateRequest request) {
+    public PaymentTransactionResponse createPayment(PaymentCreateRequest request) {
         User currentUser = currentUserService.getCurrentUser();
-        SubscriptionPlan planType = request.getPlanType();
-        if (planType == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "planType is required");
+        TargetDescriptor target = resolveTarget(request);
+
+        PaymentTransaction transaction = new PaymentTransaction();
+        transaction.setTxnCode(generateTxnCode());
+        transaction.setUserId(currentUser.getId());
+        transaction.setAmount(resolveAmount(request, target));
+        transaction.setCurrency(resolveCurrency(request));
+        transaction.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.QR);
+        transaction.setPaymentContent(buildPaymentContent(target, transaction.getTxnCode()));
+        transaction.setPaymentNote("Thanh toan ao MovieX Sandbox. Khong phat sinh tien that.");
+        transaction.setTargetType(target.targetType());
+        transaction.setMovieId(target.movieId());
+        transaction.setPackageId(target.packageId());
+        transaction.setPlanType(target.planType());
+        transaction.setRedirectPath(resolveRedirectPath(request, target));
+        transaction.setCreatedAt(LocalDateTime.now());
+        transaction.setUpdatedAt(LocalDateTime.now());
+
+        PaymentProvider provider = paymentProviders.stream()
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No payment provider configured"));
+
+        PaymentTransaction prepared = provider.initialize(transaction);
+        PaymentTransaction saved = paymentTransactionRepository.save(prepared);
+        return PaymentTransactionResponse.from(saved);
+    }
+
+    @Override
+    public PaymentTransactionResponse getTransactionByTxnCode(String txnCode) {
+        return PaymentTransactionResponse.from(findByTxnCode(txnCode));
+    }
+
+    @Override
+    public PaymentTransactionResponse markPaymentSuccess(PaymentConfirmRequest request) {
+        PaymentTransaction transaction = resolveTransaction(request);
+        if (transaction.getStatus() == PaymentStatus.SUCCESS) {
+            return PaymentTransactionResponse.from(transaction);
+        }
+        if (transaction.getStatus() == PaymentStatus.FAILED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Giao dich da bi huy");
         }
 
-        subscriptionService.createSubscription(currentUser.getId(), planType);
+        transaction.setStatus(PaymentStatus.SUCCESS);
+        transaction.setPaidAt(LocalDateTime.now());
+        transaction.setUpdatedAt(LocalDateTime.now());
+        PaymentTransaction saved = paymentTransactionRepository.save(transaction);
 
-        Payment payment = new Payment();
-        payment.setUserId(currentUser.getId());
-        payment.setPlanType(planType);
-        payment.setAmount(request.getAmount() != null ? request.getAmount() : defaultAmount(planType));
-        payment.setStatus(PaymentStatus.PENDING);
-        payment.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.QR);
+        unlockPurchasedTarget(saved);
+        return PaymentTransactionResponse.from(saved);
+    }
 
-        Payment saved = paymentRepository.save(payment);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("paymentId", saved.getId());
-        response.put("userId", saved.getUserId());
-        response.put("planType", saved.getPlanType());
-        response.put("amount", saved.getAmount());
-        response.put("status", saved.getStatus());
-        response.put("paymentMethod", saved.getPaymentMethod());
-        response.put("createdAt", saved.getCreatedAt());
-        response.put("qrCodeUrl", "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=MOVIEX-" + saved.getId());
+    @Override
+    public PaymentTransactionResponse markPaymentFailed(PaymentConfirmRequest request) {
+        PaymentTransaction transaction = resolveTransaction(request);
+        if (transaction.getStatus() == PaymentStatus.SUCCESS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Giao dich da thanh cong");
+        }
+        if (transaction.getStatus() != PaymentStatus.FAILED) {
+            transaction.setStatus(PaymentStatus.FAILED);
+            transaction.setUpdatedAt(LocalDateTime.now());
+            transaction = paymentTransactionRepository.save(transaction);
+        }
+        return PaymentTransactionResponse.from(transaction);
+    }
+
+    @Override
+    public PaymentEntitlementsResponse getCurrentEntitlements() {
+        User currentUser = currentUserService.getCurrentUser();
+        PaymentEntitlementsResponse response = new PaymentEntitlementsResponse();
+        response.setUserId(currentUser.getId());
+        response.setSubscriptionPlan(currentUser.getSubscriptionPlan() != null ? currentUser.getSubscriptionPlan().name() : SubscriptionPlan.BASIC.name());
+        if (currentUser.getUnlockedMovieIds() == null) {
+            currentUser.setUnlockedMovieIds(new HashSet<>());
+        }
+        response.setUnlockedMovieIds(currentUser.getUnlockedMovieIds().stream().sorted().toList());
         return response;
     }
 
-    @Override
-    public Map<String, Object> markPaymentSuccess(PaymentConfirmRequest request) {
+    private PaymentTransaction resolveTransaction(PaymentConfirmRequest request) {
+        if (request.getTxnCode() != null && !request.getTxnCode().isBlank()) {
+            return findByTxnCode(request.getTxnCode());
+        }
+
         if (request.getPaymentId() == null || request.getPaymentId().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "paymentId is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "txnCode is required");
         }
 
-        User currentUser = currentUserService.getCurrentUser();
-        Payment payment = paymentRepository.findById(request.getPaymentId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
-
-        if (!payment.getUserId().equals(currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to confirm this payment");
-        }
-
-        payment.setStatus(PaymentStatus.SUCCESS);
-        paymentRepository.save(payment);
-
-        SubscriptionResponse subscription = subscriptionService.activateSubscription(currentUser.getId(), payment.getPlanType());
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("paymentId", payment.getId());
-        response.put("status", payment.getStatus());
-        response.put("subscription", subscription);
-        response.put("message", "Payment confirmed and subscription activated");
-        return response;
+        return paymentTransactionRepository.findById(request.getPaymentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment transaction not found"));
     }
 
-    private BigDecimal defaultAmount(SubscriptionPlan planType) {
-        return switch (planType) {
-            case BASIC -> new BigDecimal("5");
-            case STANDARD -> new BigDecimal("10");
-            case PREMIUM -> new BigDecimal("20");
+    private PaymentTransaction findByTxnCode(String txnCode) {
+        if (txnCode == null || txnCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "txnCode is required");
+        }
+
+        return paymentTransactionRepository.findByTxnCode(txnCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment transaction not found"));
+    }
+
+    private void unlockPurchasedTarget(PaymentTransaction transaction) {
+        if (transaction.getTargetType() == PaymentTargetType.PACKAGE) {
+            subscriptionService.activateSubscription(transaction.getUserId(), transaction.getPlanType());
+            return;
+        }
+
+        if (transaction.getMovieId() == null || transaction.getMovieId().isBlank()) {
+            return;
+        }
+
+        User user = userRepository.findById(transaction.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getUnlockedMovieIds() == null) {
+            user.setUnlockedMovieIds(new HashSet<>());
+        }
+        user.getUnlockedMovieIds().add(transaction.getMovieId());
+        userRepository.save(user);
+    }
+
+    private TargetDescriptor resolveTarget(PaymentCreateRequest request) {
+        String movieId = normalize(request.getMovieId());
+        String packageId = normalize(request.getPackageId());
+        SubscriptionPlan planType = request.getPlanType();
+
+        if (movieId != null && (packageId != null || planType != null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chi duoc thanh toan cho phim hoac goi, khong dong thoi ca hai");
+        }
+
+        if (movieId != null) {
+            Movie movie = movieRepository.findById(movieId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movie not found"));
+            return new TargetDescriptor(PaymentTargetType.MOVIE, movie.getId(), null, movie.getRequiredSubscription(), movie.getTitle());
+        }
+
+        SubscriptionPlan resolvedPlan = planType;
+        if (resolvedPlan == null && packageId != null) {
+            try {
+                resolvedPlan = SubscriptionPlan.valueOf(packageId.toUpperCase());
+            } catch (IllegalArgumentException exception) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "packageId is invalid");
+            }
+        }
+        if (resolvedPlan == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "movieId or packageId is required");
+        }
+
+        String resolvedPackageId = packageId != null ? packageId.toUpperCase() : resolvedPlan.name();
+        return new TargetDescriptor(PaymentTargetType.PACKAGE, null, resolvedPackageId, resolvedPlan, resolvedPlan.name());
+    }
+
+    private BigDecimal resolveAmount(PaymentCreateRequest request, TargetDescriptor target) {
+        if (request.getAmount() != null && request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return request.getAmount();
+        }
+
+        if (target.targetType() == PaymentTargetType.PACKAGE) {
+            return switch (target.planType()) {
+                case BASIC -> new BigDecimal("10000");
+                case STANDARD -> new BigDecimal("49000");
+                case PREMIUM -> new BigDecimal("99000");
+            };
+        }
+
+        return switch (target.planType()) {
+            case BASIC -> new BigDecimal("12000");
+            case STANDARD -> new BigDecimal("19000");
+            case PREMIUM -> new BigDecimal("29000");
         };
+    }
+
+    private String resolveCurrency(PaymentCreateRequest request) {
+        String currency = normalize(request.getCurrency());
+        return currency != null ? currency.toUpperCase() : "VND";
+    }
+
+    private String buildPaymentContent(TargetDescriptor target, String txnCode) {
+        if (target.targetType() == PaymentTargetType.MOVIE) {
+            return "MOVIEX MOVIE " + txnCode;
+        }
+        return "MOVIEX PACKAGE " + txnCode;
+    }
+
+    private String resolveRedirectPath(PaymentCreateRequest request, TargetDescriptor target) {
+        String redirectPath = normalize(request.getRedirectPath());
+        if (redirectPath != null) {
+            return redirectPath;
+        }
+        if (target.targetType() == PaymentTargetType.MOVIE && target.movieId() != null) {
+            return "/browse?play=" + target.movieId();
+        }
+        return "/browse";
+    }
+
+    private String generateTxnCode() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
+        return String.format("TXN_%s_%s", LocalDate.now().format(TXN_DAY_FORMAT), suffix);
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private record TargetDescriptor(
+            PaymentTargetType targetType,
+            String movieId,
+            String packageId,
+            SubscriptionPlan planType,
+            String displayName
+    ) {
     }
 }

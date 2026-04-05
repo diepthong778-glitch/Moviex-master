@@ -1,6 +1,7 @@
 package com.moviex.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
@@ -10,9 +11,13 @@ import java.time.LocalDateTime;
 public class Subscription {
     @Id
     private String id;
+    @Indexed
     private String userId;
+    @Indexed
     private SubscriptionPlan planType;
+    @Indexed
     private LocalDate startDate;
+    @Indexed
     private LocalDate endDate;
     private Long remainingDays = 0L;
     private SubscriptionStatus status = SubscriptionStatus.PENDING;

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders, cachedGet, invalidateApiCache } from '../utils/api';
 
 function Watchlist() {
+  const { t } = useTranslation();
   const { getToken } = useAuth();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ function Watchlist() {
 
       setMovies(data || []);
     } catch (err) {
-      setError('Failed to load watchlist.');
+      setError(t('watchlistPage.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ function Watchlist() {
       setMovies(Array.isArray(response.data) ? response.data : []);
       invalidateApiCache('/api/watchlist');
     } catch (err) {
-      setError('Failed to remove movie from watchlist.');
+      setError(t('watchlistPage.removeFailed'));
     }
   };
 
@@ -50,18 +52,18 @@ function Watchlist() {
     <div className="page-shell">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Watchlist</h2>
-          <p className="page-subtitle">Saved movies for later</p>
+          <h2 className="page-title">{t('watchlistPage.title')}</h2>
+          <p className="page-subtitle">{t('watchlistPage.subtitle')}</p>
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading watchlist...</p>}
+      {loading && <p className="muted-text">{t('watchlistPage.loading')}</p>}
       {error && <p className="error-text">{error}</p>}
 
       {!loading && !error && movies.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">🎬</div>
-          <h3 className="empty-title">Your watchlist is empty</h3>
+          <h3 className="empty-title">{t('watchlistPage.empty')}</h3>
         </div>
       )}
 
@@ -72,7 +74,7 @@ function Watchlist() {
             <p>{movie.genre}</p>
             <p>{movie.year}</p>
             <button className="btn btn-outline" onClick={() => removeMovie(movie.id)}>
-              Remove
+              {t('historyCard.remove')}
             </button>
           </div>
         ))}

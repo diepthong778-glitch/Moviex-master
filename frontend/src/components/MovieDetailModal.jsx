@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { authHeaders } from '../utils/api';
 import { getYouTubeEmbedUrl } from '../utils/youtube';
 
-function MovieDetailModal({ movie, onClose, onPlay }) {
+function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
   const { getToken, user } = useAuth();
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
@@ -73,6 +73,11 @@ function MovieDetailModal({ movie, onClose, onPlay }) {
           <button className="btn btn-primary" onClick={() => onPlay(movie)}>
             {t('movie.playNow')}
           </button>
+          {movie.requiredSubscription !== 'BASIC' && typeof onPurchaseMovie === 'function' && (
+            <button className="btn btn-primary" onClick={() => onPurchaseMovie(movie)}>
+              {t('plansPage.payWithSandboxQr')}
+            </button>
+          )}
           <button className="btn btn-outline" onClick={addToWatchlist} disabled={saving}>
             {saving ? t('movie.saving') : t('movie.addToWatchlist')}
           </button>

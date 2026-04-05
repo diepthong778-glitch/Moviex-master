@@ -1,27 +1,10 @@
-import { getYouTubeThumbnail } from '../utils/youtube';
-
-const FALLBACK_POSTER = '/posters/p1.svg';
-
-const normalizeUrl = (value) => {
-  if (!value) return '';
-  if (value.startsWith('http')) return value;
-  if (value.startsWith('/')) return value;
-  return `/${value}`;
-};
-
-const resolvePoster = (item) => {
-  const candidate =
-    item?.posterUrl ||
-    item?.backdropUrl ||
-    item?.thumbnail ||
-    item?.image ||
-    getYouTubeThumbnail(item?.trailerUrl);
-  return normalizeUrl(candidate) || FALLBACK_POSTER;
-};
+import { useTranslation } from 'react-i18next';
+import { resolvePosterUrl, IMAGE_FALLBACK } from '../utils/media';
 
 function HistoryCard({ item, onContinue, onRestart, onRemove }) {
-  const title = item?.title || item?.movieTitle || 'Unknown';
-  const poster = resolvePoster(item);
+  const { t } = useTranslation();
+  const title = item?.title || item?.movieTitle || t('sharedUi.unknown');
+  const poster = resolvePosterUrl(item);
   const progressSeconds = Number.isFinite(item?.lastWatchTime)
     ? item.lastWatchTime
     : Number.isFinite(item?.progress)
@@ -45,7 +28,7 @@ function HistoryCard({ item, onContinue, onRestart, onRemove }) {
           loading="lazy"
           className="h-full w-full object-cover"
           onError={(e) => {
-            e.currentTarget.src = FALLBACK_POSTER;
+            e.currentTarget.src = IMAGE_FALLBACK;
           }}
         />
       </div>
@@ -53,7 +36,7 @@ function HistoryCard({ item, onContinue, onRestart, onRemove }) {
         <div>
           <h4 className="text-sm font-semibold text-white">{title}</h4>
           {lastWatchedLabel && (
-            <p className="text-xs text-slate">Last watched: {lastWatchedLabel}</p>
+            <p className="text-xs text-slate">{t('historyCard.lastWatched', { value: lastWatchedLabel })}</p>
           )}
         </div>
         {progressPercent > 0 && (
@@ -61,7 +44,7 @@ function HistoryCard({ item, onContinue, onRestart, onRemove }) {
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
               <div className="h-full bg-ember" style={{ width: `${progressPercent}%` }} />
             </div>
-            <p className="text-[11px] text-slate">{progressPercent}% watched</p>
+            <p className="text-[11px] text-slate">{t('historyCard.watchedPercent', { percent: progressPercent })}</p>
           </div>
         )}
         <div className="flex flex-wrap gap-2">
@@ -70,21 +53,21 @@ function HistoryCard({ item, onContinue, onRestart, onRemove }) {
             className="rounded-full bg-ember px-4 py-2 text-xs font-semibold text-white transition hover:translate-y-[-1px]"
             onClick={onContinue}
           >
-            Continue Watching
+            {t('historyCard.continueWatching')}
           </button>
           <button
             type="button"
             className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
             onClick={onRestart}
           >
-            Watch Again
+            {t('historyCard.watchAgain')}
           </button>
           <button
             type="button"
             className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-emberSoft transition hover:bg-white/10"
             onClick={onRemove}
           >
-            Remove
+            {t('historyCard.remove')}
           </button>
         </div>
       </div>

@@ -156,7 +156,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Scheduled(cron = "0 */30 * * * *")
     public void checkExpiration() {
         LocalDate today = LocalDate.now();
-        List<Subscription> subscriptions = subscriptionRepository.findAll();
+        List<Subscription> subscriptions = subscriptionRepository.findByStatus(SubscriptionStatus.ACTIVE);
+        subscriptions.addAll(subscriptionRepository.findByStatus(SubscriptionStatus.PENDING));
         for (Subscription subscription : subscriptions) {
             SubscriptionStatus nextStatus = subscription.getStatus();
             Long remaining = subscription.getRemainingDays() != null ? subscription.getRemainingDays() : 0L;

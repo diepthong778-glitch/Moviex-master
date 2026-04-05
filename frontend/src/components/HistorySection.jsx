@@ -1,12 +1,14 @@
+import { useTranslation } from 'react-i18next';
 import HistoryCard from './HistoryCard';
 
 function HistorySection({ items = [], loading, onContinue, onRestart, onRemove, title, countLabel, emptyLabel }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded-3xl border border-white/10 bg-carbon/70 p-6 shadow-card">
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-display font-bold text-white">{title}</h3>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate">Recently watched</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate">{t('historySection.subtitle')}</p>
         </div>
         <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate">
           {countLabel}
@@ -14,7 +16,7 @@ function HistorySection({ items = [], loading, onContinue, onRestart, onRemove, 
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate">Loading history…</p>
+        <p className="text-sm text-slate">{t('historySection.loading')}</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-slate">{emptyLabel}</p>
       ) : (

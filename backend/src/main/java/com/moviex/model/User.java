@@ -1,6 +1,7 @@
 package com.moviex.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -12,7 +13,9 @@ import java.util.Set;
 public class User {
     @Id
     private String id;
+    @Indexed
     private String username;
+    @Indexed
     private String email;
     private String phoneNumber;
     private Gender gender;
@@ -23,6 +26,7 @@ public class User {
     private String verificationToken;
     private SubscriptionPlan subscriptionPlan = SubscriptionPlan.BASIC;
     private Set<String> watchlist = new HashSet<>();
+    private Set<String> unlockedMovieIds = new HashSet<>();
     private String language = "en";
     private boolean darkMode = false;
     private boolean subtitle = true;
@@ -56,6 +60,8 @@ public class User {
     public void setSubscriptionPlan(SubscriptionPlan subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
     public Set<String> getWatchlist() { return watchlist; }
     public void setWatchlist(Set<String> watchlist) { this.watchlist = watchlist; }
+    public Set<String> getUnlockedMovieIds() { return unlockedMovieIds; }
+    public void setUnlockedMovieIds(Set<String> unlockedMovieIds) { this.unlockedMovieIds = unlockedMovieIds; }
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
     public boolean isDarkMode() { return darkMode; }

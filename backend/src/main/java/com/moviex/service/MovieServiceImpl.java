@@ -3,6 +3,7 @@ package com.moviex.service;
 import com.moviex.dto.MovieDto;
 import com.moviex.model.Movie;
 import com.moviex.repository.MovieRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,18 +22,21 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @Cacheable(cacheNames = "movie-search", key = "T(String).format('%s|%s|%s|%s', #title == null ? '' : #title.trim().toLowerCase(), #genre == null ? '' : #genre.trim().toLowerCase(), #year == null ? '' : #year, #pageable)")
     public Page<MovieDto> searchMovies(String title, String genre, Integer year, Pageable pageable) {
         Page<Movie> movies = movieRepository.searchMovies(title, genre, year, pageable);
         return movies.map(this::convertToDto);
     }
 
     @Override
+    @Cacheable(cacheNames = "movie-all")
     public List<MovieDto> getAllMovies() {
         List<Movie> movies = movieRepository.findAll();
         return movies.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
     @Override
+    @Cacheable(cacheNames = "movie-by-id", key = "#id")
     public Optional<MovieDto> getMovieById(String id) {
         Optional<Movie> movie = movieRepository.findById(id);
         return movie.map(this::convertToDto);

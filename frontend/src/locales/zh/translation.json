@@ -1,0 +1,562 @@
+{
+  "common": {
+    "home": "首页",
+    "profile": "个人资料",
+    "settings": "设置",
+    "watchlist": "稍后观看",
+    "history": "观看记录",
+    "changePassword": "修改密码",
+    "subscription": "订阅",
+    "logout": "退出登录",
+    "login": "登录",
+    "signUp": "注册",
+    "plans": "套餐",
+    "forgotPassword": "忘记密码？",
+    "saveSettings": "保存设置",
+    "loading": "加载中...",
+    "previous": "上一页",
+    "next": "下一页",
+    "page": "页",
+    "tryAgain": "重试",
+    "close": "关闭",
+    "user": "用户",
+    "language": "语言",
+    "darkMode": "深色模式",
+    "subtitles": "字幕",
+    "email": "邮箱",
+    "password": "密码",
+    "phoneNumber": "手机号",
+    "username": "用户名",
+    "gender": "性别",
+    "confirmPassword": "确认密码",
+    "male": "男",
+    "female": "女",
+    "lgbt": "LGBT",
+    "english": "英语",
+    "vietnamese": "越南语",
+    "japanese": "日语",
+    "dark": "深色",
+    "light": "浅色",
+    "account": "账号",
+    "saved": "已保存 {{count}} 项",
+    "items": "{{count}} 项",
+    "minutesShort": "{{count}} 分钟",
+    "untitledMovie": "未命名影片",
+    "unknownMovie": "未知影片",
+    "plansLabel": {
+      "BASIC": "基础",
+      "STANDARD": "标准",
+      "PREMIUM": "高级",
+      "NONE": "无"
+    },
+    "statusLabel": {
+      "ACTIVE": "生效中",
+      "INACTIVE": "未生效",
+      "PENDING": "待处理",
+      "EXPIRED": "已过期"
+    }
+  },
+  "navbar": {
+    "adminDashboard": "管理后台",
+    "adminConfig": "管理配置",
+    "welcomeUser": "你好，{{username}}",
+    "welcomeSubtitle": "欢迎来到 Moviex"
+  },
+  "loginPage": {
+    "title": "登录",
+    "continue": "继续",
+    "checking": "正在检查...",
+    "loggingIn": "正在登录...",
+    "newToMoviex": "新用户？",
+    "signUpNow": "立即注册。",
+    "alreadySignedIn": "已经登录？",
+    "changeYourPassword": "修改你的密码。",
+    "changeEmail": "更换邮箱",
+    "loginFailed": "登录失败",
+    "validation": {
+      "requiredEmail": "邮箱为必填项。",
+      "noAccount": "该邮箱未找到账号。"
+    }
+  },
+  "registerPage": {
+    "title": "注册",
+    "signingUp": "注册中...",
+    "alreadyHaveAccount": "已有账号？",
+    "signInNow": "立即登录。",
+    "selectGender": "选择性别",
+    "registrationFailed": "注册失败",
+    "validation": {
+      "usernameRequired": "用户名为必填项。",
+      "invalidEmail": "请输入有效邮箱地址。",
+      "invalidPhone": "手机号需为 10 到 15 位数字，可使用 + 开头。",
+      "genderRequired": "请选择性别。",
+      "passwordMin": "密码至少需要 8 个字符。",
+      "passwordsMismatch": "两次输入的密码不一致。"
+    }
+  },
+  "settingsPage": {
+    "title": "设置",
+    "subtitle": "无障碍与播放偏好",
+    "loading": "正在加载设置...",
+    "saving": "正在保存...",
+    "saved": "设置已保存。",
+    "saveFailed": "保存设置失败。"
+  },
+  "profilePage": {
+    "badge": "个人资料",
+    "title": "管理你的 Moviex 账号",
+    "subtitle": "所有信息集中在一个页面：账号信息、订阅状态、收藏影片、观看记录和设置。",
+    "userInfo": "用户信息",
+    "subscription": "订阅",
+    "loadingSubscription": "正在加载订阅...",
+    "plan": "套餐",
+    "status": "状态",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "loadingWatchlist": "正在加载收藏...",
+    "noSavedMovies": "还没有收藏影片。",
+    "loadingHistory": "正在加载观看记录...",
+    "watchTime": "观看时长：{{minutes}} 分钟",
+    "noWatchHistory": "还没有观看记录。",
+    "settings": "设置",
+    "uiOnly": "仅界面",
+    "currentMode": "当前模式",
+    "selectedLanguage": "已选语言"
+  },
+  "homePage": {
+    "nowStreaming": "正在热播",
+    "featuredAccent": "一键观看",
+    "defaultTitleStart": "海量电影，",
+    "defaultAccent": "无限娱乐",
+    "defaultDescription": "以高画质发现并观看你喜爱的电影。从大片到独立佳作，尽在一处。",
+    "featuredAccess": "{{genre}} | {{year}} | {{plan}} 可观看",
+    "playFeatured": "播放精选",
+    "browseMovies": "浏览电影",
+    "discover": "发现",
+    "discoverSubtitle": "悬停预览，点击查看详情",
+    "searchPlaceholder": "按标题、类型或年份搜索电影...",
+    "searchAria": "搜索电影",
+    "loadingMovies": "正在加载电影...",
+    "failedToLoadMovies": "加载电影失败",
+    "noMoviesFound": "未找到电影",
+    "continueWatching": "继续观看",
+    "continueWatchingSubtitle": "从你上次的位置继续",
+    "recommended": "为你推荐",
+    "recommendedSubtitle": "基于你最近的观看活动",
+    "premiumPicks": "高级精选",
+    "premiumPicksSubtitle": "为高级会员准备的优选片库",
+    "standardCollection": "标准片库",
+    "standardCollectionSubtitle": "标准套餐可观看的热门电影",
+    "freeToStart": "免费起步",
+    "freeToStartSubtitle": "无订阅门槛，从这里开始",
+    "exploreMore": "探索更多",
+    "exploreMoreSubtitle": "滚动时持续加载内容",
+    "scrollHint": "向下滚动以加载更多影片...",
+    "noMatchingMovies": "未找到匹配的电影",
+    "tryDifferentSearch": "请尝试其他标题、类型或年份。",
+    "subscriptionExpired": "订阅已过期",
+    "upgradeRequired": "需要升级套餐"
+  },
+  "movie": {
+    "openDetailsFor": "打开 {{title}} 的详情",
+    "playMovie": "播放 {{title}}",
+    "watchedPercent": "已观看 {{percent}}%",
+    "loginRequiredToSaveWatchlist": "请先登录再加入收藏。",
+    "addedToWatchlist": "已加入收藏。",
+    "couldNotAddToWatchlist": "无法加入收藏。",
+    "closeDetails": "关闭详情",
+    "playNow": "立即播放",
+    "saving": "保存中...",
+    "addToWatchlist": "加入收藏",
+    "noSynopsis": "该影片暂无简介。",
+    "episodeList": "剧集列表",
+    "episodeTitle": "第 {{number}} 集",
+    "resumeAt": "从 {{seconds}} 秒继续播放",
+    "closePlayer": "关闭播放器",
+    "browserDoesNotSupportVideo": "你的浏览器不支持视频播放。",
+    "subtitlesOn": "字幕：开",
+    "subtitlesOff": "字幕：关",
+    "subtitleLanguage": "字幕语言",
+    "subtitleTrackLabel": "{{language}} 字幕",
+    "noPlayableVideo": "未找到该内容可播放的视频地址。",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "nextMovie": "下一部：{{title}}",
+    "upNext": "即将播放"
+  },
+  "plansPage": {
+    "badge": "观影套餐",
+    "title": "选择合适的虚拟支付套餐",
+    "subtitle": "下方价格均为 MovieX Sandbox 虚拟 VND，不会产生真实支付。",
+    "payWithSandboxQr": "使用虚拟二维码支付",
+    "plans": {
+      "BASIC": {
+        "name": "基础套餐",
+        "description": "适合以较低虚拟成本快速开始使用 MovieX。",
+        "features": ["基础片库", "1 台设备", "HD 画质"]
+      },
+      "STANDARD": {
+        "name": "标准套餐",
+        "description": "扩展可观看内容，并在更多设备上获得更好体验。",
+        "features": ["BASIC + STANDARD 片库", "2 台设备", "优先支持"]
+      },
+      "PREMIUM": {
+        "name": "高级套餐",
+        "description": "解锁全部 MovieX 内容，获得最佳观影体验。",
+        "features": ["全部内容可观看", "4 台设备", "最高画质"]
+      }
+    }
+  },
+  "sharedUi": {
+    "unknown": "未知",
+    "untitled": "未命名"
+  },
+  "historyCard": {
+    "lastWatched": "上次观看：{{value}}",
+    "watchedPercent": "已观看 {{percent}}%",
+    "continueWatching": "继续观看",
+    "watchAgain": "重新观看",
+    "remove": "移除"
+  },
+  "historySection": {
+    "subtitle": "最近观看",
+    "loading": "正在加载观看记录..."
+  },
+  "watchlistSection": {
+    "subtitle": "保存以稍后观看",
+    "loading": "正在加载收藏列表...",
+    "watchNow": "立即观看",
+    "readyToStream": "可立即播放"
+  },
+  "movieSearch": {
+    "fetchFailed": "无法获取电影列表，请重试。",
+    "placeholder": "搜索电影...",
+    "searching": "搜索中...",
+    "noResults": "未找到电影。"
+  },
+  "movieRow": {
+    "viewAll": "查看全部",
+    "posterAlt": "电影海报",
+    "nowStreaming": "正在上映"
+  },
+  "watchlistPage": {
+    "title": "收藏列表",
+    "subtitle": "已保存以便稍后观看的电影",
+    "loading": "正在加载收藏列表...",
+    "loadFailed": "无法加载收藏列表。",
+    "removeFailed": "无法从收藏列表中移除电影。",
+    "empty": "你的收藏列表为空"
+  },
+  "changePasswordPage": {
+    "title": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码",
+    "updating": "更新中...",
+    "submit": "更新密码",
+    "success": "密码修改成功。",
+    "failed": "无法修改密码。",
+    "validation": {
+      "currentPasswordRequired": "当前密码为必填项。",
+      "newPasswordMin": "新密码至少需要 8 个字符。",
+      "passwordsMismatch": "两次输入的新密码不一致。",
+      "invalidPhone": "手机号需为 10 到 15 位数字，可使用 + 开头。"
+    }
+  },
+  "forgotPasswordPage": {
+    "title": "忘记密码",
+    "subtitle": "输入你的邮箱，Moviex 会发送临时密码。",
+    "sending": "发送中...",
+    "submit": "发送临时密码",
+    "remembered": "想起来了？",
+    "backToLogin": "返回登录。",
+    "success": "如果账号存在，临时密码已发送。",
+    "failed": "无法重置密码。",
+    "validation": {
+      "invalidEmail": "请输入有效的邮箱地址。"
+    }
+  },
+  "historyPage": {
+    "title": "观看记录",
+    "subtitle": "最近观看的电影和进度",
+    "loading": "正在加载观看记录...",
+    "loadFailed": "无法加载观看记录。",
+    "empty": "暂无观看记录",
+    "movieId": "电影 ID：{{movieId}}",
+    "minutesWatched": "已观看 {{minutes}} 分钟"
+  },
+  "subscriptionPage": {
+    "title": "我的订阅",
+    "subtitle": "管理套餐和到期时间",
+    "loading": "正在加载订阅...",
+    "loadFailed": "无法加载订阅信息。",
+    "currentPlan": "当前套餐",
+    "remainingDays": "剩余天数",
+    "expirationDate": "到期日期",
+    "status": "状态",
+    "upgradePlan": "升级套餐"
+  },
+  "userManagementPage": {
+    "title": "用户管理",
+    "subtitle": "包含套餐、状态和活动的用户表格",
+    "loading": "正在加载用户...",
+    "loadFailed": "无法加载用户列表。",
+    "columns": {
+      "email": "邮箱",
+      "role": "角色",
+      "plan": "套餐",
+      "status": "状态",
+      "currentlyWatching": "当前观看",
+      "lastLogin": "最后登录"
+    }
+  },
+  "adminDashboardPage": {
+    "title": "管理后台",
+    "subtitle": "系统概览与实时平台状态",
+    "loadFailed": "无法加载管理后台数据。",
+    "totalUsers": "用户总数",
+    "activeSubscriptions": "有效订阅",
+    "onlineUsers": "在线用户",
+    "usersByPlan": "按套餐统计用户",
+    "openUserManagement": "打开用户管理",
+    "openRealtimeActivity": "打开实时活动",
+    "openMovieConfig": "打开影片配置"
+  },
+  "realtimeActivityPage": {
+    "title": "实时活动",
+    "subtitle": "管理员实时流：登录、登出、观看、订阅激活",
+    "loadFailed": "无法加载实时数据。",
+    "disconnected": "实时 WebSocket 已断开。",
+    "usersOnline": "在线用户",
+    "onlineUsers": "当前在线用户",
+    "noUsersOnline": "暂无在线用户。",
+    "idle": "空闲",
+    "lastSeen": "最后在线：{{value}}",
+    "liveEventFeed": "实时事件流",
+    "waitingForEvents": "正在等待事件..."
+  },
+  "paymentQrCard": {
+    "badge": "QR MovieX Sandbox",
+    "title": "扫描二维码打开虚拟支付页面",
+    "qrAlt": "交易二维码 {{txnCode}}",
+    "virtualAmount": "虚拟金额",
+    "txnCode": "交易编号",
+    "status": "状态",
+    "content": "内容",
+    "receiver": "收款人",
+    "accountNumber": "账号",
+    "openSandbox": "打开虚拟支付页面",
+    "copied": "链接已复制",
+    "copy": "复制二维码链接"
+  },
+  "paymentPage": {
+    "badge": "MovieX Payment Sandbox",
+    "title": "使用虚拟资金模拟二维码支付",
+    "subtitle": "该二维码只会打开 MovieX 内部 sandbox 支付页面，不会连接真实银行，也不会产生真实金额。",
+    "movieNotFound": "未找到用于虚拟支付的电影。",
+    "reloadFailed": "无法重新加载已生成的二维码交易。",
+    "movieSubtitle": "单片购买 {{title}}",
+    "genre": "类型：{{value}}",
+    "year": "年份：{{value}}",
+    "requiredPlan": "所需套餐：{{value}}",
+    "updating": "更新中",
+    "planSubtitle": "开通虚拟观影套餐",
+    "selectTarget": "生成支付二维码前，请先选择电影或套餐。",
+    "createFailed": "无法创建虚拟支付交易，请重试。",
+    "step1": "步骤 1",
+    "paymentTargetInfo": "支付目标信息",
+    "loadingTarget": "正在加载内容信息...",
+    "chooseTargetFirst": "请先选择要支付的套餐或电影。",
+    "creatingQr": "正在生成二维码...",
+    "regenerateQr": "重新生成虚拟支付二维码",
+    "createQr": "生成虚拟支付二维码",
+    "viewPlans": "查看 MovieX 套餐",
+    "step2": "步骤 2",
+    "scanGuide": "二维码扫描说明",
+    "guide1": "打开手机相机或普通二维码扫描应用。",
+    "guide2": "扫描二维码后在浏览器中打开 MovieX sandbox 支付页面。",
+    "guide3": "在 sandbox 页面点击确认虚拟支付以解锁内容。"
+  },
+  "paymentSandboxPage": {
+    "bankLabel": "MovieX Sandbox 模拟银行",
+    "title": "确认虚拟支付",
+    "notFound": "未找到该虚拟支付交易。",
+    "confirmFailed": "无法确认虚拟支付，请重试。",
+    "cancelFailed": "无法取消该交易。",
+    "virtualAmount": "虚拟金额",
+    "receiver": "收款人",
+    "accountNumber": "账号",
+    "bank": "银行",
+    "transferContent": "转账内容",
+    "txnCode": "交易编号",
+    "note": "备注",
+    "successAlready": "该交易已经支付成功",
+    "viewSuccess": "查看成功页面",
+    "cancelledTitle": "交易已取消",
+    "cancelledCopy": "在虚拟支付成功之前，MovieX 会保持访问锁定。",
+    "processing": "处理中...",
+    "confirm": "确认虚拟支付",
+    "cancel": "取消交易"
+  },
+  "paymentSuccessPage": {
+    "loadFailed": "无法加载虚拟支付结果。",
+    "loading": "正在加载虚拟支付结果...",
+    "successTitle": "支付成功",
+    "failedTitle": "支付失败",
+    "successCopy": "MovieX 已记录该虚拟交易。系统将自动跳转回观看页面。",
+    "failedCopy": "交易未成功完成，观影权限仍保持锁定。",
+    "txnCode": "交易编号",
+    "amount": "金额",
+    "content": "内容",
+    "destination": "跳转目标",
+    "redirectCountdown": "{{count}} 秒后自动跳转...",
+    "backToMovie": "立即前往观看页面",
+    "returnToMoviex": "返回 MovieX"
+  },
+  "landingPage": {
+    "nav": {
+      "movies": "影片",
+      "pricing": "价格",
+      "faq": "常见问题"
+    },
+    "eyebrow": "重新定义电影流媒体体验",
+    "heroTitle": "你的私人影院，按每种心情精选。",
+    "heroDescription": "观看获奖影片、高级剧集和精选合集，享受沉浸式画面与声音。",
+    "featureBadges": {
+      "quality": "4K HDR",
+      "audio": "杜比全景声",
+      "offline": "离线播放"
+    },
+    "startWithEmail": "从邮箱开始",
+    "emailPlaceholder": "邮箱地址",
+    "checking": "检查中...",
+    "getStarted": "开始",
+    "signIn": "登录",
+    "signInTitle": "登录",
+    "changeEmail": "更改邮箱",
+    "signingIn": "登录中...",
+    "createAccountTitle": "创建账号",
+    "phonePlaceholder": "+84901234567",
+    "selectGender": "选择性别",
+    "passwordPlaceholder": "密码（至少 8 个字符）",
+    "creating": "创建中...",
+    "createAccountButton": "创建账号",
+    "checkEmail": "请检查你的邮箱",
+    "registeredMessage": "已注册。请先验证邮箱，然后登录。",
+    "verifiedSignIn": "我已验证 - 登录",
+    "useDifferentEmail": "使用其他邮箱",
+    "featuredPreview": "精选预览",
+    "featuredDescriptionFallback": "来自 Moviex 资料库的精选亮点。专为影院级家庭体验打造的高品质画面。",
+    "exploreLibrary": "浏览资料库",
+    "pricing": {
+      "label": "价格",
+      "title": "适用于每块屏幕的套餐",
+      "subtitle": "随时升级，随时暂停，随处观看。"
+    },
+    "planDescriptions": {
+      "BASIC": "预告片、预览和有限合集。",
+      "STANDARD": "大部分内容支持 HD 播放。",
+      "PREMIUM": "完整访问、4K HDR、离线下载。"
+    },
+    "choosePlanCta": "选择 {{plan}}",
+    "faq": {
+      "label": "常见问题",
+      "title": "问题解答",
+      "items": {
+        "cancel": {
+          "q": "我可以随时取消吗？",
+          "a": "可以。你可以在个人资料中几秒内管理或取消套餐。"
+        },
+        "downloads": {
+          "q": "支持离线下载吗？",
+          "a": "Premium 套餐在受支持的设备上包含离线访问。"
+        },
+        "devices": {
+          "q": "支持哪些设备？",
+          "a": "可在网页、手机、智能电视和投屏设备上观看。"
+        },
+        "freeTier": {
+          "q": "有免费层吗？",
+          "a": "在订阅之前可以先体验免费合集。"
+        }
+      }
+    },
+    "footerDescription": "为电影爱好者打造的高级流媒体平台。",
+    "validation": {
+      "invalidEmail": "请输入有效的邮箱地址。"
+    },
+    "checkAccountFailed": "检查账号失败。",
+    "signInFailed": "登录失败。",
+    "registrationFailed": "注册失败",
+    "registeredMessageFallback": "已注册。请先验证邮箱，然后登录。"
+  },
+  "adminMoviePage": {
+    "title": "管理控制台",
+    "subtitle": "可直接查看内容分布的快速 CRUD。",
+    "loading": "正在加载管理控制台...",
+    "saveFailed": "保存影片失败。",
+    "deleteConfirm": "确定删除这部影片吗？",
+    "totalMovies": "影片总数",
+    "editMovie": "编辑影片",
+    "addMovie": "添加影片",
+    "updateMovie": "更新影片",
+    "saveMovie": "保存影片",
+    "movieCatalog": "影片目录",
+    "fields": {
+      "title": "标题",
+      "genre": "类型",
+      "year": "年份",
+      "description": "描述",
+      "videoUrl": "视频 URL",
+      "trailerUrl": "预告片 URL"
+    },
+    "columns": {
+      "title": "标题",
+      "genre": "类型",
+      "year": "年份",
+      "description": "描述",
+      "plan": "套餐",
+      "actions": "操作"
+    },
+    "actions": {
+      "edit": "编辑",
+      "delete": "删除"
+    }
+  },
+  "subscriptionWidget": {
+    "title": "订阅",
+    "loading": "正在加载订阅...",
+    "loadFailed": "无法加载订阅。",
+    "plan": "套餐",
+    "expires": "到期",
+    "startDate": "开始日期",
+    "noExpiry": "无到期时间"
+  },
+  "legacyProfilePage": {
+    "title": "我的账户",
+    "profileDetails": "资料详情",
+    "status": "状态",
+    "verified": "已验证",
+    "notVerified": "未验证",
+    "roles": "角色",
+    "currentPlan": "当前套餐",
+    "subscriptionPlans": "订阅套餐",
+    "currentPlanButton": "当前套餐",
+    "upgrade": "升级",
+    "downgrade": "降级",
+    "planDescriptions": {
+      "BASIC": "免费 - 仅可观看预告片",
+      "STANDARD": "{{price}}/月 - 观看大部分影片",
+      "PREMIUM": "{{price}}/月 - 观看全部影片"
+    },
+    "cardDescriptions": {
+      "BASIC": "免费 - 仅可观看预告片",
+      "STANDARD": "{{price}}/月 - 观看大部分影片",
+      "PREMIUM": "{{price}}/月 - 观看全部影片"
+    },
+    "planChanged": "已成功切换到 {{plan}} 套餐！"
+  },
+  "appLayout": {
+    "footer": "由 React + Spring Boot 构建"
+  }
+}

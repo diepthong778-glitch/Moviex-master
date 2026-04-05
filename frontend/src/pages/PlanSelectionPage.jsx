@@ -1,89 +1,65 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-
-const plans = [
-  {
-    key: 'BASIC',
-    price: '$5',
-    features: ['Watch BASIC movies', 'Single device', 'HD streaming'],
-  },
-  {
-    key: 'STANDARD',
-    price: '$10',
-    features: ['BASIC + STANDARD catalog', '2 devices', 'Priority support'],
-  },
-  {
-    key: 'PREMIUM',
-    price: '$20',
-    features: ['All movies unlocked', '4 devices', 'Best quality'],
-  },
-];
+import { PLAN_OPTIONS, formatVnd } from '../utils/payment';
 
 function PlanSelectionPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [loadingPlan, setLoadingPlan] = useState('');
-  const [error, setError] = useState('');
 
-  const handleSelectPlan = async (planType) => {
+  const handleSelectPlan = (packageId) => {
+    const targetPath = `/payment?packageId=${encodeURIComponent(packageId)}`;
     if (!user) {
-      navigate('/login?redirect=/plans');
+      navigate(targetPath);
       return;
     }
-
-    try {
-      setLoadingPlan(planType);
-      setError('');
-
-      await axios.post('/api/subscription/select-plan', { planType });
-      const paymentResponse = await axios.post('/api/payment/create', { planType });
-      const paymentId = paymentResponse.data?.paymentId;
-
-      navigate(`/payment?paymentId=${paymentId}&planType=${planType}`);
-    } catch {
-      setError('Failed to create payment. Please try again.');
-    } finally {
-      setLoadingPlan('');
-    }
+    navigate(targetPath);
   };
 
   return (
-    <div className="page-shell">
-      <div className="page-header">
+    <div className="page-shell sandbox-page-shell">
+      <div className="sandbox-page-head">
         <div>
-          <h2 className="page-title">Select Your Plan</h2>
-          <p className="page-subtitle">Choose the plan that matches your access needs</p>
+          <p className="sandbox-eyebrow">{t('plansPage.badge')}</p>
+          <h1 className="sandbox-hero-title">{t('plansPage.title')}</h1>
+          <p className="sandbox-hero-subtitle">
+            {t('plansPage.subtitle')}
+          </p>
         </div>
       </div>
 
-      {error && <p className="error-text">{error}</p>}
+      <div className="sandbox-plan-grid">
+        {PLAN_OPTIONS.map((plan) => {
+          const planName = t(`plansPage.plans.${plan.key}.name`);
+          const planDescription = t(`plansPage.plans.${plan.key}.description`);
+          const planFeatures = t(`plansPage.plans.${plan.key}.features`, { returnObjects: true });
 
-      <div className="admin-stats">
-        {plans.map((plan) => (
-          <article key={plan.key} className="account-panel" style={{ margin: 0 }}>
-            <h3 className="panel-title">{plan.key}</h3>
-            <p className="value-text" style={{ marginTop: '10px' }}>
-              {plan.price}/month
-            </p>
-            <ul style={{ marginTop: '14px', paddingLeft: '18px', color: 'var(--text-secondary)' }}>
-              {plan.features.map((feature) => (
-                <li key={feature} style={{ marginBottom: '6px' }}>
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <button
-              className="btn btn-primary"
-              style={{ marginTop: '16px' }}
-              onClick={() => handleSelectPlan(plan.key)}
-              disabled={loadingPlan === plan.key}
-            >
-              {loadingPlan === plan.key ? 'Processing...' : `Select ${plan.key}`}
-            </button>
-          </article>
-        ))}
+          return (
+            <article key={plan.key} className="sandbox-panel sandbox-plan-card">
+              <div className="sandbox-plan-head">
+                <p className="sandbox-eyebrow">{plan.key}</p>
+                <h2 className="sandbox-title">{planName}</h2>
+                <p className="sandbox-plan-description">{planDescription}</p>
+              </div>
+
+              <div className="sandbox-plan-price">{formatVnd(plan.price)}</div>
+
+              <div className="sandbox-feature-list">
+                {(Array.isArray(planFeatures) ? planFeatures : []).map((feature) => (
+                  <div className="sandbox-feature-item" key={feature}>
+                    <span />
+                    <p>{feature}</p>
+                  </div>
+                ))}
+              </div>
+
+              <button type="button" className="btn btn-primary sandbox-btn" onClick={() => handleSelectPlan(plan.packageId)}>
+                {t('plansPage.payWithSandboxQr')}
+              </button>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders, cachedGet } from '../utils/api';
 
 function SubscriptionSection() {
   const { getToken } = useAuth();
+  const { t } = useTranslation();
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const translatePlanLabel = (plan) => t(`common.plansLabel.${plan || 'NONE'}`);
+  const translateStatusLabel = (active) =>
+    t(`common.statusLabel.${active ? 'ACTIVE' : 'INACTIVE'}`);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -24,21 +29,20 @@ function SubscriptionSection() {
 
         setSubscription(data);
       } catch (err) {
-        console.error(err);
-        setError('Failed to load subscription.');
+        setError(t('subscriptionWidget.loadFailed'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscription();
-  }, [getToken]);
+  }, [getToken, t]);
 
   if (loading) {
     return (
       <div className="account-panel">
-        <h3 className="panel-title">Subscription</h3>
-        <p className="muted-text">Loading subscription...</p>
+        <h3 className="panel-title">{t('subscriptionWidget.title')}</h3>
+        <p className="muted-text">{t('subscriptionWidget.loading')}</p>
       </div>
     );
   }
@@ -46,9 +50,9 @@ function SubscriptionSection() {
   return (
     <div className="account-panel">
       <div className="panel-header">
-        <h3 className="panel-title">Subscription</h3>
+        <h3 className="panel-title">{t('subscriptionWidget.title')}</h3>
         <span className={`status-pill ${subscription?.active ? 'status-active' : 'status-inactive'}`}>
-          {subscription?.active ? 'Active' : 'Inactive'}
+          {translateStatusLabel(subscription?.active)}
         </span>
       </div>
 
@@ -57,17 +61,17 @@ function SubscriptionSection() {
       ) : (
         <div className="account-grid">
           <div>
-            <span className="label-text">Plan</span>
-            <p className="value-text">{subscription?.type || 'NONE'}</p>
+            <span className="label-text">{t('subscriptionWidget.plan')}</span>
+            <p className="value-text">{translatePlanLabel(subscription?.type)}</p>
           </div>
           <div>
-            <span className="label-text">Expires</span>
+            <span className="label-text">{t('subscriptionWidget.expires')}</span>
             <p className="value-text">
-              {subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : 'No expiry'}
+              {subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : t('subscriptionWidget.noExpiry')}
             </p>
           </div>
           <div>
-            <span className="label-text">Start Date</span>
+            <span className="label-text">{t('subscriptionWidget.startDate')}</span>
             <p className="value-text">
               {subscription?.startDate ? new Date(subscription.startDate).toLocaleDateString() : '-'}
             </p>

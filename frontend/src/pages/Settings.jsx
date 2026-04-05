@@ -13,8 +13,9 @@ function Settings() {
   const { user, getToken, login } = useAuth();
   const { t, i18n } = useTranslation();
   const token = getToken();
+  const persistedLanguage = localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en';
   const [form, setForm] = useState({
-    language: localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en',
+    language: persistedLanguage,
     darkMode: localStorage.getItem('moviex.theme') !== 'light',
     subtitle: localStorage.getItem('moviex.subtitle.enabled') !== 'false',
   });
@@ -31,7 +32,7 @@ function Settings() {
         });
 
         const nextForm = {
-          language: data.language || localStorage.getItem('moviex.language') || 'en',
+          language: persistedLanguage,
           darkMode:
             typeof data.darkMode === 'boolean'
               ? data.darkMode
@@ -48,20 +49,17 @@ function Settings() {
     };
 
     fetchSettings();
-  }, [token]);
+  }, [persistedLanguage, token]);
 
   useEffect(() => {
     applyTheme(form.darkMode);
-    localStorage.setItem('moviex.language', form.language);
     localStorage.setItem('moviex.subtitle.enabled', String(form.subtitle));
-    if (i18n.resolvedLanguage !== form.language) {
-      i18n.changeLanguage(form.language);
-    }
-  }, [form.darkMode, form.language, form.subtitle, i18n]);
+  }, [form.darkMode, form.subtitle]);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
     if (name === 'language') {
+      localStorage.setItem('moviex.language', value);
       i18n.changeLanguage(value);
     }
     setForm((current) => ({
@@ -112,9 +110,11 @@ function Settings() {
         <label className="field-row">
           <span>{t('common.language')}</span>
           <select name="language" value={form.language} onChange={handleChange} className="field-control">
-            <option value="en">{t('common.english')}</option>
-            <option value="vi">{t('common.vietnamese')}</option>
-            <option value="ja">{t('common.japanese')}</option>
+            <option value="en">English</option>
+            <option value="vi">Vietnamese</option>
+            <option value="ja">Japanese</option>
+            <option value="zh">Chinese</option>
+            <option value="ko">Korean</option>
           </select>
         </label>
 

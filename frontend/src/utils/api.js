@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const USER_STORAGE_KEY = 'user';
 
-const PUBLIC_API_PATH_PREFIXES = ['/api/movies'];
+const PUBLIC_API_PATH_PREFIXES = ['/api/movies', '/api/payment/public'];
 const PUBLIC_API_EXACT_PATHS = [
   '/api/auth/login',
   '/api/auth/register',

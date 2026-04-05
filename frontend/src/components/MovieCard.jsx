@@ -11,13 +11,7 @@ function MovieCardImpl({ movie, onPlay, progress }) {
   const { t } = useTranslation();
   const fallbackPoster = '/posters/p1.svg';
 
-  // Safety assertion: ensure movie object is valid
   if (!movie || !movie.id) {
-    console.error('[MovieCard] Invalid movie prop - cannot render card', {
-      hasMovie: !!movie,
-      movieId: movie?.id,
-      movieTitle: movie?.title,
-    });
     return null;
   }
 
@@ -185,5 +179,7 @@ function MovieCardImpl({ movie, onPlay, progress }) {
   );
 }
 
-const MovieCard = memo(MovieCardImpl);
+const MovieCard = memo(MovieCardImpl, (prevProps, nextProps) => {
+  return prevProps.movie === nextProps.movie && prevProps.progress === nextProps.progress && prevProps.onPlay === nextProps.onPlay;
+});
 export default MovieCard;

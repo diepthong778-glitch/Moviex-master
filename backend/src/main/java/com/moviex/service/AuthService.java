@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -200,7 +201,8 @@ public class AuthService {
                 user.getGender() == null ? null : user.getGender().name(),
                 user.isVerified(),
                 roles,
-                user.getSubscriptionPlan().name()
+                user.getSubscriptionPlan().name(),
+                user.getUnlockedMovieIds() != null ? user.getUnlockedMovieIds() : new HashSet<>()
         );
     }
 

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,7 +19,7 @@ function ForgotPassword() {
     setSuccess('');
 
     if (!emailRegex.test(email.trim())) {
-      setError('Please enter a valid email address.');
+      setError(t('forgotPasswordPage.validation.invalidEmail'));
       return;
     }
 
@@ -26,10 +28,10 @@ function ForgotPassword() {
       const { data } = await axios.post('/api/auth/forgot-password', {
         email: email.trim(),
       });
-      setSuccess(data.message || 'A temporary password has been sent if the account exists.');
+      setSuccess(data.message || t('forgotPasswordPage.success'));
       setTimeout(() => navigate('/login'), 1800);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Unable to reset password.');
+      setError(err.response?.data?.message || err.message || t('forgotPasswordPage.failed'));
     } finally {
       setLoading(false);
     }
@@ -38,9 +40,9 @@ function ForgotPassword() {
   return (
     <div className="section" style={{ paddingTop: '120px', minHeight: '80vh', display: 'flex', justifyContent: 'center' }}>
       <div style={{ maxWidth: '420px', width: '100%', background: 'var(--bg-card)', padding: '40px', borderRadius: 'var(--radius-lg)' }}>
-        <h2 style={{ marginBottom: '16px', textAlign: 'center' }}>Forgot Password</h2>
+        <h2 style={{ marginBottom: '16px', textAlign: 'center' }}>{t('forgotPasswordPage.title')}</h2>
         <p style={{ marginBottom: '24px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '14px' }}>
-          Enter your email and Moviex will send you a temporary password.
+          {t('forgotPasswordPage.subtitle')}
         </p>
 
         {error && <div style={{ color: 'var(--accent-secondary)', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
@@ -48,7 +50,7 @@ function ForgotPassword() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>Email</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>{t('common.email')}</label>
             <input
               type="email"
               value={email}
@@ -58,12 +60,12 @@ function ForgotPassword() {
             />
           </div>
           <button type="submit" className="btn btn-primary" style={{ justifyContent: 'center' }} disabled={loading}>
-            {loading ? 'Sending...' : 'Send Temporary Password'}
+            {loading ? t('forgotPasswordPage.sending') : t('forgotPasswordPage.submit')}
           </button>
         </form>
 
         <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
-          Remembered it? <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>Back to login.</Link>
+          {t('forgotPasswordPage.remembered')} <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>{t('forgotPasswordPage.backToLogin')}</Link>
         </p>
       </div>
     </div>

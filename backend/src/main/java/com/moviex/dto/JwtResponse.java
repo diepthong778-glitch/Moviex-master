@@ -1,6 +1,7 @@
 package com.moviex.dto;
 
 import java.util.List;
+import java.util.Set;
 
 public class JwtResponse {
     private String token;
@@ -13,9 +14,11 @@ public class JwtResponse {
     private boolean verified;
     private List<String> roles;
     private String subscriptionPlan;
+    private Set<String> unlockedMovieIds;
 
     public JwtResponse(String accessToken, String id, String username, String email, String phoneNumber,
-                       String gender, boolean verified, List<String> roles, String subscriptionPlan) {
+                       String gender, boolean verified, List<String> roles, String subscriptionPlan,
+                       Set<String> unlockedMovieIds) {
         this.token = accessToken;
         this.id = id;
         this.username = username;
@@ -25,6 +28,7 @@ public class JwtResponse {
         this.verified = verified;
         this.roles = roles;
         this.subscriptionPlan = subscriptionPlan;
+        this.unlockedMovieIds = unlockedMovieIds;
     }
 
     public String getToken() {
@@ -97,5 +101,9 @@ public class JwtResponse {
 
     public String getSubscriptionPlan() {
     	return subscriptionPlan;
+    }
+
+    public Set<String> getUnlockedMovieIds() {
+        return unlockedMovieIds;
     }
 }

@@ -14,6 +14,9 @@
     "forgotPassword": "パスワードをお忘れですか？",
     "saveSettings": "設定を保存",
     "loading": "読み込み中...",
+    "previous": "前へ",
+    "next": "次へ",
+    "page": "ページ",
     "tryAgain": "再試行",
     "close": "閉じる",
     "user": "ユーザー",
@@ -175,7 +178,385 @@
     "subtitlesOff": "字幕: OFF",
     "subtitleLanguage": "字幕言語",
     "subtitleTrackLabel": "{{language}} 字幕",
+    "noPlayableVideo": "この作品で再生可能な動画URLが見つかりません。",
+    "fullscreen": "全画面",
+    "exitFullscreen": "全画面を終了",
     "nextMovie": "次: {{title}}",
     "upNext": "次に見る"
+  },
+  "plansPage": {
+    "badge": "視聴プラン",
+    "title": "仮想決済プランを選択",
+    "subtitle": "以下の料金はすべて MovieX Sandbox の仮想VNDです。実際の決済は発生しません。",
+    "payWithSandboxQr": "仮想QRで支払う",
+    "plans": {
+      "BASIC": {
+        "name": "ベーシックプラン",
+        "description": "低コストの仮想料金で MovieX を始めるのに最適です。",
+        "features": ["ベーシック作品", "1デバイス", "HD画質"]
+      },
+      "STANDARD": {
+        "name": "スタンダードプラン",
+        "description": "視聴可能作品が増え、複数デバイスでの体験が向上します。",
+        "features": ["BASIC + STANDARD作品", "2デバイス", "優先サポート"]
+      },
+      "PREMIUM": {
+        "name": "プレミアムプラン",
+        "description": "MovieXの全コンテンツを、最高の視聴体験で解放します。",
+        "features": ["全コンテンツ視聴", "4デバイス", "最高画質"]
+      }
+    }
+  },
+  "sharedUi": {
+    "unknown": "不明",
+    "untitled": "無題"
+  },
+  "historyCard": {
+    "lastWatched": "最終視聴: {{value}}",
+    "watchedPercent": "{{percent}}%視聴済み",
+    "continueWatching": "続きを見る",
+    "watchAgain": "もう一度見る",
+    "remove": "削除"
+  },
+  "historySection": {
+    "subtitle": "最近見た作品",
+    "loading": "履歴を読み込み中..."
+  },
+  "watchlistSection": {
+    "subtitle": "あとで見るために保存",
+    "loading": "ウォッチリストを読み込み中...",
+    "watchNow": "今すぐ見る",
+    "readyToStream": "すぐに再生可能"
+  },
+  "movieSearch": {
+    "fetchFailed": "映画を取得できませんでした。再試行してください。",
+    "placeholder": "映画を検索...",
+    "searching": "検索中...",
+    "noResults": "映画が見つかりません。"
+  },
+  "movieRow": {
+    "viewAll": "すべて見る",
+    "posterAlt": "映画ポスター",
+    "nowStreaming": "配信中"
+  },
+  "watchlistPage": {
+    "title": "ウォッチリスト",
+    "subtitle": "あとで見るために保存した映画",
+    "loading": "ウォッチリストを読み込み中...",
+    "loadFailed": "ウォッチリストを読み込めませんでした。",
+    "removeFailed": "ウォッチリストから削除できませんでした。",
+    "empty": "ウォッチリストは空です"
+  },
+  "changePasswordPage": {
+    "title": "パスワード変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmNewPassword": "新しいパスワードの確認",
+    "updating": "更新中...",
+    "submit": "パスワードを更新",
+    "success": "パスワードを変更しました。",
+    "failed": "パスワードを変更できませんでした。",
+    "validation": {
+      "currentPasswordRequired": "現在のパスワードは必須です。",
+      "newPasswordMin": "新しいパスワードは8文字以上である必要があります。",
+      "passwordsMismatch": "新しいパスワードが一致しません。",
+      "invalidPhone": "電話番号は10〜15桁で、先頭に+を付けることができます。"
+    }
+  },
+  "forgotPasswordPage": {
+    "title": "パスワードを忘れた場合",
+    "subtitle": "メールアドレスを入力すると、Moviexが一時パスワードを送信します。",
+    "sending": "送信中...",
+    "submit": "一時パスワードを送信",
+    "remembered": "思い出しましたか？",
+    "backToLogin": "ログインに戻る。",
+    "success": "アカウントが存在する場合、一時パスワードが送信されました。",
+    "failed": "パスワードをリセットできませんでした。",
+    "validation": {
+      "invalidEmail": "有効なメールアドレスを入力してください。"
+    }
+  },
+  "historyPage": {
+    "title": "視聴履歴",
+    "subtitle": "最近見た作品と進行状況",
+    "loading": "履歴を読み込み中...",
+    "loadFailed": "視聴履歴を読み込めませんでした。",
+    "empty": "視聴履歴はまだありません",
+    "movieId": "作品ID: {{movieId}}",
+    "minutesWatched": "{{minutes}}分視聴"
+  },
+  "subscriptionPage": {
+    "title": "マイサブスクリプション",
+    "subtitle": "プランと有効期限を管理",
+    "loading": "サブスクリプションを読み込み中...",
+    "loadFailed": "サブスクリプションを読み込めませんでした。",
+    "currentPlan": "現在のプラン",
+    "remainingDays": "残り日数",
+    "expirationDate": "有効期限",
+    "status": "状態",
+    "upgradePlan": "プランをアップグレード"
+  },
+  "userManagementPage": {
+    "title": "ユーザー管理",
+    "subtitle": "プラン、状態、アクティビティを含むユーザーテーブル",
+    "loading": "ユーザーを読み込み中...",
+    "loadFailed": "ユーザーを読み込めませんでした。",
+    "columns": {
+      "email": "メール",
+      "role": "役割",
+      "plan": "プラン",
+      "status": "状態",
+      "currentlyWatching": "視聴中",
+      "lastLogin": "最終ログイン"
+    }
+  },
+  "adminDashboardPage": {
+    "title": "管理ダッシュボード",
+    "subtitle": "システム概要とリアルタイム状態",
+    "loadFailed": "管理ダッシュボードのデータを読み込めませんでした。",
+    "totalUsers": "総ユーザー数",
+    "activeSubscriptions": "有効なサブスクリプション",
+    "onlineUsers": "オンラインユーザー",
+    "usersByPlan": "プラン別ユーザー数",
+    "openUserManagement": "ユーザー管理を開く",
+    "openRealtimeActivity": "リアルタイム活動を開く",
+    "openMovieConfig": "作品設定を開く"
+  },
+  "realtimeActivityPage": {
+    "title": "リアルタイム活動",
+    "subtitle": "管理者ライブフィード: ログイン、ログアウト、視聴、プラン有効化",
+    "loadFailed": "リアルタイムデータを読み込めませんでした。",
+    "disconnected": "リアルタイムWebSocketが切断されました。",
+    "usersOnline": "オンラインユーザー",
+    "onlineUsers": "オンライン中のユーザー",
+    "noUsersOnline": "オンライン中のユーザーはいません。",
+    "idle": "待機中",
+    "lastSeen": "最終表示: {{value}}",
+    "liveEventFeed": "ライブイベントフィード",
+    "waitingForEvents": "イベントを待機中..."
+  },
+  "paymentQrCard": {
+    "badge": "QR MovieX Sandbox",
+    "title": "スキャンして仮想決済ページを開く",
+    "qrAlt": "取引QR {{txnCode}}",
+    "virtualAmount": "仮想金額",
+    "txnCode": "取引コード",
+    "status": "状態",
+    "content": "内容",
+    "receiver": "受取人",
+    "accountNumber": "口座番号",
+    "openSandbox": "仮想決済ページを開く",
+    "copied": "リンクをコピーしました",
+    "copy": "QRリンクをコピー"
+  },
+  "paymentPage": {
+    "badge": "MovieX Payment Sandbox",
+    "title": "仮想通貨によるQR決済シミュレーション",
+    "subtitle": "このQRはMovieX内部のsandbox決済ページのみを開きます。実際の銀行連携や実際の決済はありません。",
+    "movieNotFound": "仮想決済対象の作品が見つかりません。",
+    "reloadFailed": "生成済みQR取引を再読み込みできませんでした。",
+    "movieSubtitle": "{{title}} の単品決済",
+    "genre": "ジャンル: {{value}}",
+    "year": "公開年: {{value}}",
+    "requiredPlan": "必要プラン: {{value}}",
+    "updating": "更新中",
+    "planSubtitle": "仮想視聴プランを有効化",
+    "selectTarget": "決済QRを作成する前に作品またはプランを選択してください。",
+    "createFailed": "仮想決済取引を作成できませんでした。再試行してください。",
+    "step1": "ステップ 1",
+    "paymentTargetInfo": "決済対象情報",
+    "loadingTarget": "対象情報を読み込み中...",
+    "chooseTargetFirst": "先にプランまたは作品を選択してください。",
+    "creatingQr": "QRを作成中...",
+    "regenerateQr": "仮想決済QRを再生成",
+    "createQr": "仮想決済QRを作成",
+    "viewPlans": "MovieXプランを見る",
+    "step2": "ステップ 2",
+    "scanGuide": "QRスキャン手順",
+    "guide1": "スマートフォンのカメラまたは一般的なQRスキャナーを開きます。",
+    "guide2": "コードをスキャンしてブラウザでMovieXのsandbox決済ページを開きます。",
+    "guide3": "sandboxページで仮想決済を確認してコンテンツを解放します。"
+  },
+  "paymentSandboxPage": {
+    "bankLabel": "MovieX Sandbox 模擬銀行",
+    "title": "仮想決済を確認",
+    "notFound": "この仮想決済取引は見つかりません。",
+    "confirmFailed": "仮想決済を確認できませんでした。再試行してください。",
+    "cancelFailed": "この取引をキャンセルできませんでした。",
+    "virtualAmount": "仮想金額",
+    "receiver": "受取人",
+    "accountNumber": "口座番号",
+    "bank": "銀行",
+    "transferContent": "振込内容",
+    "txnCode": "取引コード",
+    "note": "メモ",
+    "successAlready": "この取引はすでに正常に完了しています",
+    "viewSuccess": "成功画面を見る",
+    "cancelledTitle": "取引はキャンセルされました",
+    "cancelledCopy": "仮想決済が成功するまでMovieXはアクセスをロックしたままにします。",
+    "processing": "処理中...",
+    "confirm": "仮想決済を確認",
+    "cancel": "取引をキャンセル"
+  },
+  "paymentSuccessPage": {
+    "loadFailed": "仮想決済結果を読み込めませんでした。",
+    "loading": "仮想決済結果を読み込み中...",
+    "successTitle": "決済成功",
+    "failedTitle": "決済失敗",
+    "successCopy": "MovieXが仮想取引を記録しました。視聴ページへ自動的に移動します。",
+    "failedCopy": "取引は正常に完了しませんでした。視聴アクセスはロックされたままです。",
+    "txnCode": "取引コード",
+    "amount": "金額",
+    "content": "内容",
+    "destination": "遷移先",
+    "redirectCountdown": "{{count}}秒後に自動で移動します...",
+    "backToMovie": "今すぐ視聴ページへ",
+    "returnToMoviex": "MovieXへ戻る"
+  },
+  "landingPage": {
+    "nav": {
+      "movies": "映画",
+      "pricing": "料金",
+      "faq": "FAQ"
+    },
+    "eyebrow": "シネマ体験を再定義するストリーミング",
+    "heroTitle": "あなただけの映画館。気分に合わせて厳選。",
+    "heroDescription": "受賞作、プレミアムシリーズ、厳選コレクションを臨場感ある映像と音で楽しめます。",
+    "featureBadges": {
+      "quality": "4K HDR",
+      "audio": "Dolby Atmos",
+      "offline": "オフライン再生"
+    },
+    "startWithEmail": "メールアドレスから開始",
+    "emailPlaceholder": "メールアドレス",
+    "checking": "確認中...",
+    "getStarted": "開始",
+    "signIn": "サインイン",
+    "signInTitle": "サインイン",
+    "changeEmail": "メール変更",
+    "signingIn": "サインイン中...",
+    "createAccountTitle": "アカウント作成",
+    "phonePlaceholder": "+84901234567",
+    "selectGender": "性別を選択",
+    "passwordPlaceholder": "パスワード（8文字以上）",
+    "creating": "作成中...",
+    "createAccountButton": "アカウント作成",
+    "checkEmail": "メールを確認してください",
+    "registeredMessage": "登録しました。メールを確認してからサインインしてください。",
+    "verifiedSignIn": "確認済み - サインイン",
+    "useDifferentEmail": "別のメールを使う",
+    "featuredPreview": "注目のプレビュー",
+    "featuredDescriptionFallback": "Moviex ライブラリから厳選したハイライトです。映画館のような体験のために作られた高品質な映像です。",
+    "exploreLibrary": "ライブラリを見る",
+    "pricing": {
+      "label": "料金",
+      "title": "あらゆる画面に合うプラン",
+      "subtitle": "いつでもアップグレード、いつでも一時停止、どこでも視聴。"
+    },
+    "planDescriptions": {
+      "BASIC": "予告編、プレビュー、限定コレクション。",
+      "STANDARD": "HD配信で大半の作品を視聴。",
+      "PREMIUM": "全作品、4K HDR、オフラインダウンロード。"
+    },
+    "choosePlanCta": "{{plan}} を選ぶ",
+    "faq": {
+      "label": "FAQ",
+      "title": "よくある質問",
+      "items": {
+        "cancel": {
+          "q": "いつでもキャンセルできますか？",
+          "a": "はい。プロフィールから数秒でプランの管理やキャンセルができます。"
+        },
+        "downloads": {
+          "q": "オフラインダウンロードはありますか？",
+          "a": "Premium プランでは対応デバイスでオフライン視聴が可能です。"
+        },
+        "devices": {
+          "q": "対応デバイスは？",
+          "a": "Web、モバイル、スマートTV、キャストデバイスで視聴できます。"
+        },
+        "freeTier": {
+          "q": "無料プランはありますか？",
+          "a": "契約前に無料で始められるコレクションを試せます。"
+        }
+      }
+    },
+    "footerDescription": "映画好きのために作られたプレミアム配信プラットフォーム。",
+    "validation": {
+      "invalidEmail": "有効なメールアドレスを入力してください。"
+    },
+    "checkAccountFailed": "アカウント確認に失敗しました。",
+    "signInFailed": "サインインに失敗しました。",
+    "registrationFailed": "登録に失敗しました",
+    "registeredMessageFallback": "登録しました。メールを確認してからサインインしてください。"
+  },
+  "adminMoviePage": {
+    "title": "管理ダッシュボード",
+    "subtitle": "カタログ分布をすぐ確認できる高速CRUD。",
+    "loading": "管理ダッシュボードを読み込み中...",
+    "saveFailed": "映画を保存できませんでした。",
+    "deleteConfirm": "この映画を削除しますか？",
+    "totalMovies": "総映画数",
+    "editMovie": "映画を編集",
+    "addMovie": "映画を追加",
+    "updateMovie": "映画を更新",
+    "saveMovie": "映画を保存",
+    "movieCatalog": "映画カタログ",
+    "fields": {
+      "title": "タイトル",
+      "genre": "ジャンル",
+      "year": "年",
+      "description": "説明",
+      "videoUrl": "Video URL",
+      "trailerUrl": "Trailer URL"
+    },
+    "columns": {
+      "title": "タイトル",
+      "genre": "ジャンル",
+      "year": "年",
+      "description": "説明",
+      "plan": "プラン",
+      "actions": "操作"
+    },
+    "actions": {
+      "edit": "編集",
+      "delete": "削除"
+    }
+  },
+  "subscriptionWidget": {
+    "title": "サブスクリプション",
+    "loading": "サブスクリプションを読み込み中...",
+    "loadFailed": "サブスクリプションを読み込めませんでした。",
+    "plan": "プラン",
+    "expires": "有効期限",
+    "startDate": "開始日",
+    "noExpiry": "期限なし"
+  },
+  "legacyProfilePage": {
+    "title": "マイアカウント",
+    "profileDetails": "プロフィール詳細",
+    "status": "状態",
+    "verified": "確認済み",
+    "notVerified": "未確認",
+    "roles": "ロール",
+    "currentPlan": "現在のプラン",
+    "subscriptionPlans": "サブスクリプションプラン",
+    "currentPlanButton": "現在のプラン",
+    "upgrade": "アップグレード",
+    "downgrade": "ダウングレード",
+    "planDescriptions": {
+      "BASIC": "無料 - 予告編のみ視聴",
+      "STANDARD": "{{price}}/月 - ほとんどの映画を視聴",
+      "PREMIUM": "{{price}}/月 - すべての映画を視聴"
+    },
+    "cardDescriptions": {
+      "BASIC": "無料 - 予告編のみ視聴",
+      "STANDARD": "{{price}}/月 - ほとんどの映画を視聴",
+      "PREMIUM": "{{price}}/月 - すべての映画を視聴"
+    },
+    "planChanged": "{{plan}} プランに変更しました！"
+  },
+  "appLayout": {
+    "footer": "React + Spring Boot で構築"
   }
 }

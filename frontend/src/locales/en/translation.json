@@ -14,6 +14,9 @@
     "forgotPassword": "Forgot Password?",
     "saveSettings": "Save Settings",
     "loading": "Loading...",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
     "tryAgain": "Try Again",
     "close": "Close",
     "user": "User",
@@ -163,6 +166,7 @@
     "couldNotAddToWatchlist": "Could not add to watchlist.",
     "closeDetails": "Close details",
     "playNow": "Play Now",
+    "purchaseWithSandbox": "Pay with sandbox",
     "saving": "Saving...",
     "addToWatchlist": "Add to Watchlist",
     "noSynopsis": "No synopsis available for this title yet.",
@@ -175,7 +179,385 @@
     "subtitlesOff": "Subtitles: OFF",
     "subtitleLanguage": "Subtitle language",
     "subtitleTrackLabel": "{{language}} Subtitle",
+    "noPlayableVideo": "No playable video URL found for this title.",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
     "nextMovie": "Next: {{title}}",
     "upNext": "Up Next"
+  },
+  "plansPage": {
+    "badge": "Movie Plans",
+    "title": "Choose a virtual payment package",
+    "subtitle": "All prices below are virtual VND in MovieX Sandbox. No real payment is processed.",
+    "payWithSandboxQr": "Pay with virtual QR",
+    "plans": {
+      "BASIC": {
+        "name": "Basic Plan",
+        "description": "Good for getting started in MovieX with low virtual cost.",
+        "features": ["Basic catalog", "1 device", "HD quality"]
+      },
+      "STANDARD": {
+        "name": "Standard Plan",
+        "description": "Expanded catalog and better viewing priority across more devices.",
+        "features": ["BASIC + STANDARD catalog", "2 devices", "Priority support"]
+      },
+      "PREMIUM": {
+        "name": "Premium Plan",
+        "description": "Unlock all MovieX content with the best viewing experience.",
+        "features": ["Full content access", "4 devices", "Maximum quality"]
+      }
+    }
+  },
+  "sharedUi": {
+    "unknown": "Unknown",
+    "untitled": "Untitled"
+  },
+  "historyCard": {
+    "lastWatched": "Last watched: {{value}}",
+    "watchedPercent": "{{percent}}% watched",
+    "continueWatching": "Continue Watching",
+    "watchAgain": "Watch Again",
+    "remove": "Remove"
+  },
+  "historySection": {
+    "subtitle": "Recently watched",
+    "loading": "Loading history..."
+  },
+  "watchlistSection": {
+    "subtitle": "Saved for later",
+    "loading": "Loading watchlist...",
+    "watchNow": "Watch Now",
+    "readyToStream": "Ready to stream"
+  },
+  "movieSearch": {
+    "fetchFailed": "Failed to fetch movies. Please try again.",
+    "placeholder": "Search for movies...",
+    "searching": "Searching...",
+    "noResults": "No movies found."
+  },
+  "movieRow": {
+    "viewAll": "View all",
+    "posterAlt": "Movie poster",
+    "nowStreaming": "Now streaming"
+  },
+  "watchlistPage": {
+    "title": "Watchlist",
+    "subtitle": "Saved movies for later",
+    "loading": "Loading watchlist...",
+    "loadFailed": "Failed to load watchlist.",
+    "removeFailed": "Failed to remove movie from watchlist.",
+    "empty": "Your watchlist is empty"
+  },
+  "changePasswordPage": {
+    "title": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "updating": "Updating...",
+    "submit": "Update Password",
+    "success": "Password changed successfully.",
+    "failed": "Unable to change password.",
+    "validation": {
+      "currentPasswordRequired": "Current password is required.",
+      "newPasswordMin": "New password must be at least 8 characters.",
+      "passwordsMismatch": "New passwords do not match.",
+      "invalidPhone": "Phone number must be 10 to 15 digits and may start with +."
+    }
+  },
+  "forgotPasswordPage": {
+    "title": "Forgot Password",
+    "subtitle": "Enter your email and Moviex will send you a temporary password.",
+    "sending": "Sending...",
+    "submit": "Send Temporary Password",
+    "remembered": "Remembered it?",
+    "backToLogin": "Back to login.",
+    "success": "A temporary password has been sent if the account exists.",
+    "failed": "Unable to reset password.",
+    "validation": {
+      "invalidEmail": "Please enter a valid email address."
+    }
+  },
+  "historyPage": {
+    "title": "Watch History",
+    "subtitle": "Recently watched movies and progress",
+    "loading": "Loading history...",
+    "loadFailed": "Failed to load watch history.",
+    "empty": "No watch history yet",
+    "movieId": "Movie ID: {{movieId}}",
+    "minutesWatched": "{{minutes}} min watched"
+  },
+  "subscriptionPage": {
+    "title": "My Subscription",
+    "subtitle": "Manage plan and expiration",
+    "loading": "Loading subscription...",
+    "loadFailed": "Failed to load subscription.",
+    "currentPlan": "Current Plan",
+    "remainingDays": "Remaining Days",
+    "expirationDate": "Expiration Date",
+    "status": "Status",
+    "upgradePlan": "Upgrade Plan"
+  },
+  "userManagementPage": {
+    "title": "User Management",
+    "subtitle": "User table with plan, status and activity",
+    "loading": "Loading users...",
+    "loadFailed": "Failed to load users.",
+    "columns": {
+      "email": "Email",
+      "role": "Role",
+      "plan": "Plan",
+      "status": "Status",
+      "currentlyWatching": "Currently Watching",
+      "lastLogin": "Last Login"
+    }
+  },
+  "adminDashboardPage": {
+    "title": "Admin Dashboard",
+    "subtitle": "System overview and realtime platform health",
+    "loadFailed": "Failed to load admin dashboard data.",
+    "totalUsers": "Total Users",
+    "activeSubscriptions": "Active Subscriptions",
+    "onlineUsers": "Online Users",
+    "usersByPlan": "Users by Plan",
+    "openUserManagement": "Open User Management",
+    "openRealtimeActivity": "Open Realtime Activity",
+    "openMovieConfig": "Open Movie Config"
+  },
+  "realtimeActivityPage": {
+    "title": "Realtime Activity",
+    "subtitle": "Live admin feed: login, logout, watching, subscription activation",
+    "loadFailed": "Failed to load realtime data.",
+    "disconnected": "Realtime websocket disconnected.",
+    "usersOnline": "Users Online",
+    "onlineUsers": "Online Users",
+    "noUsersOnline": "No users online.",
+    "idle": "Idle",
+    "lastSeen": "Last seen: {{value}}",
+    "liveEventFeed": "Live Event Feed",
+    "waitingForEvents": "Waiting for events..."
+  },
+  "paymentQrCard": {
+    "badge": "QR MovieX Sandbox",
+    "title": "Scan to open the virtual payment page",
+    "qrAlt": "Transaction QR {{txnCode}}",
+    "virtualAmount": "Virtual amount",
+    "txnCode": "Transaction code",
+    "status": "Status",
+    "content": "Content",
+    "receiver": "Receiver",
+    "accountNumber": "Account number",
+    "openSandbox": "Open virtual payment page",
+    "copied": "Link copied",
+    "copy": "Copy QR link"
+  },
+  "paymentPage": {
+    "badge": "MovieX Payment Sandbox",
+    "title": "Simulated QR payment with virtual money",
+    "subtitle": "This QR only opens MovieX's internal sandbox payment page. No real bank integration and no real money.",
+    "movieNotFound": "Movie not found for virtual payment.",
+    "reloadFailed": "Failed to reload the generated QR transaction.",
+    "movieSubtitle": "One-time payment for {{title}}",
+    "genre": "Genre: {{value}}",
+    "year": "Year: {{value}}",
+    "requiredPlan": "Required plan: {{value}}",
+    "updating": "Updating",
+    "planSubtitle": "Activate a virtual movie package",
+    "selectTarget": "Select a movie or package before creating the payment QR.",
+    "createFailed": "Failed to create virtual payment transaction. Please try again.",
+    "step1": "Step 1",
+    "paymentTargetInfo": "Payment target information",
+    "loadingTarget": "Loading target information...",
+    "chooseTargetFirst": "Choose a package or movie before proceeding.",
+    "creatingQr": "Creating QR...",
+    "regenerateQr": "Regenerate virtual payment QR",
+    "createQr": "Create virtual payment QR",
+    "viewPlans": "View MovieX plans",
+    "step2": "Step 2",
+    "scanGuide": "How to scan the QR",
+    "guide1": "Open your phone camera or a standard QR scanner app.",
+    "guide2": "Scan the code to open the MovieX sandbox payment page in the browser.",
+    "guide3": "On the sandbox page, tap confirm virtual payment to unlock the content."
+  },
+  "paymentSandboxPage": {
+    "bankLabel": "MovieX Sandbox Simulation Bank",
+    "title": "Confirm virtual payment",
+    "notFound": "This virtual payment transaction was not found.",
+    "confirmFailed": "Unable to confirm virtual payment. Please try again.",
+    "cancelFailed": "Unable to cancel this transaction.",
+    "virtualAmount": "Virtual amount",
+    "receiver": "Receiver",
+    "accountNumber": "Account number",
+    "bank": "Bank",
+    "transferContent": "Transfer content",
+    "txnCode": "Transaction code",
+    "note": "Note",
+    "successAlready": "This transaction has already been completed successfully",
+    "viewSuccess": "View success screen",
+    "cancelledTitle": "Transaction has been cancelled",
+    "cancelledCopy": "MovieX keeps access locked until a virtual payment succeeds.",
+    "processing": "Processing...",
+    "confirm": "Confirm virtual payment",
+    "cancel": "Cancel transaction"
+  },
+  "paymentSuccessPage": {
+    "loadFailed": "Unable to load the virtual payment result.",
+    "loading": "Loading virtual payment result...",
+    "successTitle": "Payment successful",
+    "failedTitle": "Payment failed",
+    "successCopy": "MovieX has recorded the virtual transaction. The system will automatically redirect to the watch page.",
+    "failedCopy": "The transaction did not complete successfully. Movie access remains locked.",
+    "txnCode": "Transaction code",
+    "amount": "Amount",
+    "content": "Content",
+    "destination": "Destination",
+    "redirectCountdown": "Redirecting automatically in {{count}} seconds...",
+    "backToMovie": "Go to watch page now",
+    "returnToMoviex": "Return to MovieX"
+  },
+  "landingPage": {
+    "nav": {
+      "movies": "Movies",
+      "pricing": "Pricing",
+      "faq": "FAQ"
+    },
+    "eyebrow": "Cinematic streaming, reimagined",
+    "heroTitle": "Your private cinema. Curated for every mood.",
+    "heroDescription": "Stream award-winning films, premium series, and handpicked collections with immersive picture and sound.",
+    "featureBadges": {
+      "quality": "4K HDR",
+      "audio": "Dolby Atmos",
+      "offline": "Offline Ready"
+    },
+    "startWithEmail": "Start with your email",
+    "emailPlaceholder": "Email address",
+    "checking": "Checking...",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "signInTitle": "Sign in",
+    "changeEmail": "Change email",
+    "signingIn": "Signing in...",
+    "createAccountTitle": "Create your account",
+    "phonePlaceholder": "+84901234567",
+    "selectGender": "Select gender",
+    "passwordPlaceholder": "Password (min 8 characters)",
+    "creating": "Creating...",
+    "createAccountButton": "Create account",
+    "checkEmail": "Check your email",
+    "registeredMessage": "Registered. Please verify your email, then sign in.",
+    "verifiedSignIn": "I’ve verified - Sign in",
+    "useDifferentEmail": "Use a different email",
+    "featuredPreview": "Featured Preview",
+    "featuredDescriptionFallback": "A curated highlight from the Moviex library. Premium-grade visuals, crafted for a cinematic home experience.",
+    "exploreLibrary": "Explore Library",
+    "pricing": {
+      "label": "Pricing",
+      "title": "Plans crafted for every screen",
+      "subtitle": "Upgrade anytime, pause anytime, stream everywhere."
+    },
+    "planDescriptions": {
+      "BASIC": "Trailers, previews, and limited collections.",
+      "STANDARD": "Most of the catalog with HD streaming.",
+      "PREMIUM": "All access, 4K HDR, offline downloads."
+    },
+    "choosePlanCta": "Choose {{plan}}",
+    "faq": {
+      "label": "FAQ",
+      "title": "Questions, answered",
+      "items": {
+        "cancel": {
+          "q": "Can I cancel anytime?",
+          "a": "Yes. Manage or cancel your plan from your profile in seconds."
+        },
+        "downloads": {
+          "q": "Do you support offline downloads?",
+          "a": "Premium plans include offline access on supported devices."
+        },
+        "devices": {
+          "q": "What devices are supported?",
+          "a": "Stream on web, mobile, smart TVs, and casting devices."
+        },
+        "freeTier": {
+          "q": "Is there a free tier?",
+          "a": "Explore free-to-start collections before committing to a plan."
+        }
+      }
+    },
+    "footerDescription": "Premium cinematic streaming platform built for movie lovers.",
+    "validation": {
+      "invalidEmail": "Please enter a valid email address."
+    },
+    "checkAccountFailed": "Failed to check account.",
+    "signInFailed": "Sign in failed.",
+    "registrationFailed": "Registration failed",
+    "registeredMessageFallback": "Registered. Please verify your email, then sign in."
+  },
+  "adminMoviePage": {
+    "title": "Admin Dashboard",
+    "subtitle": "Fast CRUD with direct visibility into catalog distribution.",
+    "loading": "Loading admin dashboard...",
+    "saveFailed": "Failed to save movie.",
+    "deleteConfirm": "Delete this movie?",
+    "totalMovies": "Total Movies",
+    "editMovie": "Edit Movie",
+    "addMovie": "Add Movie",
+    "updateMovie": "Update Movie",
+    "saveMovie": "Save Movie",
+    "movieCatalog": "Movie Catalog",
+    "fields": {
+      "title": "Title",
+      "genre": "Genre",
+      "year": "Year",
+      "description": "Description",
+      "videoUrl": "Video URL",
+      "trailerUrl": "Trailer URL"
+    },
+    "columns": {
+      "title": "Title",
+      "genre": "Genre",
+      "year": "Year",
+      "description": "Description",
+      "plan": "Plan",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
+  "subscriptionWidget": {
+    "title": "Subscription",
+    "loading": "Loading subscription...",
+    "loadFailed": "Failed to load subscription.",
+    "plan": "Plan",
+    "expires": "Expires",
+    "startDate": "Start Date",
+    "noExpiry": "No expiry"
+  },
+  "legacyProfilePage": {
+    "title": "My Account",
+    "profileDetails": "Profile Details",
+    "status": "Status",
+    "verified": "Verified",
+    "notVerified": "Not Verified",
+    "roles": "Roles",
+    "currentPlan": "Current Plan",
+    "subscriptionPlans": "Subscription Plans",
+    "currentPlanButton": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "planDescriptions": {
+      "BASIC": "Free - Watch trailers only",
+      "STANDARD": "{{price}}/mo - Watch most movies",
+      "PREMIUM": "{{price}}/mo - Watch all movies"
+    },
+    "cardDescriptions": {
+      "BASIC": "Free - Watch trailers only",
+      "STANDARD": "{{price}}/mo - Watch most movies",
+      "PREMIUM": "{{price}}/mo - Watch all movies"
+    },
+    "planChanged": "Successfully changed to {{plan}} plan!"
+  },
+  "appLayout": {
+    "footer": "Built with React + Spring Boot"
   }
 }

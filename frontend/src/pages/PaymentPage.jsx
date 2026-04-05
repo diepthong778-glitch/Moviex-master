@@ -1,78 +1,226 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import PaymentQrCard from '../components/PaymentQrCard';
+import { cachedGet } from '../utils/api';
+import { formatVnd, resolvePlanOption } from '../utils/payment';
 
 function PaymentPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { updateSubscription } = useAuth();
   const [searchParams] = useSearchParams();
-  const [confirming, setConfirming] = useState(false);
-  const [message, setMessage] = useState('');
+  const [movie, setMovie] = useState(null);
+  const [transaction, setTransaction] = useState(null);
+  const [loadingTarget, setLoadingTarget] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  const paymentId = searchParams.get('paymentId');
-  const planType = searchParams.get('planType');
+  const packageId = searchParams.get('packageId') || searchParams.get('planType');
+  const movieId = searchParams.get('movieId');
+  const redirectPath = searchParams.get('redirect');
+  const existingTxnCode = searchParams.get('txnCode');
+  const planOption = useMemo(() => resolvePlanOption(packageId), [packageId]);
 
-  const qrUrl = useMemo(() => {
-    if (!paymentId) return '';
-    return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=MOVIEX-${paymentId}`;
-  }, [paymentId]);
+  useEffect(() => {
+    let ignore = false;
 
-  const handleConfirmPayment = async () => {
-    if (!paymentId) {
-      setError('Missing payment information.');
+    const loadData = async () => {
+      if (!movieId && !ignore) {
+        setMovie(null);
+      }
+
+      if (movieId) {
+        try {
+          setLoadingTarget(true);
+          const data = await cachedGet(`/api/movies/${encodeURIComponent(movieId)}`, {
+            ttlMs: 30000,
+            cacheKey: `movie:payment:${movieId}`,
+          });
+          if (!ignore) {
+            setMovie(data);
+          }
+        } catch {
+          if (!ignore) {
+            setError(t('paymentPage.movieNotFound'));
+          }
+        } finally {
+          if (!ignore) {
+            setLoadingTarget(false);
+          }
+        }
+      }
+
+      if (existingTxnCode) {
+        try {
+          const response = await axios.get(`/api/payment/public/transactions/${encodeURIComponent(existingTxnCode)}`);
+          if (!ignore) {
+            setTransaction(response.data);
+          }
+        } catch {
+          if (!ignore) {
+            setError(t('paymentPage.reloadFailed'));
+          }
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [movieId, existingTxnCode]);
+
+  const targetSummary = useMemo(() => {
+    if (movie) {
+      return {
+        title: movie.title,
+        subtitle: t('paymentPage.movieSubtitle', { title: movie.title }),
+        amount: null,
+        details: [
+          t('paymentPage.genre', { value: movie.genre || t('paymentPage.updating') }),
+          t('paymentPage.year', { value: movie.year || t('paymentPage.updating') }),
+          t('paymentPage.requiredPlan', { value: movie.requiredSubscription || 'BASIC' }),
+        ],
+      };
+    }
+
+    if (planOption) {
+      return {
+        title: t(`plansPage.plans.${planOption.key}.name`),
+        subtitle: t('paymentPage.planSubtitle'),
+        amount: planOption.price,
+        details: Array.isArray(t(`plansPage.plans.${planOption.key}.features`, { returnObjects: true }))
+          ? t(`plansPage.plans.${planOption.key}.features`, { returnObjects: true })
+          : [],
+      };
+    }
+
+    return null;
+  }, [movie, planOption]);
+
+  const handleCreateTransaction = async () => {
+    if (!movieId && !planOption) {
+      setError(t('paymentPage.selectTarget'));
       return;
     }
 
     try {
-      setConfirming(true);
+      setCreating(true);
       setError('');
-      setMessage('');
 
-      const response = await axios.post('/api/payment/confirm', { paymentId });
-      const activatedPlan = response.data?.subscription?.planType || planType;
-      if (activatedPlan) {
-        updateSubscription(activatedPlan);
-      }
+      const payload = {
+        packageId: planOption?.packageId,
+        planType: planOption?.key,
+        movieId: movieId || null,
+        redirectPath: redirectPath || (movieId ? `/browse?play=${movieId}` : '/browse'),
+      };
 
-      setMessage('Payment successful. Redirecting to home...');
-      setTimeout(() => navigate('/'), 1500);
+      const response = await axios.post('/api/payment/transactions', payload);
+      setTransaction(response.data);
+      navigate(
+        `/payment?${new URLSearchParams({
+          ...(movieId ? { movieId } : {}),
+          ...(planOption?.packageId ? { packageId: planOption.packageId } : {}),
+          ...(response.data?.txnCode ? { txnCode: response.data.txnCode } : {}),
+          ...(redirectPath ? { redirect: redirectPath } : {}),
+        }).toString()}`,
+        { replace: true }
+      );
     } catch {
-      setError('Payment confirmation failed. Please retry.');
+      setError(t('paymentPage.createFailed'));
     } finally {
-      setConfirming(false);
+      setCreating(false);
     }
   };
 
   return (
-    <div className="page-shell">
-      <div className="page-header">
+    <div className="page-shell sandbox-page-shell">
+      <div className="sandbox-page-head">
         <div>
-          <h2 className="page-title">Payment QR</h2>
-          <p className="page-subtitle">Scan QR and confirm to activate your subscription</p>
+          <p className="sandbox-eyebrow">{t('paymentPage.badge')}</p>
+          <h1 className="sandbox-hero-title">{t('paymentPage.title')}</h1>
+          <p className="sandbox-hero-subtitle">
+            {t('paymentPage.subtitle')}
+          </p>
         </div>
       </div>
 
-      <div className="account-panel" style={{ textAlign: 'center' }}>
-        <p className="muted-text" style={{ marginBottom: '10px' }}>
-          Plan: <strong>{planType || '-'}</strong>
-        </p>
-        {qrUrl ? (
-          <img src={qrUrl} alt="Payment QR" width="240" height="240" style={{ borderRadius: '12px' }} />
-        ) : (
-          <p className="error-text">Payment ID not found.</p>
-        )}
+      {error && <div className="sandbox-alert sandbox-alert-error">{error}</div>}
 
-        <div style={{ marginTop: '18px' }}>
-          <button className="btn btn-primary" onClick={handleConfirmPayment} disabled={confirming || !paymentId}>
-            {confirming ? 'Confirming...' : 'Confirm Payment'}
-          </button>
-        </div>
+      <div className="sandbox-grid">
+        <section className="sandbox-panel">
+          <div className="sandbox-section-header">
+            <div>
+              <p className="sandbox-eyebrow">{t('paymentPage.step1')}</p>
+              <h2 className="sandbox-title">{t('paymentPage.paymentTargetInfo')}</h2>
+            </div>
+          </div>
 
-        {message && <p className="muted-text" style={{ marginTop: '14px' }}>{message}</p>}
-        {error && <p className="error-text" style={{ marginTop: '14px' }}>{error}</p>}
+          {loadingTarget ? (
+            <p className="muted-text">{t('paymentPage.loadingTarget')}</p>
+          ) : targetSummary ? (
+            <>
+              <div className="sandbox-product-card">
+                <div>
+                  <h3>{targetSummary.title}</h3>
+                  <p>{targetSummary.subtitle}</p>
+                </div>
+                {targetSummary.amount != null && (
+                  <strong className="sandbox-money">{formatVnd(targetSummary.amount)}</strong>
+                )}
+              </div>
+
+              <div className="sandbox-detail-list">
+                {targetSummary.details.map((item) => (
+                  <div key={item} className="sandbox-detail-row">
+                    <span>{item}</span>
+                    <strong>Sandbox</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="muted-text">{t('paymentPage.chooseTargetFirst')}</p>
+          )}
+
+          <div className="sandbox-actions">
+            <button type="button" className="btn btn-primary sandbox-btn" onClick={handleCreateTransaction} disabled={creating}>
+              {creating ? t('paymentPage.creatingQr') : transaction ? t('paymentPage.regenerateQr') : t('paymentPage.createQr')}
+            </button>
+            <button type="button" className="btn btn-outline sandbox-btn" onClick={() => navigate('/plans')}>
+              {t('paymentPage.viewPlans')}
+            </button>
+          </div>
+        </section>
+
+        <section className="sandbox-panel">
+          <div className="sandbox-section-header">
+            <div>
+              <p className="sandbox-eyebrow">{t('paymentPage.step2')}</p>
+              <h2 className="sandbox-title">{t('paymentPage.scanGuide')}</h2>
+            </div>
+          </div>
+
+          <div className="sandbox-step-list">
+            <div className="sandbox-step-item">
+              <span>1</span>
+              <p>{t('paymentPage.guide1')}</p>
+            </div>
+            <div className="sandbox-step-item">
+              <span>2</span>
+              <p>{t('paymentPage.guide2')}</p>
+            </div>
+            <div className="sandbox-step-item">
+              <span>3</span>
+              <p>{t('paymentPage.guide3')}</p>
+            </div>
+          </div>
+        </section>
       </div>
+
+      {transaction && <PaymentQrCard transaction={transaction} />}
     </div>
   );
 }

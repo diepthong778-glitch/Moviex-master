@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { cachedGet, invalidateApiCache } from '../utils/api';
 
 const emptyForm = {
@@ -13,10 +14,12 @@ const emptyForm = {
 };
 
 function Admin() {
+  const { t } = useTranslation();
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const translatePlanLabel = (plan) => t(`common.plansLabel.${plan || 'NONE'}`);
 
   useEffect(() => {
     fetchMovies();
@@ -38,7 +41,6 @@ function Admin() {
       });
       setMovies(Array.isArray(data?.content) ? data.content : []);
     } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -70,8 +72,7 @@ function Admin() {
       invalidateApiCache('/api/admin/movies');
       fetchMovies();
     } catch (error) {
-      alert('Failed to save movie.');
-      console.error(error);
+      alert(t('adminMoviePage.saveFailed'));
     }
   };
 
@@ -89,21 +90,20 @@ function Admin() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this movie?')) return;
+    if (!window.confirm(t('adminMoviePage.deleteConfirm'))) return;
     try {
       await axios.delete(`/api/admin/movies/${id}`);
       invalidateApiCache('/api/movies');
       invalidateApiCache('/api/admin/movies');
       fetchMovies();
     } catch (error) {
-      console.error(error);
     }
   };
 
   if (loading) {
     return (
       <div className="page-shell">
-        <p className="muted-text">Loading admin dashboard...</p>
+        <p className="muted-text">{t('adminMoviePage.loading')}</p>
       </div>
     );
   }
@@ -116,33 +116,33 @@ function Admin() {
     <div className="page-shell admin-shell">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Admin Dashboard</h1>
-          <p className="page-subtitle">Fast CRUD with direct visibility into catalog distribution.</p>
+          <h1 className="page-title">{t('adminMoviePage.title')}</h1>
+          <p className="page-subtitle">{t('adminMoviePage.subtitle')}</p>
         </div>
       </div>
 
       <section className="admin-stats">
         <article className="admin-stat-card">
-          <span className="admin-stat-label">Total Movies</span>
+          <span className="admin-stat-label">{t('adminMoviePage.totalMovies')}</span>
           <strong className="admin-stat-value">{movies.length}</strong>
         </article>
         <article className="admin-stat-card">
-          <span className="admin-stat-label">Premium</span>
+          <span className="admin-stat-label">{translatePlanLabel('PREMIUM')}</span>
           <strong className="admin-stat-value">{premiumCount}</strong>
         </article>
         <article className="admin-stat-card">
-          <span className="admin-stat-label">Standard</span>
+          <span className="admin-stat-label">{translatePlanLabel('STANDARD')}</span>
           <strong className="admin-stat-value">{standardCount}</strong>
         </article>
         <article className="admin-stat-card">
-          <span className="admin-stat-label">Basic</span>
+          <span className="admin-stat-label">{translatePlanLabel('BASIC')}</span>
           <strong className="admin-stat-value">{basicCount}</strong>
         </article>
       </section>
 
       <section className="account-panel">
         <div className="panel-header">
-          <h2 className="panel-title">{editingId ? 'Edit Movie' : 'Add Movie'}</h2>
+          <h2 className="panel-title">{editingId ? t('adminMoviePage.editMovie') : t('adminMoviePage.addMovie')}</h2>
         </div>
 
         <form className="admin-form-grid" onSubmit={handleSubmit}>
@@ -152,7 +152,7 @@ function Admin() {
             value={form.title}
             onChange={handleInputChange}
             className="field-control"
-            placeholder="Title"
+            placeholder={t('adminMoviePage.fields.title')}
             required
           />
           <input
@@ -161,7 +161,7 @@ function Admin() {
             value={form.genre}
             onChange={handleInputChange}
             className="field-control"
-            placeholder="Genre"
+            placeholder={t('adminMoviePage.fields.genre')}
             required
           />
           <input
@@ -170,7 +170,7 @@ function Admin() {
             value={form.year}
             onChange={handleInputChange}
             className="field-control"
-            placeholder="Year"
+            placeholder={t('adminMoviePage.fields.year')}
             required
           />
           <textarea
@@ -178,7 +178,7 @@ function Admin() {
             value={form.description}
             onChange={handleInputChange}
             className="field-control admin-form-wide admin-description-input"
-            placeholder="Description"
+            placeholder={t('adminMoviePage.fields.description')}
             rows={4}
             required
           />
@@ -188,9 +188,9 @@ function Admin() {
             onChange={handleInputChange}
             className="field-control"
           >
-            <option value="BASIC">BASIC</option>
-            <option value="STANDARD">STANDARD</option>
-            <option value="PREMIUM">PREMIUM</option>
+            <option value="BASIC">{translatePlanLabel('BASIC')}</option>
+            <option value="STANDARD">{translatePlanLabel('STANDARD')}</option>
+            <option value="PREMIUM">{translatePlanLabel('PREMIUM')}</option>
           </select>
           <input
             type="url"
@@ -198,7 +198,7 @@ function Admin() {
             value={form.videoUrl}
             onChange={handleInputChange}
             className="field-control admin-form-wide"
-            placeholder="Video URL"
+            placeholder={t('adminMoviePage.fields.videoUrl')}
             required
           />
           <input
@@ -207,12 +207,12 @@ function Admin() {
             value={form.trailerUrl}
             onChange={handleInputChange}
             className="field-control admin-form-wide"
-            placeholder="Trailer URL"
+            placeholder={t('adminMoviePage.fields.trailerUrl')}
             required
           />
           <div className="admin-form-actions admin-form-wide">
             <button type="submit" className="btn btn-primary">
-              {editingId ? 'Update Movie' : 'Save Movie'}
+              {editingId ? t('adminMoviePage.updateMovie') : t('adminMoviePage.saveMovie')}
             </button>
             {editingId && (
               <button
@@ -223,7 +223,7 @@ function Admin() {
                   setForm(emptyForm);
                 }}
               >
-                Cancel
+                {t('common.close')}
               </button>
             )}
           </div>
@@ -232,19 +232,19 @@ function Admin() {
 
       <section className="account-panel">
         <div className="panel-header">
-          <h2 className="panel-title">Movie Catalog</h2>
+          <h2 className="panel-title">{t('adminMoviePage.movieCatalog')}</h2>
         </div>
 
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Genre</th>
-                <th>Year</th>
-                <th>Description</th>
-                <th>Plan</th>
-                <th>Actions</th>
+                <th>{t('adminMoviePage.columns.title')}</th>
+                <th>{t('adminMoviePage.columns.genre')}</th>
+                <th>{t('adminMoviePage.columns.year')}</th>
+                <th>{t('adminMoviePage.columns.description')}</th>
+                <th>{t('adminMoviePage.columns.plan')}</th>
+                <th>{t('adminMoviePage.columns.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -254,18 +254,18 @@ function Admin() {
                   <td>{movie.genre}</td>
                   <td>{movie.year}</td>
                   <td>
-                    <p className="admin-description-preview">{movie.description || '-'}</p>
+                    <p className="admin-description-preview">{movie.description || t('sharedUi.unknown')}</p>
                   </td>
                   <td>
-                    <span className="movie-card-genre">{movie.requiredSubscription}</span>
+                    <span className="movie-card-genre">{translatePlanLabel(movie.requiredSubscription)}</span>
                   </td>
                   <td>
                     <div className="admin-actions">
                       <button className="btn btn-outline" onClick={() => handleEdit(movie)}>
-                        Edit
+                        {t('adminMoviePage.actions.edit')}
                       </button>
                       <button className="btn btn-primary" onClick={() => handleDelete(movie.id)}>
-                        Delete
+                        {t('adminMoviePage.actions.delete')}
                       </button>
                     </div>
                   </td>

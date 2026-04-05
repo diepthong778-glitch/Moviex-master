@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders, cachedGet } from '../utils/api';
+import { resolvePosterUrl } from '../utils/media';
 import WatchlistSection from '../components/WatchlistSection';
 import HistorySection from '../components/HistorySection';
 
@@ -12,15 +13,69 @@ const applyTheme = (isDarkMode) => {
   localStorage.setItem('moviex.theme', isDarkMode ? 'dark' : 'light');
 };
 
+const enrichHistoryItems = async (historyItems, watchlistItems, headers) => {
+  if (!Array.isArray(historyItems)) return [];
+
+  const watchlistMap = new Map();
+  (watchlistItems || []).forEach((movie) => {
+    const id = movie?.id || movie?.movieId;
+    if (id) watchlistMap.set(id, movie);
+  });
+
+  const missingIds = [];
+  historyItems.forEach((item) => {
+    const movieId = item?.movieId;
+    if (movieId && !watchlistMap.has(movieId)) {
+      missingIds.push(movieId);
+    }
+  });
+
+  const fetchedMap = new Map();
+  const uniqueMissing = Array.from(new Set(missingIds));
+  if (uniqueMissing.length) {
+    const results = await Promise.all(
+      uniqueMissing.map((id) =>
+        cachedGet(`/api/movies/${encodeURIComponent(id)}`, {
+          ttlMs: 60000,
+          cacheKey: `movie:${id}`,
+          config: { headers },
+        }).catch(() => null)
+      )
+    );
+
+    results.forEach((movie) => {
+      if (movie?.id) fetchedMap.set(movie.id, movie);
+    });
+  }
+
+  return historyItems.map((item) => {
+    const movieId = item?.movieId;
+    const movieData = (movieId && (watchlistMap.get(movieId) || fetchedMap.get(movieId))) || {};
+
+    const merged = {
+      ...movieData,
+      ...item,
+      movieId,
+      title: item?.movieTitle || movieData?.title,
+      movieTitle: item?.movieTitle || movieData?.title,
+      trailerUrl: movieData?.trailerUrl || item?.trailerUrl,
+      videoUrl: movieData?.videoUrl || item?.videoUrl,
+      duration: item?.duration || movieData?.duration,
+    };
+
+    merged.posterUrl = resolvePosterUrl(merged);
+    return merged;
+  });
+};
+
 function ProfilePage() {
   const { user, getToken } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [subscription, setSubscription] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [history, setHistory] = useState([]);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('moviex.theme') !== 'light');
-  const [language, setLanguage] = useState(() => localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,9 +92,13 @@ function ProfilePage() {
 
         setSubscription(subscriptionData || null);
         setWatchlist(Array.isArray(watchlistData) ? watchlistData : []);
-        setHistory(Array.isArray(historyData) ? historyData : []);
+        const hydratedHistory = await enrichHistoryItems(
+          Array.isArray(historyData) ? historyData : [],
+          Array.isArray(watchlistData) ? watchlistData : [],
+          headers
+        );
+        setHistory(hydratedHistory);
       } catch (error) {
-        console.error('Profile data fetch failed:', error);
       } finally {
         setLoading(false);
       }
@@ -49,26 +108,20 @@ function ProfilePage() {
   }, [getToken]);
 
   useEffect(() => {
-    if (!loading) {
-      console.debug('[Profile] Watchlist sample:', watchlist[0]);
-      console.debug('[Profile] History sample:', history[0]);
-    }
-  }, [loading, watchlist, history]);
-
-  useEffect(() => {
     applyTheme(darkMode);
   }, [darkMode]);
-
-  useEffect(() => {
-    localStorage.setItem('moviex.language', language);
-    if (i18n.resolvedLanguage !== language) {
-      i18n.changeLanguage(language);
-    }
-  }, [language, i18n]);
 
   const translatePlanLabel = (plan) => t(`common.plansLabel.${plan || 'NONE'}`);
   const translateStatusLabel = (status) => t(`common.statusLabel.${status || 'INACTIVE'}`);
   const username = user?.username || user?.email?.split('@')?.[0] || t('common.user');
+  const selectedLanguage = localStorage.getItem('moviex.language') || 'en';
+  const selectedLanguageLabel = {
+    en: 'English',
+    vi: 'Vietnamese',
+    ja: 'Japanese',
+    zh: 'Chinese',
+    ko: 'Korean',
+  }[selectedLanguage] || 'English';
 
   const handleWatchlistSelect = (movie) => {
     const movieId = movie?.id || movie?.movieId;
@@ -97,15 +150,18 @@ function ProfilePage() {
   };
 
   const handleHistoryRemove = async (item) => {
-    const movieId = item?.movieId;
-    if (!movieId) return;
+    const movieId = item?.movieId || item?.id;
+    if (!movieId) {
+      return;
+    }
     try {
-      await axios.delete(`/api/history/me/${encodeURIComponent(movieId)}`, {
-        headers: authHeaders(getToken()),
-      });
-      setHistory((current) => current.filter((entry) => entry.movieId !== movieId));
+      const headers = authHeaders(getToken());
+      const url = `/api/history/me/${encodeURIComponent(movieId)}`;
+      const response = await axios.delete(url, { headers });
+      setHistory((current) =>
+        current.filter((entry) => (entry.movieId || entry.id) !== movieId)
+      );
     } catch (error) {
-      console.error('Failed to remove history item', error);
     }
   };
 
@@ -129,7 +185,7 @@ function ProfilePage() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-display font-bold text-white">{t('profilePage.userInfo')}</h3>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate">Account</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate">{t('profilePage.accountSection')}</p>
               </div>
               <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate">
                 {t('common.account')}
@@ -151,7 +207,7 @@ function ProfilePage() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-display font-bold text-white">{t('profilePage.subscription')}</h3>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate">Membership</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate">{t('profilePage.membershipSection')}</p>
               </div>
               <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate">
                 {translateStatusLabel(subscription?.status)}
@@ -212,7 +268,7 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink/40 px-4 py-3 text-sm text-white">
               <span>{t('common.darkMode')}</span>
               <input
@@ -220,19 +276,6 @@ function ProfilePage() {
                 checked={darkMode}
                 onChange={(e) => setDarkMode(e.target.checked)}
               />
-            </label>
-
-            <label className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink/40 px-4 py-3 text-sm text-white">
-              <span>{t('common.language')}</span>
-              <select
-                className="rounded-lg bg-transparent text-sm text-white"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                <option value="en">{t('common.english')}</option>
-                <option value="vi">{t('common.vietnamese')}</option>
-                <option value="ja">{t('common.japanese')}</option>
-              </select>
             </label>
 
             <div className="rounded-2xl border border-white/10 bg-ink/40 px-4 py-3">
@@ -243,7 +286,7 @@ function ProfilePage() {
             <div className="rounded-2xl border border-white/10 bg-ink/40 px-4 py-3">
               <span className="text-xs uppercase tracking-[0.2em] text-slate">{t('profilePage.selectedLanguage')}</span>
               <p className="text-sm font-semibold text-white">
-                {language === 'vi' ? t('common.vietnamese') : language === 'ja' ? t('common.japanese') : t('common.english')}
+                {selectedLanguageLabel}
               </p>
             </div>
           </div>

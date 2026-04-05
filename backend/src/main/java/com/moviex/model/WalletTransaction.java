@@ -1,6 +1,7 @@
 package com.moviex.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -10,9 +11,13 @@ import java.time.LocalDateTime;
 public class WalletTransaction {
     @Id
     private String id;
+    @Indexed
     private String userId;
+    @Indexed
     private BigDecimal amount;
+    @Indexed
     private WalletTransactionType type;
+    @Indexed
     private LocalDateTime createdAt;
 
     public WalletTransaction() {}

@@ -5,6 +5,7 @@ import com.moviex.security.AuthTokenFilter;
 import com.moviex.security.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -93,7 +94,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configure(http))
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> 
+            .authorizeHttpRequests(auth ->
                 auth.requestMatchers(
                         "/api/auth/login",
                         "/api/auth/register",
@@ -101,8 +102,14 @@ public class SecurityConfig {
                         "/api/auth/verify",
                         "/api/auth/forgot-password"
                     ).permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/api/movies/**").permitAll() // read-only movies allowed
+                    .requestMatchers("/api/payment/public/**").permitAll()
                     .requestMatchers("/ws/**").permitAll()
+                    .requestMatchers("/api/history/**").hasAnyRole("USER", "ADMIN")
+                    .requestMatchers("/api/watchlist/**").hasAnyRole("USER", "ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/history/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             );

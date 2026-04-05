@@ -1,27 +1,45 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext';
-import Admin from './pages/Admin';
-import AdminDashboard from './pages/AdminDashboard';
-import ChangePassword from './pages/ChangePassword';
-import ForgotPassword from './pages/ForgotPassword';
-import Home from './pages/Home';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import PaymentPage from './pages/PaymentPage';
-import PlanSelectionPage from './pages/PlanSelectionPage';
-import ProfilePage from './pages/ProfilePage';
-import RealtimeActivity from './pages/RealtimeActivity';
-import Register from './pages/Register';
-import Settings from './pages/Settings';
-import SubscriptionPage from './pages/SubscriptionPage';
-import UserManagement from './pages/UserManagement';
-import Verify from './pages/Verify';
-import WatchHistoryPage from './pages/WatchHistoryPage';
-import Watchlist from './pages/Watchlist';
 import { useAuth } from './context/AuthContext';
 import './main.css';
+
+const Admin = lazy(() => import('./pages/Admin'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const ChangePassword = lazy(() => import('./pages/ChangePassword'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Home = lazy(() => import('./pages/Home'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Login = lazy(() => import('./pages/Login'));
+const PaymentPage = lazy(() => import('./pages/PaymentPage'));
+const PaymentSandboxPage = lazy(() => import('./pages/PaymentSandboxPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
+const PlanSelectionPage = lazy(() => import('./pages/PlanSelectionPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const RealtimeActivity = lazy(() => import('./pages/RealtimeActivity'));
+const Register = lazy(() => import('./pages/Register'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const Verify = lazy(() => import('./pages/Verify'));
+const WatchHistoryPage = lazy(() => import('./pages/WatchHistoryPage'));
+const Watchlist = lazy(() => import('./pages/Watchlist'));
+
+function RouteFallback() {
+  const { t } = useTranslation();
+  return (
+    <div className="page-shell">
+      <p className="muted-text">{t('common.loading')}</p>
+    </div>
+  );
+}
+
+function LazyPage({ children }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
 
 function BrowseGuard({ children }) {
   const { user, getToken, loading } = useAuth();
@@ -32,6 +50,7 @@ function BrowseGuard({ children }) {
 }
 
 function AppLayout() {
+  const { t } = useTranslation();
   const location = useLocation();
   const isLanding = location.pathname === '/';
 
@@ -41,36 +60,40 @@ function AppLayout() {
 
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Routes>
-          <Route path="/" element={<Landing />} />
           <Route
             path="/browse"
             element={
               <BrowseGuard>
-                <Home />
+                <LazyPage>
+                  <Home />
+                </LazyPage>
               </BrowseGuard>
             }
           />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify" element={<Verify />} />
-          <Route path="/plans" element={<PlanSelectionPage />} />
+          <Route path="/" element={<LazyPage><Landing /></LazyPage>} />
+          <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
+          <Route path="/register" element={<LazyPage><Register /></LazyPage>} />
+          <Route path="/forgot-password" element={<LazyPage><ForgotPassword /></LazyPage>} />
+          <Route path="/verify" element={<LazyPage><Verify /></LazyPage>} />
+          <Route path="/plans" element={<LazyPage><PlanSelectionPage /></LazyPage>} />
+          <Route path="/payment-sandbox/:txnCode" element={<LazyPage><PaymentSandboxPage /></LazyPage>} />
+          <Route path="/payment-success/:txnCode" element={<LazyPage><PaymentSuccessPage /></LazyPage>} />
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/watchlist" element={<Watchlist />} />
-            <Route path="/history" element={<WatchHistoryPage />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/change-password" element={<LazyPage><ChangePassword /></LazyPage>} />
+            <Route path="/profile" element={<LazyPage><ProfilePage /></LazyPage>} />
+            <Route path="/subscription" element={<LazyPage><SubscriptionPage /></LazyPage>} />
+            <Route path="/payment" element={<LazyPage><PaymentPage /></LazyPage>} />
+            <Route path="/watchlist" element={<LazyPage><Watchlist /></LazyPage>} />
+            <Route path="/history" element={<LazyPage><WatchHistoryPage /></LazyPage>} />
+            <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
           </Route>
 
           <Route element={<AdminRoute />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<UserManagement />} />
-            <Route path="/admin/realtime" element={<RealtimeActivity />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/dashboard" element={<LazyPage><AdminDashboard /></LazyPage>} />
+            <Route path="/admin/users" element={<LazyPage><UserManagement /></LazyPage>} />
+            <Route path="/admin/realtime" element={<LazyPage><RealtimeActivity /></LazyPage>} />
+            <Route path="/admin" element={<LazyPage><Admin /></LazyPage>} />
           </Route>
         </Routes>
       </main>
@@ -78,7 +101,7 @@ function AppLayout() {
       {!isLanding && (
         <footer className="footer" id="about">
           <p className="footer-text">
-            (c) 2026 <span className="footer-brand">MOVIEX</span> - Built with React + Spring Boot
+            (c) 2026 <span className="footer-brand">MOVIEX</span> - {t('appLayout.footer')}
           </p>
         </footer>
       )}

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cachedGet } from '../utils/api';
 
 function SubscriptionPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
@@ -16,7 +18,7 @@ function SubscriptionPage() {
         const data = await cachedGet('/api/subscription/me', { ttlMs: 10000 });
         setSubscription(data);
       } catch {
-        setError('Failed to load subscription.');
+        setError(t('subscriptionPage.loadFailed'));
       } finally {
         setLoading(false);
       }
@@ -33,31 +35,31 @@ function SubscriptionPage() {
     <div className="page-shell">
       <div className="page-header">
         <div>
-          <h2 className="page-title">My Subscription</h2>
-          <p className="page-subtitle">Manage plan and expiration</p>
+          <h2 className="page-title">{t('subscriptionPage.title')}</h2>
+          <p className="page-subtitle">{t('subscriptionPage.subtitle')}</p>
         </div>
       </div>
 
       <div className="account-panel">
-        {loading && <p className="muted-text">Loading subscription...</p>}
+        {loading && <p className="muted-text">{t('subscriptionPage.loading')}</p>}
         {error && <p className="error-text">{error}</p>}
 
         {!loading && !error && (
           <div className="account-grid">
             <div>
-              <span className="label-text">Current Plan</span>
+              <span className="label-text">{t('subscriptionPage.currentPlan')}</span>
               <p className="value-text">{planType}</p>
             </div>
             <div>
-              <span className="label-text">Remaining Days</span>
+              <span className="label-text">{t('subscriptionPage.remainingDays')}</span>
               <p className="value-text">{remainingDays}</p>
             </div>
             <div>
-              <span className="label-text">Expiration Date</span>
+              <span className="label-text">{t('subscriptionPage.expirationDate')}</span>
               <p className="value-text">{expirationDate}</p>
             </div>
             <div>
-              <span className="label-text">Status</span>
+              <span className="label-text">{t('subscriptionPage.status')}</span>
               <p className="value-text">{subscription?.status || 'EXPIRED'}</p>
             </div>
           </div>
@@ -65,7 +67,7 @@ function SubscriptionPage() {
 
         <div style={{ marginTop: '20px' }}>
           <button className="btn btn-primary" onClick={() => navigate('/plans')}>
-            Upgrade Plan
+            {t('subscriptionPage.upgradePlan')}
           </button>
         </div>
       </div>

@@ -21,23 +21,27 @@ public class WatchHistoryController {
     }
 
     @PostMapping("/save")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<WatchHistoryResponse> saveHistory(@RequestBody WatchHistorySaveRequest request) {
         return ResponseEntity.ok(watchHistoryService.saveWhenWatch(request));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<WatchHistoryResponse>> getHistory(
             @RequestParam(defaultValue = "100") int limit) {
         return ResponseEntity.ok(watchHistoryService.getUserHistory(limit));
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<WatchHistoryResponse>> getMyHistory(
             @RequestParam(defaultValue = "100") int limit) {
         return ResponseEntity.ok(watchHistoryService.getUserHistory(limit));
     }
 
     @DeleteMapping("/me/{movieId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<MessageResponse> deleteMyHistory(@PathVariable String movieId) {
         watchHistoryService.deleteUserHistoryItem(movieId);
         return ResponseEntity.ok(new MessageResponse("History entry deleted."));

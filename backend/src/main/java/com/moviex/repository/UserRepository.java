@@ -1,6 +1,7 @@
 package com.moviex.repository;
 
 import com.moviex.model.User;
+import com.moviex.model.SubscriptionPlan;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,4 +16,5 @@ public interface UserRepository extends MongoRepository<User, String> {
     Boolean existsByEmail(String email);
     List<User> findByOnlineTrue();
     long countByOnlineTrue();
+    long countBySubscriptionPlan(SubscriptionPlan subscriptionPlan);
 }

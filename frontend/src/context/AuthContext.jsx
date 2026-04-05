@@ -51,10 +51,28 @@ export function AuthProvider({ children }) {
   }, []);
 
   const updateSubscription = useCallback((plan) => {
-      const updatedUser = { ...user, subscriptionPlan: plan };
-      setUser(updatedUser);
+    setUser((currentUser) => {
+      if (!currentUser) return currentUser;
+      const updatedUser = { ...currentUser, subscriptionPlan: plan };
       localStorage.setItem('user', JSON.stringify(updatedUser));
-  }, [user]);
+      return updatedUser;
+    });
+  }, []);
+
+  const syncPaymentEntitlements = useCallback((entitlements) => {
+    setUser((currentUser) => {
+      if (!currentUser || !entitlements) return currentUser;
+      const updatedUser = {
+        ...currentUser,
+        subscriptionPlan: entitlements.subscriptionPlan || currentUser.subscriptionPlan,
+        unlockedMovieIds: Array.isArray(entitlements.unlockedMovieIds)
+          ? entitlements.unlockedMovieIds
+          : currentUser.unlockedMovieIds || [],
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
 
   const getToken = useCallback(() => {
     if (user?.token) return user.token;
@@ -70,10 +88,11 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateSubscription,
+    syncPaymentEntitlements,
     getToken,
     checkRole,
     loading,
-  }), [user, login, logout, updateSubscription, getToken, checkRole, loading]);
+  }), [user, login, logout, updateSubscription, syncPaymentEntitlements, getToken, checkRole, loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
