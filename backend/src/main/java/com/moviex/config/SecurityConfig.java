@@ -3,6 +3,7 @@ package com.moviex.config;
 import com.moviex.security.AuthEntryPointJwt;
 import com.moviex.security.AuthTokenFilter;
 import com.moviex.security.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -31,10 +34,20 @@ public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final AuthEntryPointJwt unauthorizedHandler;
+    private final List<String> allowedOrigins;
 
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService, AuthEntryPointJwt unauthorizedHandler) {
+    public SecurityConfig(
+        UserDetailsServiceImpl userDetailsService,
+        AuthEntryPointJwt unauthorizedHandler,
+        @Value("${moviex.app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173}")
+        List<String> allowedOrigins
+    ) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
+        this.allowedOrigins = allowedOrigins.stream()
+            .map(String::trim)
+            .filter(origin -> !origin.isEmpty())
+            .collect(Collectors.toList());
     }
 
     @Bean
@@ -64,18 +77,7 @@ public class SecurityConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-
-        // Allow both localhost (dev) and production domains
-        config.setAllowedOrigins(Arrays.asList(
-            // Development
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5173",
-            // Production - REPLACE with your actual domain
-            "https://myfrontend.com",
-            "https://www.myfrontend.com"
-        ));
+        config.setAllowedOrigins(allowedOrigins);
 
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));

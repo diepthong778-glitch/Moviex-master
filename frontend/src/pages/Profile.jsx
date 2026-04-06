@@ -23,7 +23,7 @@ function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/users/profile');
+      const response = await axios.get('/api/users/profile');
       setProfile(response.data || null);
     } catch (err) {
     } finally {
@@ -33,7 +33,7 @@ function Profile() {
 
   const handleUpgrade = async (plan) => {
     try {
-      const res = await axios.post('http://localhost:8080/api/subscribe', {
+      const res = await axios.post('/api/subscribe', {
         type: plan,
       });
       

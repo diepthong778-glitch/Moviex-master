@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../utils/api';
 
 function Verify() {
   const [searchParams] = useSearchParams();
@@ -17,7 +18,7 @@ function Verify() {
 
     const verifyToken = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/auth/verify?token=${token}`);
+        const res = await fetch(buildApiUrl(`/api/auth/verify?token=${encodeURIComponent(token)}`));
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.message || 'Verification failed');
@@ -30,7 +31,7 @@ function Verify() {
     };
 
     verifyToken();
-  }, [token]);
+  }, [navigate, token]);
 
   return (
     <div className="section" style={{ paddingTop: '120px', minHeight: '80vh', display: 'flex', justifyContent: 'center' }}>

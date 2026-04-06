@@ -1,6 +1,11 @@
 import axios from 'axios';
 
 const USER_STORAGE_KEY = 'user';
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+if (apiBaseUrl) {
+  axios.defaults.baseURL = apiBaseUrl;
+}
 
 const PUBLIC_API_PATH_PREFIXES = ['/api/movies', '/api/payment/public'];
 const PUBLIC_API_EXACT_PATHS = [
@@ -14,6 +19,33 @@ const PUBLIC_API_EXACT_PATHS = [
 let interceptorsInitialized = false;
 const getCache = new Map();
 const inflightGetRequests = new Map();
+
+const normalizePath = (path = '') => {
+  if (!path) return '';
+  return path.startsWith('/') ? path : `/${path}`;
+};
+
+export const buildApiUrl = (path = '') => {
+  const normalizedPath = normalizePath(path);
+  return apiBaseUrl ? `${apiBaseUrl}${normalizedPath}` : normalizedPath;
+};
+
+export const buildWebSocketUrl = (path = '') => {
+  const configuredBase = (import.meta.env.VITE_WS_BASE_URL || apiBaseUrl || '').replace(/\/+$/, '');
+  const normalizedPath = normalizePath(path);
+
+  if (configuredBase) {
+    const base = /^https?:\/\//i.test(configuredBase)
+      ? configuredBase
+      : `${window.location.origin.replace(/\/+$/, '')}${normalizePath(configuredBase)}`;
+    const url = new URL(normalizedPath, `${base}/`);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    return url.toString();
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}://${window.location.host}${normalizedPath}`;
+};
 
 const isJsonLikeValue = (value) => {
   return typeof value === 'string' && value.trim() !== '';

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { buildWebSocketUrl } from '../utils/api';
 
 function RealtimeActivity() {
   const { t } = useTranslation();
@@ -22,8 +23,7 @@ function RealtimeActivity() {
   }, []);
 
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const socket = new WebSocket(`${protocol}://localhost:8080/ws/activity`);
+    const socket = new WebSocket(buildWebSocketUrl('/ws/activity'));
 
     socket.onmessage = (message) => {
       try {
@@ -39,7 +39,7 @@ function RealtimeActivity() {
     };
 
     return () => socket.close();
-  }, []);
+  }, [t]);
 
   const onlineCount = useMemo(() => onlineUsers.length, [onlineUsers]);
 
