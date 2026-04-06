@@ -9,10 +9,14 @@ import com.moviex.model.User;
 import com.moviex.repository.SubscriptionRepository;
 import com.moviex.repository.UserRepository;
 import com.moviex.security.UserDetailsImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +33,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final UserRepository userRepository;
     private final MovieAccessGuard movieAccessGuard;
     private final RealtimeActivityService realtimeActivityService;
+    private static final Logger logger = LoggerFactory.getLogger(SubscriptionServiceImpl.class);
 
     public SubscriptionServiceImpl(SubscriptionRepository subscriptionRepository,
                                    UserRepository userRepository,
@@ -299,9 +304,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             String email = userDetails.getUsername();
             return userRepository.findByEmail(email)
                     .map(User::getId)
-                    .orElseThrow(() -> new IllegalStateException("User not found for email: " + email));
+                    .orElseThrow(() -> {
+                        logger.error("User not found for email: {}", email);
+                        return new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+                    });
         }
 
-        throw new IllegalStateException("Current user not found");
+        logger.warn("No authenticated user in security context when resolving subscription");
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 }

@@ -113,7 +113,7 @@ public class AuthService {
         user.setVerified(false);
 
         userRepository.save(user);
-        new Thread(() -> emailService.sendVerificationEmail(user.getEmail(), token)).start();
+        emailService.sendVerificationEmail(user.getEmail(), token);
 
         return new MessageResponse("User registered successfully! Please check your email.");
     }

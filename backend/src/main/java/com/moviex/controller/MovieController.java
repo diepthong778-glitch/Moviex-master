@@ -48,7 +48,14 @@ public class MovieController {
             @RequestParam(defaultValue = "title") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        String safeSort = switch (sortBy == null ? "" : sortBy.trim().toLowerCase()) {
+            case "title" -> "title";
+            case "genre" -> "genre";
+            case "year" -> "year";
+            default -> "title";
+        };
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(safeSort).descending() : Sort.by(safeSort).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<MovieDto> result = movieService.searchMovies(title, genre, year, pageable);

@@ -15,6 +15,8 @@ import com.moviex.repository.MovieRepository;
 import com.moviex.repository.PaymentTransactionRepository;
 import com.moviex.repository.UserRepository;
 import com.moviex.service.payment.PaymentProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +32,7 @@ import java.util.UUID;
 @Service
 public class PaymentServiceImpl implements PaymentService {
     private static final DateTimeFormatter TXN_DAY_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final Logger logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final CurrentUserService currentUserService;
@@ -123,6 +126,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentEntitlementsResponse getCurrentEntitlements() {
         User currentUser = currentUserService.getCurrentUser();
+        logger.debug("Fetching entitlements for user {}", currentUser.getEmail());
         PaymentEntitlementsResponse response = new PaymentEntitlementsResponse();
         response.setUserId(currentUser.getId());
         response.setSubscriptionPlan(currentUser.getSubscriptionPlan() != null ? currentUser.getSubscriptionPlan().name() : SubscriptionPlan.BASIC.name());
