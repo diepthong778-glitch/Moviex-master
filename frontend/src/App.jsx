@@ -9,6 +9,15 @@ import './main.css';
 
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const CinemaCheckout = lazy(() => import('./pages/CinemaCheckout'));
+const CinemaHome = lazy(() => import('./pages/CinemaHome'));
+const CinemaLocations = lazy(() => import('./pages/CinemaLocations'));
+const CinemaMovieDetail = lazy(() => import('./pages/CinemaMovieDetail'));
+const CinemaNowShowing = lazy(() => import('./pages/CinemaNowShowing'));
+const CinemaSchedule = lazy(() => import('./pages/CinemaSchedule'));
+const CinemaSeatSelection = lazy(() => import('./pages/CinemaSeatSelection'));
+const CinemaShowtimeSelection = lazy(() => import('./pages/CinemaShowtimeSelection'));
+const CinemaTickets = lazy(() => import('./pages/CinemaTickets'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Home = lazy(() => import('./pages/Home'));
@@ -70,6 +79,12 @@ function AppLayout() {
               </BrowseGuard>
             }
           />
+          <Route path="/cinema" element={<LazyPage><CinemaHome /></LazyPage>} />
+          <Route path="/cinema/now-showing" element={<LazyPage><CinemaNowShowing /></LazyPage>} />
+          <Route path="/cinema/schedule" element={<LazyPage><CinemaSchedule /></LazyPage>} />
+          <Route path="/cinema/locations" element={<LazyPage><CinemaLocations /></LazyPage>} />
+          <Route path="/cinema/movie/:movieId" element={<LazyPage><CinemaMovieDetail /></LazyPage>} />
+          <Route path="/cinema/movie/:movieId/showtimes" element={<LazyPage><CinemaShowtimeSelection /></LazyPage>} />
           <Route path="/" element={<LazyPage><Landing /></LazyPage>} />
           <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
           <Route path="/register" element={<LazyPage><Register /></LazyPage>} />
@@ -87,6 +102,9 @@ function AppLayout() {
             <Route path="/watchlist" element={<LazyPage><Watchlist /></LazyPage>} />
             <Route path="/history" element={<LazyPage><WatchHistoryPage /></LazyPage>} />
             <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
+            <Route path="/cinema/seats" element={<LazyPage><CinemaSeatSelection /></LazyPage>} />
+            <Route path="/cinema/checkout" element={<LazyPage><CinemaCheckout /></LazyPage>} />
+            <Route path="/cinema/tickets" element={<LazyPage><CinemaTickets /></LazyPage>} />
           </Route>
 
           <Route element={<AdminRoute />}>

@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "home": "Home",
     "profile": "Profile",
@@ -59,6 +59,8 @@
   "navbar": {
     "adminDashboard": "Admin Dashboard",
     "adminConfig": "Admin Config",
+    "streaming": "Streaming",
+    "cinema": "Cinema",
     "welcomeUser": "Hello {{username}}",
     "welcomeSubtitle": "Welcome to Moviex"
   },
@@ -444,7 +446,7 @@
     "createAccountButton": "Create account",
     "checkEmail": "Check your email",
     "registeredMessage": "Registered. Please verify your email, then sign in.",
-    "verifiedSignIn": "I’ve verified - Sign in",
+    "verifiedSignIn": "Iâ€™ve verified - Sign in",
     "useDifferentEmail": "Use a different email",
     "featuredPreview": "Featured Preview",
     "featuredDescriptionFallback": "A curated highlight from the Moviex library. Premium-grade visuals, crafted for a cinematic home experience.",
@@ -559,5 +561,68 @@
   },
   "appLayout": {
     "footer": "Built with React + Spring Boot"
+  },
+  "cinemaPage": {
+    "badge": "Cinema Module",
+    "title": "JDWoMoviex Cinema",
+    "subtitle": "Ticket booking and showtimes with the same Moviex account.",
+    "highlights": {
+      "one": "Shared login, profile, and roles across streaming and cinema.",
+      "two": "One JWT token for both modules.",
+      "three": "Future-ready for seat selection and payment flows."
+    },
+    "ctaPrimary": "Explore showtimes",
+    "ctaSecondary": "Back to streaming",
+    "cardLabel": "Shared account",
+    "cardTitle": "One identity for two experiences",
+    "cardCopy": "Use the same Moviex credentials to stream at home or book seats at JDWoMoviex Cinema.",
+    "cardMetaOneLabel": "Authentication",
+    "cardMetaOneValue": "Single JWT session",
+    "cardMetaTwoLabel": "Roles",
+    "cardMetaTwoValue": "ROLE_USER / ROLE_ADMIN",
+    "cardMetaThreeLabel": "Profile",
+    "cardMetaThreeValue": "Shared settings"
+  },
+  "cinemaBooking": {
+    "badge": "Cinema Booking",
+    "title": "Showtime booking is loading up",
+    "subtitle": "This flow is ready to plug into schedules, seats, and payments next.",
+    "ctaPrimary": "Back to streaming",
+    "ctaSecondary": "Return to cinema home"
+  },
+  "cinema": {
+    "navHome": "Cinema Home",
+    "navNowShowing": "Now Showing",
+    "navSchedule": "Weekly Schedule",
+    "navLocations": "Locations",
+    "navTickets": "My Tickets",
+    "ctaBrowseMovies": "Browse movies",
+    "ctaSelectSeats": "Select seats",
+    "ctaCheckout": "Proceed to checkout",
+    "todayLabel": "Today",
+    "selectCinema": "Select cinema",
+    "selectDate": "Select date",
+    "selectShowtime": "Select showtime",
+    "selectSeats": "Select seats",
+    "checkoutTitle": "Checkout",
+    "bookingSummary": "Booking summary",
+    "total": "Total",
+    "confirm": "Confirm booking",
+    "seat": "Seat",
+    "seats": "Seats",
+    "price": "Price",
+    "noShowtimes": "No showtimes available.",
+    "backToCinema": "Back to cinema",
+    "weeklySchedule": "Weekly Schedule",
+    "adminCreate": "Create showtime",
+    "selectMovie": "Select movie",
+    "auditorium": "Auditorium",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "filterAllMovies": "All movies",
+    "filterAllCinemas": "All cinemas"
   }
 }
+
+
+

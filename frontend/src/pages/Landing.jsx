@@ -216,6 +216,7 @@ function Landing() {
             <a href="#movies" className="transition hover:text-white">{t('landingPage.nav.movies')}</a>
             <a href="#pricing" className="transition hover:text-white">{t('landingPage.nav.pricing')}</a>
             <a href="#faq" className="transition hover:text-white">{t('landingPage.nav.faq')}</a>
+            <Link to="/cinema" className="transition hover:text-white">{t('navbar.cinema')}</Link>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -518,6 +519,7 @@ function Landing() {
             <Link to="/plans" className="hover:text-white">{t('common.plans')}</Link>
             <a href="#movies" className="hover:text-white">{t('landingPage.nav.movies')}</a>
             <a href="#faq" className="hover:text-white">{t('landingPage.nav.faq')}</a>
+            <Link to="/cinema" className="hover:text-white">{t('navbar.cinema')}</Link>
           </div>
         </div>
       </footer>

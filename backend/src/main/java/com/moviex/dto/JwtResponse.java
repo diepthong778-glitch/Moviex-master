@@ -15,10 +15,12 @@ public class JwtResponse {
     private List<String> roles;
     private String subscriptionPlan;
     private Set<String> unlockedMovieIds;
+    private Set<String> enabledModules;
+    private String preferredModule;
 
     public JwtResponse(String accessToken, String id, String username, String email, String phoneNumber,
                        String gender, boolean verified, List<String> roles, String subscriptionPlan,
-                       Set<String> unlockedMovieIds) {
+                       Set<String> unlockedMovieIds, Set<String> enabledModules, String preferredModule) {
         this.token = accessToken;
         this.id = id;
         this.username = username;
@@ -29,6 +31,8 @@ public class JwtResponse {
         this.roles = roles;
         this.subscriptionPlan = subscriptionPlan;
         this.unlockedMovieIds = unlockedMovieIds;
+        this.enabledModules = enabledModules;
+        this.preferredModule = preferredModule;
     }
 
     public String getToken() {
@@ -105,5 +109,13 @@ public class JwtResponse {
 
     public Set<String> getUnlockedMovieIds() {
         return unlockedMovieIds;
+    }
+
+    public Set<String> getEnabledModules() {
+        return enabledModules;
+    }
+
+    public String getPreferredModule() {
+        return preferredModule;
     }
 }

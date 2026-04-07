@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaFemale, FaMale, FaRainbow } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -8,8 +8,10 @@ function Navbar() {
   const { user, logout, checkRole } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const isCinemaRoute = location.pathname.startsWith('/cinema');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -61,9 +63,26 @@ function Navbar() {
       <Link to="/" className="navbar-brand">
         <span className="navbar-logo">MOVIEX</span>
       </Link>
+      <div className="navbar-module">
+        <button
+          type="button"
+          className={`navbar-module-btn${!isCinemaRoute ? ' is-active' : ''}`}
+          onClick={() => navigate('/browse')}
+        >
+          {t('navbar.streaming')}
+        </button>
+        <button
+          type="button"
+          className={`navbar-module-btn${isCinemaRoute ? ' is-active' : ''}`}
+          onClick={() => navigate('/cinema')}
+        >
+          {t('navbar.cinema')}
+        </button>
+      </div>
       <div className="navbar-actions">
         <ul className="navbar-nav">
           <li><Link to="/">{t('common.home')}</Link></li>
+          <li><Link to="/cinema">{t('navbar.cinema')}</Link></li>
           {user ? (
             <>
               {checkRole('ROLE_ADMIN') && (

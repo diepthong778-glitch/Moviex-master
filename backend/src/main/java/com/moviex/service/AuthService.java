@@ -6,6 +6,7 @@ import com.moviex.dto.JwtResponse;
 import com.moviex.dto.LoginRequest;
 import com.moviex.dto.MessageResponse;
 import com.moviex.dto.RegisterRequest;
+import com.moviex.model.AppModule;
 import com.moviex.model.Gender;
 import com.moviex.model.Role;
 import com.moviex.model.User;
@@ -13,6 +14,7 @@ import com.moviex.repository.UserRepository;
 import com.moviex.security.JwtUtils;
 import com.moviex.security.UserDetailsImpl;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,22 +44,25 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
     private final RealtimeActivityService realtimeActivityService;
+    private final boolean requireEmailVerification;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(AuthenticationManager authenticationManager, UserRepository userRepository,
                        PasswordEncoder passwordEncoder, JwtUtils jwtUtils, EmailService emailService,
-                       RealtimeActivityService realtimeActivityService) {
+                       RealtimeActivityService realtimeActivityService,
+                       @Value("${app.auth.require-email-verification:true}") boolean requireEmailVerification) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.emailService = emailService;
         this.realtimeActivityService = realtimeActivityService;
+        this.requireEmailVerification = requireEmailVerification;
     }
 
     public JwtResponse authenticateUser(@Valid LoginRequest loginRequest) {
         Optional<User> userOptional = userRepository.findByEmail(loginRequest.getEmail());
-        if (userOptional.isPresent() && !userOptional.get().isVerified()) {
+        if (userOptional.isPresent() && shouldBlockUnverifiedLogin(userOptional.get())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Email is not verified!");
         }
 
@@ -107,15 +113,26 @@ public class AuthService {
         user.setGender(resolveGender(registerRequest.getGender()));
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.getRoles().add(Role.ROLE_USER);
+        user.setEnabledModules(defaultEnabledModules());
+        user.setPreferredModule(AppModule.MOVIEX_STREAMING);
 
-        String token = UUID.randomUUID().toString();
-        user.setVerificationToken(token);
-        user.setVerified(false);
+        String verificationToken = null;
+        if (isEmailVerificationRequired()) {
+            verificationToken = UUID.randomUUID().toString();
+            user.setVerificationToken(verificationToken);
+            user.setVerified(false);
+        } else {
+            user.setVerificationToken(null);
+            user.setVerified(true);
+        }
 
         userRepository.save(user);
-        emailService.sendVerificationEmail(user.getEmail(), token);
+        if (verificationToken != null) {
+            emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+            return new MessageResponse("User registered successfully! Please check your email.");
+        }
 
-        return new MessageResponse("User registered successfully! Please check your email.");
+        return new MessageResponse("User registered successfully.");
     }
 
     public MessageResponse verifyEmail(String token) {
@@ -202,7 +219,9 @@ public class AuthService {
                 user.isVerified(),
                 roles,
                 user.getSubscriptionPlan().name(),
-                user.getUnlockedMovieIds() != null ? user.getUnlockedMovieIds() : new HashSet<>()
+                user.getUnlockedMovieIds() != null ? user.getUnlockedMovieIds() : new HashSet<>(),
+                resolveEnabledModules(user),
+                resolvePreferredModule(user)
         );
     }
 
@@ -245,5 +264,33 @@ public class AuthService {
                     "Error: Invalid gender. Allowed values are MALE, FEMALE, LGBT!"
             );
         }
+    }
+
+    private boolean isEmailVerificationRequired() {
+        return requireEmailVerification;
+    }
+
+    private boolean shouldBlockUnverifiedLogin(User user) {
+        return isEmailVerificationRequired() && !user.isVerified();
+    }
+
+    private Set<AppModule> defaultEnabledModules() {
+        return new HashSet<>(Set.of(AppModule.MOVIEX_STREAMING, AppModule.JDWOMOVIEX_CINEMA));
+    }
+
+    private Set<String> resolveEnabledModules(User user) {
+        Set<AppModule> modules = user.getEnabledModules();
+        if (modules == null || modules.isEmpty()) {
+            modules = defaultEnabledModules();
+        }
+        return modules.stream().map(Enum::name).collect(Collectors.toSet());
+    }
+
+    private String resolvePreferredModule(User user) {
+        AppModule preferred = user.getPreferredModule();
+        if (preferred == null) {
+            preferred = AppModule.MOVIEX_STREAMING;
+        }
+        return preferred.name();
     }
 }

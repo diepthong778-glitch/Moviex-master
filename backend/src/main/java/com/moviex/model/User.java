@@ -30,6 +30,11 @@ public class User {
     private String language = "en";
     private boolean darkMode = false;
     private boolean subtitle = true;
+    private Set<AppModule> enabledModules = new HashSet<>(Set.of(
+            AppModule.MOVIEX_STREAMING,
+            AppModule.JDWOMOVIEX_CINEMA
+    ));
+    private AppModule preferredModule = AppModule.MOVIEX_STREAMING;
     private boolean online = false;
     private String currentlyWatching;
     private LocalDateTime lastLoginAt;
@@ -68,6 +73,10 @@ public class User {
     public void setDarkMode(boolean darkMode) { this.darkMode = darkMode; }
     public boolean isSubtitle() { return subtitle; }
     public void setSubtitle(boolean subtitle) { this.subtitle = subtitle; }
+    public Set<AppModule> getEnabledModules() { return enabledModules; }
+    public void setEnabledModules(Set<AppModule> enabledModules) { this.enabledModules = enabledModules; }
+    public AppModule getPreferredModule() { return preferredModule; }
+    public void setPreferredModule(AppModule preferredModule) { this.preferredModule = preferredModule; }
     public boolean isOnline() { return online; }
     public void setOnline(boolean online) { this.online = online; }
     public String getCurrentlyWatching() { return currentlyWatching; }
