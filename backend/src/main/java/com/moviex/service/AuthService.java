@@ -31,12 +31,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final String BCRYPT_PREFIX = "{bcrypt}";
+    private static final String NOOP_PREFIX = "{noop}";
+    private static final Pattern BCRYPT_PATTERN = Pattern.compile("^\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}$");
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -61,13 +65,15 @@ public class AuthService {
     }
 
     public JwtResponse authenticateUser(@Valid LoginRequest loginRequest) {
-        Optional<User> userOptional = userRepository.findByEmail(loginRequest.getEmail());
+        String normalizedEmail = normalizeEmail(loginRequest.getEmail());
+        Optional<User> userOptional = userRepository.findByEmail(normalizedEmail);
         if (userOptional.isPresent() && shouldBlockUnverifiedLogin(userOptional.get())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Email is not verified!");
         }
+        userOptional.ifPresent(user -> migrateLegacyPasswordIfNeeded(user, loginRequest.getPassword()));
 
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(normalizedEmail, loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
@@ -292,5 +298,44 @@ public class AuthService {
             preferred = AppModule.MOVIEX_STREAMING;
         }
         return preferred.name();
+    }
+
+    private void migrateLegacyPasswordIfNeeded(User user, String rawPassword) {
+        String storedPassword = user.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return;
+        }
+
+        if (looksLikeBcrypt(storedPassword)) {
+            return;
+        }
+
+        if (storedPassword.startsWith(BCRYPT_PREFIX)) {
+            String normalizedHash = storedPassword.substring(BCRYPT_PREFIX.length());
+            user.setPassword(normalizedHash);
+            userRepository.save(user);
+            return;
+        }
+
+        if (storedPassword.startsWith(NOOP_PREFIX)) {
+            String legacyRawPassword = storedPassword.substring(NOOP_PREFIX.length());
+            if (!legacyRawPassword.equals(rawPassword)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
+            }
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userRepository.save(user);
+            return;
+        }
+
+        if (!storedPassword.equals(rawPassword)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
+        }
+
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        userRepository.save(user);
+    }
+
+    private boolean looksLikeBcrypt(String encodedPassword) {
+        return encodedPassword != null && BCRYPT_PATTERN.matcher(encodedPassword).matches();
     }
 }

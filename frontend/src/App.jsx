@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 import './main.css';
 
 const Admin = lazy(() => import('./pages/Admin'));
+const AdminCinema = lazy(() => import('./pages/AdminCinema'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const CinemaCheckout = lazy(() => import('./pages/CinemaCheckout'));
 const CinemaHome = lazy(() => import('./pages/CinemaHome'));
@@ -105,10 +106,12 @@ function AppLayout() {
             <Route path="/cinema/seats" element={<LazyPage><CinemaSeatSelection /></LazyPage>} />
             <Route path="/cinema/checkout" element={<LazyPage><CinemaCheckout /></LazyPage>} />
             <Route path="/cinema/tickets" element={<LazyPage><CinemaTickets /></LazyPage>} />
+            <Route path="/cinema/tickets/:bookingId" element={<LazyPage><CinemaTickets /></LazyPage>} />
           </Route>
 
           <Route element={<AdminRoute />}>
             <Route path="/admin/dashboard" element={<LazyPage><AdminDashboard /></LazyPage>} />
+            <Route path="/admin/cinema" element={<LazyPage><AdminCinema /></LazyPage>} />
             <Route path="/admin/users" element={<LazyPage><UserManagement /></LazyPage>} />
             <Route path="/admin/realtime" element={<LazyPage><RealtimeActivity /></LazyPage>} />
             <Route path="/admin" element={<LazyPage><Admin /></LazyPage>} />

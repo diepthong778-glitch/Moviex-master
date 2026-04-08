@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface MovieShowtimeRepository extends MongoRepository<MovieShowtime, String> {
+    List<MovieShowtime> findByCinemaId(String cinemaId);
     List<MovieShowtime> findByCinemaIdAndShowDate(String cinemaId, LocalDate showDate);
     List<MovieShowtime> findByMovieId(String movieId);
     List<MovieShowtime> findByAuditoriumId(String auditoriumId);

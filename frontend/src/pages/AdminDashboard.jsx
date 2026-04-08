@@ -95,6 +95,7 @@ function AdminDashboard() {
       <section className="account-panel">
         <div className="admin-form-actions">
           <Link className="btn btn-primary" to="/admin/users">{t('adminDashboardPage.openUserManagement')}</Link>
+          <Link className="btn btn-outline" to="/admin/cinema">Open Cinema Admin</Link>
           <Link className="btn btn-outline" to="/admin/realtime">{t('adminDashboardPage.openRealtimeActivity')}</Link>
           <Link className="btn btn-outline" to="/admin">{t('adminDashboardPage.openMovieConfig')}</Link>
         </div>

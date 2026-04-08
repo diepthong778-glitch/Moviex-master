@@ -14,6 +14,8 @@ public class Booking {
     @Id
     private String id;
     @Indexed
+    private String bookingCode;
+    @Indexed
     private String userId;
     @Indexed
     private String showtimeId;
@@ -31,6 +33,8 @@ public class Booking {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+    public String getBookingCode() { return bookingCode; }
+    public void setBookingCode(String bookingCode) { this.bookingCode = bookingCode; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
     public String getShowtimeId() { return showtimeId; }

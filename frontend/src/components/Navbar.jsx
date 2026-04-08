@@ -88,6 +88,7 @@ function Navbar() {
               {checkRole('ROLE_ADMIN') && (
                 <>
                   <li><Link to="/admin/dashboard" style={{ color: 'var(--accent-secondary)' }}>{t('navbar.adminDashboard')}</Link></li>
+                  <li><Link to="/admin/cinema" style={{ color: 'var(--accent-secondary)' }}>Cinema Admin</Link></li>
                   <li><Link to="/admin" style={{ color: 'var(--accent-secondary)' }}>{t('navbar.adminConfig')}</Link></li>
                 </>
               )}

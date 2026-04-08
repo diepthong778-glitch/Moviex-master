@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import { cinemaBranches, cinemaMovies } from '../data/cinemaData';
 import { formatCurrency } from '../utils/cinema';
 
@@ -67,7 +68,7 @@ function CinemaSeatSelection() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { movieId, cinemaId, dayIndex, time, auditorium, price, showtimeId } = location.state || {};
+  const { movieId, cinemaId, dayIndex, showDate, time, auditorium, price, showtimeId } = location.state || {};
   const movie = cinemaMovies.find((item) => item.id === movieId);
   const cinema = cinemaBranches.find((branch) => branch.id === cinemaId);
   const [seatMap, setSeatMap] = useState(buildFallbackSeatMap());
@@ -87,9 +88,8 @@ function CinemaSeatSelection() {
       }
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/cinema/showtimes/${showtimeId}/seats`);
-        if (!response.ok) throw new Error('Seat availability failed');
-        const data = await response.json();
+        const response = await axios.get(`/api/cinema/showtimes/${showtimeId}/seats`);
+        const data = response.data;
         if (!active) return;
         setSeatMap(buildSeatRows(data));
       } catch (error) {
@@ -139,10 +139,12 @@ function CinemaSeatSelection() {
         movieId,
         cinemaId,
         dayIndex,
+        showDate,
         time,
         auditorium,
         showtimeId,
         price,
+        seatIds: selectedSeats,
         seats: selectedSeatLabels,
         totalPrice,
       },

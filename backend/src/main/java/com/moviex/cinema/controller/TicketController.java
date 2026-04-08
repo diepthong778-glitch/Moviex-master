@@ -1,8 +1,9 @@
 package com.moviex.cinema.controller;
 
-import com.moviex.cinema.dto.TicketResponse;
+import com.moviex.cinema.dto.CinemaTicketViewResponse;
 import com.moviex.cinema.service.TicketService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,7 +18,28 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TicketResponse>> listTickets() {
-        return ResponseEntity.ok(ticketService.listTicketsForCurrentUser());
+    public ResponseEntity<List<CinemaTicketViewResponse>> listUpcomingTickets() {
+        return ResponseEntity.ok(ticketService.listUpcomingTicketsForCurrentUser());
+    }
+
+    @GetMapping("/upcoming")
+    public ResponseEntity<List<CinemaTicketViewResponse>> listUpcomingTicketsAlias() {
+        return ResponseEntity.ok(ticketService.listUpcomingTicketsForCurrentUser());
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<CinemaTicketViewResponse>> listBookingHistory() {
+        return ResponseEntity.ok(ticketService.listBookingHistoryForCurrentUser());
+    }
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<CinemaTicketViewResponse> getTicketDetail(@PathVariable String bookingId) {
+        return ResponseEntity.ok(ticketService.getTicketDetailForCurrentUser(bookingId));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/bookings")
+    public ResponseEntity<List<CinemaTicketViewResponse>> listBookingsForAdmin() {
+        return ResponseEntity.ok(ticketService.listBookingHistoryForAdmin());
     }
 }

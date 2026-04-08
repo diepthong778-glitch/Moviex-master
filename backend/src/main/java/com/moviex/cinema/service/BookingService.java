@@ -14,17 +14,19 @@ import com.moviex.cinema.repository.MovieShowtimeRepository;
 import com.moviex.cinema.repository.SeatRepository;
 import com.moviex.model.User;
 import com.moviex.service.CurrentUserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,17 +35,20 @@ public class BookingService {
     private final MovieShowtimeRepository showtimeRepository;
     private final SeatRepository seatRepository;
     private final CurrentUserService currentUserService;
+    private final SeatReservationService seatReservationService;
     @Value("${cinema.booking.hold-minutes:10}")
     private long holdMinutes;
 
     public BookingService(BookingRepository bookingRepository,
                           MovieShowtimeRepository showtimeRepository,
                           SeatRepository seatRepository,
-                          CurrentUserService currentUserService) {
+                          CurrentUserService currentUserService,
+                          SeatReservationService seatReservationService) {
         this.bookingRepository = bookingRepository;
         this.showtimeRepository = showtimeRepository;
         this.seatRepository = seatRepository;
         this.currentUserService = currentUserService;
+        this.seatReservationService = seatReservationService;
     }
 
     public BookingResponse createBooking(CreateBookingRequest request) {
@@ -54,12 +59,18 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds are required");
         }
 
+        expirePendingBookings();
         User currentUser = currentUserService.getCurrentUser();
         MovieShowtime showtime = showtimeRepository.findById(request.getShowtimeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Showtime not found"));
 
-        List<Seat> seats = seatRepository.findAllById(request.getSeatIds());
-        if (seats.size() != request.getSeatIds().size()) {
+        Set<String> deduplicatedSeatIds = new LinkedHashSet<>(request.getSeatIds());
+        if (deduplicatedSeatIds.size() != request.getSeatIds().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds contains duplicates");
+        }
+
+        List<Seat> seats = seatRepository.findAllById(deduplicatedSeatIds);
+        if (seats.size() != deduplicatedSeatIds.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more seats not found");
         }
 
@@ -78,14 +89,6 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "One or more seats are not available");
         }
 
-        Set<String> blockedSeatIds = getBlockedSeatIds(showtime.getId());
-        List<String> conflicting = request.getSeatIds().stream()
-                .filter(blockedSeatIds::contains)
-                .collect(Collectors.toList());
-        if (!conflicting.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "One or more seats are already reserved or booked");
-        }
-
         BigDecimal seatPrice = showtime.getBasePrice();
         List<BookingSeat> bookingSeats = new ArrayList<>();
         for (Seat seat : seats) {
@@ -98,7 +101,9 @@ public class BookingService {
             bookingSeats.add(bookingSeat);
         }
 
+        LocalDateTime now = LocalDateTime.now();
         Booking booking = new Booking();
+        booking.setBookingCode(generateBookingCode());
         booking.setUserId(currentUser.getId());
         booking.setShowtimeId(showtime.getId());
         booking.setCinemaId(showtime.getCinemaId());
@@ -107,11 +112,18 @@ public class BookingService {
         booking.setTotalPrice(seatPrice.multiply(BigDecimal.valueOf(bookingSeats.size())));
         booking.setPaymentStatus(CinemaPaymentStatus.PENDING);
         booking.setBookingStatus(BookingStatus.PENDING);
-        booking.setHoldExpiresAt(LocalDateTime.now().plusMinutes(holdMinutes));
-        booking.setCreatedAt(LocalDateTime.now());
-        booking.setUpdatedAt(LocalDateTime.now());
-
+        booking.setHoldExpiresAt(now.plusMinutes(holdMinutes));
+        booking.setCreatedAt(now);
+        booking.setUpdatedAt(now);
         Booking saved = bookingRepository.save(booking);
+
+        try {
+            seatReservationService.reserveSeatsForBooking(saved);
+        } catch (RuntimeException ex) {
+            bookingRepository.deleteById(saved.getId());
+            throw ex;
+        }
+
         List<String> seatIds = bookingSeats.stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
         return new BookingResponse(saved.getId(), saved.getShowtimeId(), seatIds, saved.getTotalPrice(),
                 saved.getPaymentStatus(), saved.getBookingStatus(), null);
@@ -123,34 +135,65 @@ public class BookingService {
     }
 
     public List<Booking> listBookingsForCurrentUser() {
+        expirePendingBookings();
         User currentUser = currentUserService.getCurrentUser();
         return bookingRepository.findByUserId(currentUser.getId());
     }
 
-    private Set<String> getBlockedSeatIds(String showtimeId) {
-        LocalDateTime now = LocalDateTime.now();
-        List<Booking> activeBookings = bookingRepository.findByShowtimeIdAndBookingStatusIn(
-                showtimeId,
-                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+    public BookingResponse releaseBooking(String bookingId) {
+        User currentUser = currentUserService.getCurrentUser();
+        Booking booking = bookingRepository.findByIdAndUserId(bookingId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        if (booking.getBookingStatus() != BookingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending bookings can be released");
+        }
+
+        seatReservationService.releaseReservedSeats(booking);
+        booking.setBookingStatus(BookingStatus.CANCELLED);
+        booking.setPaymentStatus(CinemaPaymentStatus.CANCELLED);
+        booking.setUpdatedAt(LocalDateTime.now());
+        bookingRepository.save(booking);
+
+        List<String> seatIds = booking.getSeats().stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
+        return new BookingResponse(
+                booking.getId(),
+                booking.getShowtimeId(),
+                seatIds,
+                booking.getTotalPrice(),
+                booking.getPaymentStatus(),
+                booking.getBookingStatus(),
+                null
         );
-        List<Booking> expired = new ArrayList<>();
-        Set<String> blocked = new HashSet<>();
+    }
 
-        for (Booking booking : activeBookings) {
-            if (booking.getBookingStatus() == BookingStatus.PENDING) {
-                if (booking.getHoldExpiresAt() == null || booking.getHoldExpiresAt().isBefore(now)) {
-                    booking.setBookingStatus(BookingStatus.EXPIRED);
-                    booking.setUpdatedAt(now);
-                    expired.add(booking);
-                    continue;
-                }
-            }
-            booking.getSeats().forEach(seat -> blocked.add(seat.getSeatId()));
+    @Scheduled(fixedDelayString = "${cinema.booking.cleanup-interval-ms:60000}")
+    public void expirePendingBookingsScheduled() {
+        expirePendingBookings();
+    }
+
+    public void expirePendingBookings() {
+        LocalDateTime now = LocalDateTime.now();
+        seatReservationService.releaseExpiredReservations();
+        List<Booking> expiredBookings = bookingRepository.findByBookingStatusAndHoldExpiresAtBefore(
+                BookingStatus.PENDING,
+                now
+        );
+
+        if (expiredBookings.isEmpty()) {
+            return;
         }
 
-        if (!expired.isEmpty()) {
-            bookingRepository.saveAll(expired);
+        for (Booking booking : expiredBookings) {
+            seatReservationService.releaseReservedSeats(booking);
+            booking.setBookingStatus(BookingStatus.EXPIRED);
+            booking.setPaymentStatus(CinemaPaymentStatus.FAILED);
+            booking.setUpdatedAt(now);
         }
-        return blocked;
+        bookingRepository.saveAll(expiredBookings);
+    }
+
+    private String generateBookingCode() {
+        return "BKG-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
     }
 }

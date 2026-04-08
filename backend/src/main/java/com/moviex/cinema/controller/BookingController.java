@@ -27,4 +27,9 @@ public class BookingController {
     public ResponseEntity<List<Booking>> listBookings() {
         return ResponseEntity.ok(bookingService.listBookingsForCurrentUser());
     }
+
+    @PostMapping("/{bookingId}/release")
+    public ResponseEntity<BookingResponse> releaseBooking(@PathVariable String bookingId) {
+        return ResponseEntity.ok(bookingService.releaseBooking(bookingId));
+    }
 }

@@ -58,6 +58,7 @@ function CinemaShowtimeSelection() {
         cinemaId: selectedCinemaId,
         dayIndex: selectedDayIndex,
         showtimeId: showtime.id,
+        showDate: showtime.showDate,
         time: selectedTime,
         auditorium: showtime.auditorium,
         price: showtime.price,
