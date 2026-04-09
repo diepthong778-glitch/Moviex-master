@@ -63,6 +63,8 @@ function AppLayout() {
   const { t } = useTranslation();
   const location = useLocation();
   const isLanding = location.pathname === '/';
+  const isCinemaModuleRoute = location.pathname.startsWith('/cinema') || location.pathname.startsWith('/admin/cinema');
+  const activeModuleLabel = isCinemaModuleRoute ? 'JDWoMoviex Cinema' : 'Moviex Streaming';
 
   return (
     <div className="app">
@@ -107,6 +109,7 @@ function AppLayout() {
             <Route path="/cinema/checkout" element={<LazyPage><CinemaCheckout /></LazyPage>} />
             <Route path="/cinema/tickets" element={<LazyPage><CinemaTickets /></LazyPage>} />
             <Route path="/cinema/tickets/:bookingId" element={<LazyPage><CinemaTickets /></LazyPage>} />
+            <Route path="/cinema/tickets/code/:ticketCode" element={<LazyPage><CinemaTickets /></LazyPage>} />
           </Route>
 
           <Route element={<AdminRoute />}>
@@ -122,7 +125,7 @@ function AppLayout() {
       {!isLanding && (
         <footer className="footer" id="about">
           <p className="footer-text">
-            (c) 2026 <span className="footer-brand">MOVIEX</span> - {t('appLayout.footer')}
+            (c) 2026 <span className="footer-brand">MOVIEX</span> - {activeModuleLabel} - {t('appLayout.footer')}
           </p>
         </footer>
       )}

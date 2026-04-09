@@ -1,0 +1,37 @@
+<svg width="720" height="1080" viewBox="0 0 720 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="580" y2="1040" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A2038"/>
+      <stop offset="0.45" stop-color="#4B2C2A"/>
+      <stop offset="1" stop-color="#D65F35"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(540 182) rotate(122.727) scale(192.781 162.573)">
+      <stop stop-color="#FFD7A8"/>
+      <stop offset="1" stop-color="#FF8C4B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="helmet" x1="224" y1="268" x2="470" y2="618" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F3EE"/>
+      <stop offset="1" stop-color="#B6B0AC"/>
+    </linearGradient>
+    <linearGradient id="visor" x1="264" y1="322" x2="474" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#433A36"/>
+      <stop offset="1" stop-color="#241F1E"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="1080" rx="40" fill="url(#bg)"/>
+  <circle cx="542" cy="182" r="176" fill="url(#sun)"/>
+  <path d="M0 862C118 814 205 780 315 792C454 806 540 910 720 876V1080H0V862Z" fill="#7B311F" fill-opacity="0.95"/>
+  <path d="M0 934C127 904 227 878 335 894C455 912 566 990 720 965V1080H0V934Z" fill="#E0683A" fill-opacity="0.88"/>
+  <g opacity="0.96">
+    <ellipse cx="356" cy="426" rx="152" ry="174" fill="url(#helmet)"/>
+    <ellipse cx="370" cy="430" rx="116" ry="118" fill="url(#visor)"/>
+    <path d="M292 546C319 575 399 585 437 560L472 686H259L292 546Z" fill="#EEF0F2"/>
+    <path d="M296 526C316 548 406 554 431 531" stroke="#E4B350" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="312" cy="401" r="14" fill="#FFF2E6" fill-opacity="0.82"/>
+  </g>
+  <g fill="#F7F1EC" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="360" y="838" font-size="34" letter-spacing="10">NOW SHOWING</text>
+    <text x="360" y="928" font-size="118" font-weight="700">THE</text>
+    <text x="360" y="1034" font-size="118" font-weight="700">MARTIAN</text>
+  </g>
+</svg>

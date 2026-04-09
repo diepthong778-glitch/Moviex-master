@@ -7,7 +7,13 @@ if (apiBaseUrl) {
   axios.defaults.baseURL = apiBaseUrl;
 }
 
-const PUBLIC_API_PATH_PREFIXES = ['/api/movies', '/api/payment/public'];
+const PUBLIC_API_PATH_PREFIXES = [
+  '/api/movies',
+  '/api/payment/public',
+  '/api/cinema/showtimes',
+  '/api/cinema/cinemas',
+  '/api/cinema/auditoriums',
+];
 const PUBLIC_API_EXACT_PATHS = [
   '/api/auth/login',
   '/api/auth/register',

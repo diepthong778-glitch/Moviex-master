@@ -108,6 +108,9 @@ public class SecurityConfig {
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/api/movies/**").permitAll() // read-only movies allowed
                     .requestMatchers("/api/payment/public/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/cinema/cinemas/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/cinema/showtimes/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/cinema/auditoriums/**").permitAll()
                     .requestMatchers("/ws/**").permitAll()
                     .requestMatchers("/api/history/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers("/api/watchlist/**").hasAnyRole("USER", "ADMIN")

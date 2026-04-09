@@ -11,7 +11,9 @@ import com.moviex.cinema.dto.CreateSeatRequest;
 import com.moviex.cinema.dto.CreateShowtimeRequest;
 import com.moviex.cinema.dto.UpdateCinemaRequest;
 import com.moviex.cinema.model.Auditorium;
+import com.moviex.cinema.model.BookingStatus;
 import com.moviex.cinema.model.Cinema;
+import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Seat;
 import com.moviex.cinema.service.AdminCinemaService;
@@ -127,8 +129,9 @@ public class AdminCinemaController {
     @GetMapping("/showtimes")
     public ResponseEntity<List<MovieShowtime>> listShowtimes(
             @RequestParam(required = false) String cinemaId,
+            @RequestParam(required = false) String movieId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDate) {
-        return ResponseEntity.ok(adminCinemaService.listShowtimes(cinemaId, showDate));
+        return ResponseEntity.ok(adminCinemaService.listShowtimes(cinemaId, movieId, showDate));
     }
 
     @PostMapping("/showtimes")
@@ -154,8 +157,21 @@ public class AdminCinemaController {
     }
 
     @GetMapping("/bookings")
-    public ResponseEntity<List<Map<String, Object>>> listBookings(@RequestParam(required = false) Integer limit) {
-        return ResponseEntity.ok(adminCinemaService.listBookings(limit));
+    public ResponseEntity<List<Map<String, Object>>> listBookings(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String movieId,
+            @RequestParam(required = false) String cinemaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDate,
+            @RequestParam(required = false) BookingStatus bookingStatus,
+            @RequestParam(required = false) CinemaPaymentStatus paymentStatus) {
+        return ResponseEntity.ok(adminCinemaService.listBookings(
+                limit,
+                movieId,
+                cinemaId,
+                showDate,
+                bookingStatus,
+                paymentStatus
+        ));
     }
 
     @PatchMapping("/bookings/{bookingId}/status")
@@ -170,8 +186,42 @@ public class AdminCinemaController {
     }
 
     @GetMapping("/payments")
-    public ResponseEntity<List<Map<String, Object>>> listPaymentTransactions(@RequestParam(required = false) Integer limit) {
-        return ResponseEntity.ok(adminCinemaService.listPaymentTransactions(limit));
+    public ResponseEntity<List<Map<String, Object>>> listPaymentTransactions(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String movieId,
+            @RequestParam(required = false) String cinemaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDate,
+            @RequestParam(required = false) CinemaPaymentStatus paymentStatus) {
+        return ResponseEntity.ok(adminCinemaService.listPaymentTransactions(
+                limit,
+                movieId,
+                cinemaId,
+                showDate,
+                paymentStatus
+        ));
+    }
+
+    @GetMapping("/tickets")
+    public ResponseEntity<List<Map<String, Object>>> listTickets(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String movieId,
+            @RequestParam(required = false) String cinemaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDate,
+            @RequestParam(required = false) BookingStatus bookingStatus,
+            @RequestParam(required = false) CinemaPaymentStatus paymentStatus) {
+        return ResponseEntity.ok(adminCinemaService.listTickets(
+                limit,
+                movieId,
+                cinemaId,
+                showDate,
+                bookingStatus,
+                paymentStatus
+        ));
+    }
+
+    @GetMapping("/showtimes/{showtimeId}/seats")
+    public ResponseEntity<Map<String, Object>> inspectShowtimeSeats(@PathVariable String showtimeId) {
+        return ResponseEntity.ok(adminCinemaService.getShowtimeSeatInspection(showtimeId));
     }
 
     @PostMapping("/payments/{txnCode}/simulate")

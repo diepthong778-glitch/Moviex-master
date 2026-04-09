@@ -146,11 +146,18 @@ function Home() {
     fetchSubscription();
   }, [user]);
 
-  const canPlanAccess = useCallback((planType, requiredSub) => {
-    if (requiredSub === 'BASIC') return true;
-    if (planType === 'PREMIUM') return true;
-    return planType === 'STANDARD' && requiredSub === 'STANDARD';
+  const normalizeRequiredSubscription = useCallback((requiredSub) => {
+    const normalized = String(requiredSub || 'BASIC').toUpperCase();
+    if (normalized === 'PREMIUM' || normalized === 'STANDARD') return normalized;
+    return 'BASIC';
   }, []);
+
+  const canPlanAccess = useCallback((planType, requiredSub) => {
+    const normalizedRequired = normalizeRequiredSubscription(requiredSub);
+    if (normalizedRequired === 'BASIC') return true;
+    if (planType === 'PREMIUM') return true;
+    return planType === 'STANDARD' && normalizedRequired === 'STANDARD';
+  }, [normalizeRequiredSubscription]);
 
   const hasMovieUnlock = useCallback((movieId) => {
     return Array.isArray(entitlements?.unlockedMovieIds) && entitlements.unlockedMovieIds.includes(movieId);
@@ -183,7 +190,7 @@ function Home() {
     const effectivePlan =
       subscription?.status === 'ACTIVE'
         ? subscription.planType
-        : entitlements?.subscriptionPlan || user?.subscriptionPlan || 'BASIC';
+        : entitlements?.subscriptionPlan || 'BASIC';
     const movieUnlocked = hasMovieUnlock(canonicalMovie.id);
 
     if (!movieUnlocked && !canPlanAccess(effectivePlan, canonicalMovie.requiredSubscription)) {
@@ -347,16 +354,16 @@ function Home() {
     [activeQueue, continueWatchingIds, watchedGenres]
   );
   const premiumPicks = useMemo(
-    () => activeQueue.filter((movie) => movie.requiredSubscription === 'PREMIUM'),
-    [activeQueue]
+    () => activeQueue.filter((movie) => normalizeRequiredSubscription(movie.requiredSubscription) === 'PREMIUM'),
+    [activeQueue, normalizeRequiredSubscription]
   );
   const standardPicks = useMemo(
-    () => activeQueue.filter((movie) => movie.requiredSubscription === 'STANDARD'),
-    [activeQueue]
+    () => activeQueue.filter((movie) => normalizeRequiredSubscription(movie.requiredSubscription) === 'STANDARD'),
+    [activeQueue, normalizeRequiredSubscription]
   );
   const freePicks = useMemo(
-    () => activeQueue.filter((movie) => movie.requiredSubscription === 'BASIC'),
-    [activeQueue]
+    () => activeQueue.filter((movie) => normalizeRequiredSubscription(movie.requiredSubscription) === 'BASIC'),
+    [activeQueue, normalizeRequiredSubscription]
   );
   const exploreMore = useMemo(
     () => activeQueue.slice(0, visibleCount),
@@ -389,14 +396,14 @@ function Home() {
               <div className="hero-meta">
                 <span className="hero-meta-pill">{featuredMovie.genre}</span>
                 <span className="hero-meta-pill">{featuredMovie.year}</span>
-                <span className="hero-meta-pill">{translatePlanLabel(featuredMovie.requiredSubscription)}</span>
+                <span className="hero-meta-pill">{translatePlanLabel(normalizeRequiredSubscription(featuredMovie.requiredSubscription))}</span>
               </div>
               <p>
                 {featuredMovie.description ||
                   t('homePage.featuredAccess', {
                     genre: featuredMovie.genre,
                     year: featuredMovie.year,
-                    plan: translatePlanLabel(featuredMovie.requiredSubscription),
+                    plan: translatePlanLabel(normalizeRequiredSubscription(featuredMovie.requiredSubscription)),
                   })}
               </p>
             </>

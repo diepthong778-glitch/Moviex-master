@@ -1,70 +1,185 @@
 ﻿import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cinemaMovies, showtimeCatalog } from '../data/cinemaData';
+import CinemaModuleNav from '../components/CinemaModuleNav';
+import CinemaImage from '../components/CinemaImage';
+import { formatCurrency } from '../utils/cinema';
 import {
-  expandShowtimeCatalog,
-  formatCurrency,
-  getNowShowingToday,
-  getTodayWeekIndex,
-  getWeekDates,
-  loadCustomShowtimes,
-  mergeShowtimes,
-} from '../utils/cinema';
+  DEFAULT_CINEMA_POSTER_URL,
+  fetchCinemaShowtimes,
+  getTodayIsoDate,
+} from '../utils/cinemaApi';
 
 function CinemaNowShowing() {
   const { t } = useTranslation();
-  const weekDates = useMemo(() => getWeekDates(), []);
-  const todayIndex = useMemo(() => getTodayWeekIndex(), []);
-  const baseShowtimes = useMemo(
-    () => expandShowtimeCatalog(showtimeCatalog, cinemaMovies, weekDates),
-    [weekDates]
-  );
-  const customShowtimes = useMemo(() => loadCustomShowtimes(), []);
-  const showtimes = useMemo(
-    () => mergeShowtimes(baseShowtimes, customShowtimes),
-    [baseShowtimes, customShowtimes]
-  );
-  const nowShowing = useMemo(
-    () => getNowShowingToday(showtimes, cinemaMovies, todayIndex),
-    [showtimes, todayIndex]
-  );
+  const [showtimes, setShowtimes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedCinemaId, setSelectedCinemaId] = useState('');
+
+  const todayIso = useMemo(() => getTodayIsoDate(), []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadNowShowing = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await fetchCinemaShowtimes({ showDate: todayIso });
+        if (!ignore) {
+          setShowtimes(data);
+        }
+      } catch (fetchError) {
+        if (!ignore) {
+          setError(fetchError?.response?.data?.message || 'Unable to load now showing data.');
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadNowShowing();
+    return () => {
+      ignore = true;
+    };
+  }, [todayIso]);
+
+  const cinemaOptions = useMemo(() => {
+    const byId = new Map();
+    showtimes.forEach((showtime) => {
+      if (byId.has(showtime.cinemaId)) return;
+      byId.set(showtime.cinemaId, {
+        id: showtime.cinemaId,
+        name: showtime.cinemaName,
+        city: showtime.cinemaCity,
+      });
+    });
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [showtimes]);
+
+  const filteredShowtimes = useMemo(() => {
+    if (!selectedCinemaId) return showtimes;
+    return showtimes.filter((showtime) => showtime.cinemaId === selectedCinemaId);
+  }, [showtimes, selectedCinemaId]);
+
+  const nowShowing = useMemo(() => {
+    const grouped = new Map();
+    filteredShowtimes.forEach((showtime) => {
+      if (!grouped.has(showtime.movieId)) {
+        grouped.set(showtime.movieId, []);
+      }
+      grouped.get(showtime.movieId).push(showtime);
+    });
+
+    return Array.from(grouped.values()).map((entries) => {
+      const sorted = entries.slice().sort((a, b) => a.startTime.localeCompare(b.startTime));
+      return {
+        movie: sorted[0].movie,
+        firstShowtime: sorted[0],
+        times: sorted.map((item) => item.startTime),
+        cinemaCount: new Set(sorted.map((item) => item.cinemaId)).size,
+        showtimeCount: sorted.length,
+      };
+    });
+  }, [filteredShowtimes]);
 
   return (
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
+        <CinemaModuleNav />
+
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.todayLabel')}</p>
             <h1 className="cinema-title">{t('cinema.navNowShowing')}</h1>
-            <p className="cinema-subtitle">{t('cinema.selectShowtime')}</p>
+            <p className="cinema-subtitle">Scan movie info first, then pick a showtime and branch.</p>
           </div>
           <Link to="/cinema/schedule" className="btn btn-outline">
             {t('cinema.navSchedule')}
           </Link>
         </div>
 
-        <div className="cinema-grid">
-          {nowShowing.map(({ movie, firstShowtime }) => (
-            <div key={movie.id} className="cinema-card-item">
-              <img src={movie.poster} alt={movie.title} className="cinema-card-poster" />
-              <div className="cinema-card-body">
-                <h3>{movie.title}</h3>
-                <p>{movie.genre} - {movie.duration}</p>
-                <div className="cinema-card-actions">
-                  <span className="cinema-pill">
-                    {firstShowtime
-                      ? `${formatCurrency(firstShowtime.price)} - ${firstShowtime.startTime}`
-                      : t('cinema.noShowtimes')}
-                  </span>
-                  <Link to={`/cinema/movie/${movie.id}`} className="btn btn-primary cinema-compact-btn">
-                    {t('cinema.ctaSelectSeats')}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="cinema-filter-bar">
+          <select value={selectedCinemaId} onChange={(event) => setSelectedCinemaId(event.target.value)}>
+            <option value="">All branches</option>
+            {cinemaOptions.map((cinema) => (
+              <option key={cinema.id} value={cinema.id}>{cinema.name}</option>
+            ))}
+          </select>
+          <div className="cinema-results-strip">
+            <span>{nowShowing.length} movies</span>
+            <span>{filteredShowtimes.length} showtimes</span>
+          </div>
         </div>
+
+        {loading ? (
+          <p className="cinema-empty">{t('common.loading')}</p>
+        ) : error ? (
+          <p className="cinema-empty">{error}</p>
+        ) : nowShowing.length === 0 ? (
+          <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
+        ) : (
+          <div className="cinema-now-grid">
+            {nowShowing.map(({ movie, firstShowtime, times, showtimeCount, cinemaCount }) => (
+              <article key={movie.id} className="cinema-home-movie-card">
+                <Link to={`/cinema/movie/${movie.id}`} className="cinema-home-movie-poster-link">
+                  <CinemaImage
+                    src={movie.posterUrl}
+                    fallbackSrc={DEFAULT_CINEMA_POSTER_URL}
+                    alt={movie.title}
+                    className="cinema-home-movie-poster"
+                  />
+                </Link>
+
+                <div className="cinema-home-movie-body">
+                  <div className="cinema-card-heading">
+                    <h3>{movie.title}</h3>
+                    {movie.originalTitle && movie.originalTitle !== movie.title && (
+                      <p className="cinema-original-title">{movie.originalTitle}</p>
+                    )}
+                  </div>
+
+                  <p className="cinema-card-meta-line">
+                    {movie.genre} • {movie.runtime} • {movie.ageRating || 'TBA'}
+                  </p>
+                  <p className="cinema-card-synopsis">{movie.shortSynopsis}</p>
+
+                  <div className="cinema-info-grid">
+                    <div className="cinema-info-block">
+                      <p className="cinema-info-label">Movie Info</p>
+                      <p className="cinema-info-value">{movie.releaseYear || 'TBA'} • {movie.language || 'Unknown'}</p>
+                    </div>
+                    <div className="cinema-info-block">
+                      <p className="cinema-info-label">Showtimes</p>
+                      <div className="cinema-times-row">
+                        {times.slice(0, 5).map((time) => (
+                          <span key={`${movie.id}-${time}`} className="cinema-time-mini">{time}</span>
+                        ))}
+                        {times.length > 5 && <span className="cinema-time-mini">+{times.length - 5}</span>}
+                      </div>
+                    </div>
+                    <div className="cinema-info-block">
+                      <p className="cinema-info-label">Cinema Availability</p>
+                      <p className="cinema-info-value">{cinemaCount} branches • {showtimeCount} shows today</p>
+                    </div>
+                  </div>
+
+                  <div className="cinema-card-actions">
+                    <span className="cinema-pill">
+                      {`${formatCurrency(firstShowtime.price)} • ${firstShowtime.startTime}`}
+                    </span>
+                    <Link to={`/cinema/movie/${movie.id}`} className="btn btn-primary cinema-compact-btn">
+                      {t('cinema.ctaSelectSeats')}
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

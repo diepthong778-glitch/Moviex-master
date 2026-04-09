@@ -32,6 +32,22 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.listBookingHistoryForCurrentUser());
     }
 
+    @GetMapping("/bookings/history")
+    public ResponseEntity<List<CinemaTicketViewResponse>> listBookingHistoryAlias() {
+        return ResponseEntity.ok(ticketService.listBookingHistoryForCurrentUser());
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<CinemaTicketViewResponse>> listMyTickets(
+            @RequestParam(defaultValue = "all") String segment) {
+        return ResponseEntity.ok(ticketService.listMyTickets(segment));
+    }
+
+    @GetMapping("/code/{ticketCode}")
+    public ResponseEntity<CinemaTicketViewResponse> getTicketDetailByCode(@PathVariable String ticketCode) {
+        return ResponseEntity.ok(ticketService.getTicketDetailByCodeForCurrentUser(ticketCode));
+    }
+
     @GetMapping("/{bookingId}")
     public ResponseEntity<CinemaTicketViewResponse> getTicketDetail(@PathVariable String bookingId) {
         return ResponseEntity.ok(ticketService.getTicketDetailForCurrentUser(bookingId));

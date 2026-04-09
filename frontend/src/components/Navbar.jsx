@@ -11,7 +11,7 @@ function Navbar() {
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const isCinemaRoute = location.pathname.startsWith('/cinema');
+  const isCinemaRoute = location.pathname.startsWith('/cinema') || location.pathname.startsWith('/admin/cinema');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -69,14 +69,14 @@ function Navbar() {
           className={`navbar-module-btn${!isCinemaRoute ? ' is-active' : ''}`}
           onClick={() => navigate('/browse')}
         >
-          {t('navbar.streaming')}
+          Moviex Streaming
         </button>
         <button
           type="button"
           className={`navbar-module-btn${isCinemaRoute ? ' is-active' : ''}`}
           onClick={() => navigate('/cinema')}
         >
-          {t('navbar.cinema')}
+          JDWoMoviex Cinema
         </button>
       </div>
       <div className="navbar-actions">
@@ -88,7 +88,7 @@ function Navbar() {
               {checkRole('ROLE_ADMIN') && (
                 <>
                   <li><Link to="/admin/dashboard" style={{ color: 'var(--accent-secondary)' }}>{t('navbar.adminDashboard')}</Link></li>
-                  <li><Link to="/admin/cinema" style={{ color: 'var(--accent-secondary)' }}>Cinema Admin</Link></li>
+                  <li><Link to="/admin/cinema" style={{ color: 'var(--accent-secondary)' }}>JDWoMoviex Cinema Admin</Link></li>
                   <li><Link to="/admin" style={{ color: 'var(--accent-secondary)' }}>{t('navbar.adminConfig')}</Link></li>
                 </>
               )}

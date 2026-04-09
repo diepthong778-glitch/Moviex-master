@@ -106,6 +106,12 @@ function PaymentPage() {
       return;
     }
 
+    const normalizedRequiredPlan = String(movie?.requiredSubscription || 'BASIC').toUpperCase();
+    if (movie?.id && normalizedRequiredPlan === 'BASIC' && !planOption) {
+      navigate(`/browse?play=${encodeURIComponent(movie.id)}`);
+      return;
+    }
+
     try {
       setCreating(true);
       setError('');
@@ -113,7 +119,7 @@ function PaymentPage() {
       const payload = {
         packageId: planOption?.packageId,
         planType: planOption?.key,
-        movieId: movieId || null,
+        movieId: movie?.id || movieId || null,
         redirectPath: redirectPath || (movieId ? `/browse?play=${movieId}` : '/browse'),
       };
 
@@ -128,8 +134,9 @@ function PaymentPage() {
         }).toString()}`,
         { replace: true }
       );
-    } catch {
-      setError(t('paymentPage.createFailed'));
+    } catch (createError) {
+      const backendMessage = createError?.response?.data?.message;
+      setError(backendMessage || t('paymentPage.createFailed'));
     } finally {
       setCreating(false);
     }

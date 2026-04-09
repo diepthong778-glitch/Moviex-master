@@ -9,6 +9,7 @@ import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Seat;
 import com.moviex.cinema.model.SeatStatus;
+import com.moviex.cinema.model.ShowtimeStatus;
 import com.moviex.cinema.repository.BookingRepository;
 import com.moviex.cinema.repository.MovieShowtimeRepository;
 import com.moviex.cinema.repository.SeatRepository;
@@ -63,6 +64,9 @@ public class BookingService {
         User currentUser = currentUserService.getCurrentUser();
         MovieShowtime showtime = showtimeRepository.findById(request.getShowtimeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Showtime not found"));
+        if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Showtime is not available for booking");
+        }
 
         Set<String> deduplicatedSeatIds = new LinkedHashSet<>(request.getSeatIds());
         if (deduplicatedSeatIds.size() != request.getSeatIds().size()) {

@@ -19,7 +19,10 @@ import com.moviex.cinema.repository.CinemaPaymentTransactionRepository;
 import com.moviex.cinema.repository.MovieShowtimeRepository;
 import com.moviex.cinema.repository.TicketRepository;
 import com.moviex.model.Movie;
+import com.moviex.model.Role;
+import com.moviex.model.User;
 import com.moviex.repository.MovieRepository;
+import com.moviex.service.CurrentUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -47,6 +50,7 @@ public class CinemaPaymentService {
     private final MovieRepository movieRepository;
     private final BookingService bookingService;
     private final SeatReservationService seatReservationService;
+    private final CurrentUserService currentUserService;
 
     public CinemaPaymentService(BookingRepository bookingRepository,
                                 CinemaPaymentTransactionRepository paymentRepository,
@@ -56,7 +60,8 @@ public class CinemaPaymentService {
                                 AuditoriumRepository auditoriumRepository,
                                 MovieRepository movieRepository,
                                 BookingService bookingService,
-                                SeatReservationService seatReservationService) {
+                                SeatReservationService seatReservationService,
+                                CurrentUserService currentUserService) {
         this.bookingRepository = bookingRepository;
         this.paymentRepository = paymentRepository;
         this.ticketRepository = ticketRepository;
@@ -66,6 +71,7 @@ public class CinemaPaymentService {
         this.movieRepository = movieRepository;
         this.bookingService = bookingService;
         this.seatReservationService = seatReservationService;
+        this.currentUserService = currentUserService;
     }
 
     public BookingResponse createPayment(CreatePaymentRequest request) {
@@ -74,8 +80,10 @@ public class CinemaPaymentService {
         }
 
         bookingService.expirePendingBookings();
+        User currentUser = currentUserService.getCurrentUser();
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        validateBookingOwnership(currentUser, booking);
 
         if (booking.getBookingStatus() != BookingStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking is not pending");
@@ -106,6 +114,7 @@ public class CinemaPaymentService {
     }
 
     public BookingResponse confirmPayment(String txnCode, boolean success) {
+        User currentUser = currentUserService.getCurrentUser();
         PaymentTransaction transaction = paymentRepository.findByTxnCode(txnCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment transaction not found"));
 
@@ -116,6 +125,7 @@ public class CinemaPaymentService {
         bookingService.expirePendingBookings();
         Booking booking = bookingRepository.findById(transaction.getBookingId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        validateBookingOwnership(currentUser, booking);
         LocalDateTime now = LocalDateTime.now();
 
         if (!success) {
@@ -205,5 +215,16 @@ public class CinemaPaymentService {
             return "Unknown movie";
         }
         return DEMO_MOVIE_TITLES.getOrDefault(showtime.getMovieId(), "Unknown movie");
+    }
+
+    private void validateBookingOwnership(User currentUser, Booking booking) {
+        if (currentUser == null || booking == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access booking payment");
+        }
+        boolean isOwner = currentUser.getId().equals(booking.getUserId());
+        boolean isAdmin = currentUser.getRoles() != null && currentUser.getRoles().contains(Role.ROLE_ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access booking payment");
+        }
     }
 }

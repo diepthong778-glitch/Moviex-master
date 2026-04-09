@@ -1,0 +1,799 @@
+{
+  "info": {
+    "name": "JDWoMoviex Cinema - E2E Booking Flow",
+    "_postman_id": "62e4dcf3-8ef9-4c96-8a6e-1b8e8cd7f8fd",
+    "description": "End-to-end sandbox booking flow for JDWoMoviex Cinema: login, reserve seats, anti-double-booking, payment success/failure, ticket verification, and seat release checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01) Login Demo User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login succeeds', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('JWT token is returned', function () {",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('accessToken', json.token);",
+              "pm.collectionVariables.set('userId', json.id || '');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02) Verify Seed - List Cinemas",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/cinemas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "cinemas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cinemas loaded', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const data = pm.response.json();",
+              "pm.test('At least 2 cinema branches exist', function () {",
+              "  pm.expect(Array.isArray(data)).to.eql(true);",
+              "  pm.expect(data.length).to.be.at.least(2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03) Select Showtime",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/showtimes?cinemaId={{cinemaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "showtimes"
+          ],
+          "query": [
+            {
+              "key": "cinemaId",
+              "value": "{{cinemaId}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Showtimes loaded', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const showtimes = pm.response.json();",
+              "pm.test('At least one showtime exists', function () {",
+              "  pm.expect(Array.isArray(showtimes)).to.eql(true);",
+              "  pm.expect(showtimes.length).to.be.greaterThan(0);",
+              "});",
+              "const preferredId = pm.collectionVariables.get('preferredShowtimeId');",
+              "const selected = showtimes.find(s => s.id === preferredId) || showtimes[0];",
+              "pm.collectionVariables.set('showtimeId', selected.id);",
+              "pm.collectionVariables.set('showtimeMovieId', selected.movieId || '');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04) Pick Seats For Success Flow",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/showtimes/{{showtimeId}}/seats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "showtimes",
+            "{{showtimeId}}",
+            "seats"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Seats loaded', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const seats = pm.response.json();",
+              "const available = seats.filter(s => s.status === 'AVAILABLE');",
+              "pm.test('At least 4 seats are available', function () {",
+              "  pm.expect(available.length).to.be.at.least(4);",
+              "});",
+              "pm.collectionVariables.set('seatId1', available[0].seatId);",
+              "pm.collectionVariables.set('seatId2', available[1].seatId);",
+              "pm.collectionVariables.set('seatId3', available[2].seatId);",
+              "pm.collectionVariables.set('seatId4', available[3].seatId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05) Create Pending Booking (Success Flow)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/bookings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "bookings"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showtimeId\": \"{{showtimeId}}\",\n  \"seatIds\": [\"{{seatId1}}\", \"{{seatId2}}\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Booking created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Booking is pending', function () {",
+              "  pm.expect(json.bookingStatus).to.eql('PENDING');",
+              "  pm.expect(json.paymentStatus).to.eql('PENDING');",
+              "});",
+              "pm.collectionVariables.set('bookingIdSuccess', json.bookingId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06) Anti Double Booking - Same Seats Must Fail",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/bookings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "bookings"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showtimeId\": \"{{showtimeId}}\",\n  \"seatIds\": [\"{{seatId1}}\", \"{{seatId2}}\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Double booking is prevented', function () {",
+              "  pm.expect(pm.response.code).to.be.above(399);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07) Create Payment Transaction (Success Flow)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "payments"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookingId\": \"{{bookingIdSuccess}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Payment transaction created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Transaction code returned', function () {",
+              "  pm.expect(json.paymentTxnCode).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('txnCodeSuccess', json.paymentTxnCode);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08) Confirm Payment Success",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/payments/confirm?txnCode={{txnCodeSuccess}}&success=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "payments",
+            "confirm"
+          ],
+          "query": [
+            {
+              "key": "txnCode",
+              "value": "{{txnCodeSuccess}}"
+            },
+            {
+              "key": "success",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Payment success confirmed', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Booking and payment statuses are final success', function () {",
+              "  pm.expect(json.bookingStatus).to.eql('CONFIRMED');",
+              "  pm.expect(json.paymentStatus).to.eql('PAID');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09) Verify Seats BOOKED (Success Flow)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/showtimes/{{showtimeId}}/seats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "showtimes",
+            "{{showtimeId}}",
+            "seats"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const seats = pm.response.json();",
+              "const seatStatus = new Map(seats.map(s => [s.seatId, s.status]));",
+              "const seat1 = pm.collectionVariables.get('seatId1');",
+              "const seat2 = pm.collectionVariables.get('seatId2');",
+              "pm.test('Selected seats are booked', function () {",
+              "  pm.expect(seatStatus.get(seat1)).to.eql('BOOKED');",
+              "  pm.expect(seatStatus.get(seat2)).to.eql('BOOKED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10) Verify Ticket Generated",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/tickets/my?segment=all",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "tickets",
+            "my"
+          ],
+          "query": [
+            {
+              "key": "segment",
+              "value": "all"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ticket list loaded', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const tickets = pm.response.json();",
+              "const bookingId = pm.collectionVariables.get('bookingIdSuccess');",
+              "const row = tickets.find(t => t.bookingId === bookingId);",
+              "pm.test('Ticket exists for successful booking', function () {",
+              "  pm.expect(row).to.exist;",
+              "});",
+              "const code = row ? (row.ticketCode || ((row.ticketCodes || [])[0] || '')) : '';",
+              "pm.test('Ticket code is available', function () {",
+              "  pm.expect(code).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('ticketCodeSuccess', code);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11) Get Ticket Detail by Code",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/tickets/code/{{ticketCodeSuccess}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "tickets",
+            "code",
+            "{{ticketCodeSuccess}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ticket detail by code works', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const ticket = pm.response.json();",
+              "pm.test('Ticket has booking/payment success status', function () {",
+              "  pm.expect(ticket.bookingStatus).to.eql('CONFIRMED');",
+              "  pm.expect(ticket.paymentStatus).to.eql('PAID');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12) Pick Seats For Failure Flow",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/showtimes/{{showtimeId}}/seats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "showtimes",
+            "{{showtimeId}}",
+            "seats"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const seats = pm.response.json();",
+              "const available = seats.filter(s => s.status === 'AVAILABLE');",
+              "pm.test('At least 2 available seats for failure flow', function () {",
+              "  pm.expect(available.length).to.be.at.least(2);",
+              "});",
+              "pm.collectionVariables.set('failSeatId1', available[0].seatId);",
+              "pm.collectionVariables.set('failSeatId2', available[1].seatId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13) Create Pending Booking (Failure Flow)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/bookings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "bookings"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showtimeId\": \"{{showtimeId}}\",\n  \"seatIds\": [\"{{failSeatId1}}\", \"{{failSeatId2}}\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Failure flow booking created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.expect(json.bookingStatus).to.eql('PENDING');",
+              "pm.collectionVariables.set('bookingIdFail', json.bookingId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14) Create Payment Transaction (Failure Flow)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "payments"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bookingId\": \"{{bookingIdFail}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Failure flow transaction created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('txnCodeFail', json.paymentTxnCode);",
+              "pm.expect(json.paymentTxnCode).to.be.a('string').and.not.empty;"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15) Confirm Payment Failure",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/payments/confirm?txnCode={{txnCodeFail}}&success=false",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "payments",
+            "confirm"
+          ],
+          "query": [
+            {
+              "key": "txnCode",
+              "value": "{{txnCodeFail}}"
+            },
+            {
+              "key": "success",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Payment failure confirmed', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('Booking/payment become cancelled/failed', function () {",
+              "  pm.expect(json.bookingStatus).to.eql('CANCELLED');",
+              "  pm.expect(json.paymentStatus).to.eql('FAILED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16) Verify Seats Released After Failure",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/cinema/showtimes/{{showtimeId}}/seats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cinema",
+            "showtimes",
+            "{{showtimeId}}",
+            "seats"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const seats = pm.response.json();",
+              "const seatStatus = new Map(seats.map(s => [s.seatId, s.status]));",
+              "const failSeat1 = pm.collectionVariables.get('failSeatId1');",
+              "const failSeat2 = pm.collectionVariables.get('failSeatId2');",
+              "pm.test('Failed payment seats are released to AVAILABLE', function () {",
+              "  pm.expect(seatStatus.get(failSeat1)).to.eql('AVAILABLE');",
+              "  pm.expect(seatStatus.get(failSeat2)).to.eql('AVAILABLE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "userEmail",
+      "value": "user@moviex.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "user123"
+    },
+    {
+      "key": "cinemaId",
+      "value": "cinema-hcm-01"
+    },
+    {
+      "key": "preferredShowtimeId",
+      "value": "st-001-1810"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "showtimeId",
+      "value": ""
+    },
+    {
+      "key": "seatId1",
+      "value": ""
+    },
+    {
+      "key": "seatId2",
+      "value": ""
+    },
+    {
+      "key": "seatId3",
+      "value": ""
+    },
+    {
+      "key": "seatId4",
+      "value": ""
+    },
+    {
+      "key": "bookingIdSuccess",
+      "value": ""
+    },
+    {
+      "key": "txnCodeSuccess",
+      "value": ""
+    },
+    {
+      "key": "ticketCodeSuccess",
+      "value": ""
+    },
+    {
+      "key": "failSeatId1",
+      "value": ""
+    },
+    {
+      "key": "failSeatId2",
+      "value": ""
+    },
+    {
+      "key": "bookingIdFail",
+      "value": ""
+    },
+    {
+      "key": "txnCodeFail",
+      "value": ""
+    }
+  ]
+}

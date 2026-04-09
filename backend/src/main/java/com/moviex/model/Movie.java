@@ -18,6 +18,14 @@ public class Movie {
     private String description;
     private String videoUrl;
     private String trailerUrl;
+    private String posterUrl;
+    private String backdropUrl;
+    private String originalTitle;
+    private Integer runtimeMinutes;
+    private String ageRating;
+    private String director;
+    private java.util.List<String> cast;
+    private String language;
     private SubscriptionPlan requiredSubscription = SubscriptionPlan.BASIC;
 
     public Movie() {}
@@ -47,6 +55,22 @@ public class Movie {
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public String getTrailerUrl() { return trailerUrl; }
     public void setTrailerUrl(String trailerUrl) { this.trailerUrl = trailerUrl; }
+    public String getPosterUrl() { return posterUrl; }
+    public void setPosterUrl(String posterUrl) { this.posterUrl = posterUrl; }
+    public String getBackdropUrl() { return backdropUrl; }
+    public void setBackdropUrl(String backdropUrl) { this.backdropUrl = backdropUrl; }
+    public String getOriginalTitle() { return originalTitle; }
+    public void setOriginalTitle(String originalTitle) { this.originalTitle = originalTitle; }
+    public Integer getRuntimeMinutes() { return runtimeMinutes; }
+    public void setRuntimeMinutes(Integer runtimeMinutes) { this.runtimeMinutes = runtimeMinutes; }
+    public String getAgeRating() { return ageRating; }
+    public void setAgeRating(String ageRating) { this.ageRating = ageRating; }
+    public String getDirector() { return director; }
+    public void setDirector(String director) { this.director = director; }
+    public java.util.List<String> getCast() { return cast; }
+    public void setCast(java.util.List<String> cast) { this.cast = cast; }
+    public String getLanguage() { return language; }
+    public void setLanguage(String language) { this.language = language; }
     public SubscriptionPlan getRequiredSubscription() { return requiredSubscription; }
     public void setRequiredSubscription(SubscriptionPlan requiredSubscription) { this.requiredSubscription = requiredSubscription; }
 }

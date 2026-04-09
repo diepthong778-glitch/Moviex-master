@@ -25,6 +25,8 @@ public class CinemaTicketViewResponse {
     private BookingStatus bookingStatus;
     private boolean upcoming;
     private LocalDateTime issuedAt;
+    private LocalDateTime createdAt;
+    private String ticketCode;
     private List<String> ticketCodes = new ArrayList<>();
     private String userId;
     private String userEmail;
@@ -59,6 +61,10 @@ public class CinemaTicketViewResponse {
     public void setUpcoming(boolean upcoming) { this.upcoming = upcoming; }
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getTicketCode() { return ticketCode; }
+    public void setTicketCode(String ticketCode) { this.ticketCode = ticketCode; }
     public List<String> getTicketCodes() { return ticketCodes; }
     public void setTicketCodes(List<String> ticketCodes) { this.ticketCodes = ticketCodes; }
     public String getUserId() { return userId; }

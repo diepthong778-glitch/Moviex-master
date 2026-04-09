@@ -10,6 +10,7 @@ import com.moviex.model.PaymentStatus;
 import com.moviex.model.PaymentTargetType;
 import com.moviex.model.PaymentTransaction;
 import com.moviex.model.SubscriptionPlan;
+import com.moviex.model.SubscriptionStatus;
 import com.moviex.model.User;
 import com.moviex.repository.MovieRepository;
 import com.moviex.repository.PaymentTransactionRepository;
@@ -129,7 +130,11 @@ public class PaymentServiceImpl implements PaymentService {
         logger.debug("Fetching entitlements for user {}", currentUser.getEmail());
         PaymentEntitlementsResponse response = new PaymentEntitlementsResponse();
         response.setUserId(currentUser.getId());
-        response.setSubscriptionPlan(currentUser.getSubscriptionPlan() != null ? currentUser.getSubscriptionPlan().name() : SubscriptionPlan.BASIC.name());
+        SubscriptionPlan effectivePlan = subscriptionService.getUserSubscription(currentUser.getId())
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE)
+                .map(subscription -> subscription.getPlanType() != null ? subscription.getPlanType() : SubscriptionPlan.BASIC)
+                .orElse(SubscriptionPlan.BASIC);
+        response.setSubscriptionPlan(effectivePlan.name());
         if (currentUser.getUnlockedMovieIds() == null) {
             currentUser.setUnlockedMovieIds(new HashSet<>());
         }
@@ -190,7 +195,8 @@ public class PaymentServiceImpl implements PaymentService {
         if (movieId != null) {
             Movie movie = movieRepository.findById(movieId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movie not found"));
-            return new TargetDescriptor(PaymentTargetType.MOVIE, movie.getId(), null, movie.getRequiredSubscription(), movie.getTitle());
+            SubscriptionPlan requiredPlan = resolveSubscriptionPlan(movie.getRequiredSubscription());
+            return new TargetDescriptor(PaymentTargetType.MOVIE, movie.getId(), null, requiredPlan, movie.getTitle());
         }
 
         SubscriptionPlan resolvedPlan = planType;
@@ -214,15 +220,17 @@ public class PaymentServiceImpl implements PaymentService {
             return request.getAmount();
         }
 
+        SubscriptionPlan effectivePlan = resolveSubscriptionPlan(target.planType());
+
         if (target.targetType() == PaymentTargetType.PACKAGE) {
-            return switch (target.planType()) {
+            return switch (effectivePlan) {
                 case BASIC -> new BigDecimal("10000");
                 case STANDARD -> new BigDecimal("49000");
                 case PREMIUM -> new BigDecimal("99000");
             };
         }
 
-        return switch (target.planType()) {
+        return switch (effectivePlan) {
             case BASIC -> new BigDecimal("12000");
             case STANDARD -> new BigDecimal("19000");
             case PREMIUM -> new BigDecimal("29000");
@@ -261,6 +269,10 @@ public class PaymentServiceImpl implements PaymentService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private SubscriptionPlan resolveSubscriptionPlan(SubscriptionPlan plan) {
+        return plan != null ? plan : SubscriptionPlan.BASIC;
     }
 
     private record TargetDescriptor(

@@ -1,0 +1,35 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="194" y1="58" x2="1264" y2="884" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#091126"/>
+      <stop offset="0.46" stop-color="#241E2F"/>
+      <stop offset="1" stop-color="#853B28"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1218 196) rotate(129.095) scale(278.229 239.106)">
+      <stop stop-color="#FFD29A"/>
+      <stop offset="1" stop-color="#FF8A4B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ridge" x1="0" y1="590" x2="1600" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3D1D1B"/>
+      <stop offset="1" stop-color="#6F2F23"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" rx="36" fill="url(#sky)"/>
+  <circle cx="1210" cy="192" r="210" fill="url(#glow)"/>
+  <path d="M0 668C172 624 307 585 492 606C734 634 870 766 1112 772C1291 776 1434 730 1600 684V900H0V668Z" fill="url(#ridge)"/>
+  <path d="M0 752C212 714 350 689 530 712C718 736 862 830 1036 842C1238 856 1418 786 1600 750V900H0V752Z" fill="#C65534" fill-opacity="0.9"/>
+  <g opacity="0.96">
+    <ellipse cx="622" cy="440" rx="118" ry="136" fill="#F2EEE8"/>
+    <ellipse cx="632" cy="444" rx="90" ry="92" fill="#2A2524"/>
+    <path d="M568 540C592 564 654 574 694 552L732 680H534L568 540Z" fill="#EFF1F3"/>
+    <path d="M566 518C592 540 666 550 696 522" stroke="#DCAA54" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <g fill="#F5F0EA" font-family="Arial, Helvetica, sans-serif">
+    <text x="168" y="162" font-size="32" letter-spacing="10">JDWOMOVIEX CINEMA</text>
+    <text x="160" y="314" font-size="126" font-weight="700">THE</text>
+    <text x="160" y="438" font-size="126" font-weight="700">MARTIAN</text>
+    <text x="166" y="518" font-size="36" opacity="0.86">Sci-Fi, Adventure  •  2h 24m  •  PG-13</text>
+    <text x="166" y="586" font-size="30" opacity="0.74">A stranded astronaut fights to survive on Mars</text>
+    <text x="166" y="626" font-size="30" opacity="0.74">while Earth races to bring him home.</text>
+  </g>
+</svg>

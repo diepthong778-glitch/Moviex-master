@@ -10,6 +10,7 @@ import com.moviex.cinema.dto.CreateAuditoriumRequest;
 import com.moviex.cinema.dto.CreateCinemaRequest;
 import com.moviex.cinema.dto.CreateSeatRequest;
 import com.moviex.cinema.dto.CreateShowtimeRequest;
+import com.moviex.cinema.dto.SeatAvailabilityResponse;
 import com.moviex.cinema.dto.UpdateCinemaRequest;
 import com.moviex.cinema.model.Auditorium;
 import com.moviex.cinema.model.Booking;
@@ -43,6 +44,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -350,8 +352,8 @@ public class AdminCinemaService {
         seatRepository.deleteById(seatId);
     }
 
-    public List<MovieShowtime> listShowtimes(String cinemaId, java.time.LocalDate showDate) {
-        return showtimeService.listShowtimes(cinemaId, showDate);
+    public List<MovieShowtime> listShowtimes(String cinemaId, String movieId, LocalDate showDate) {
+        return showtimeService.listShowtimes(cinemaId, movieId, null, showDate, null);
     }
 
     public MovieShowtime createShowtime(CreateShowtimeRequest request) {
@@ -411,11 +413,17 @@ public class AdminCinemaService {
         showtimeRepository.deleteById(showtimeId);
     }
 
-    public List<Map<String, Object>> listBookings(Integer limit) {
+    public List<Map<String, Object>> listBookings(Integer limit,
+                                                  String movieId,
+                                                  String cinemaId,
+                                                  LocalDate showDate,
+                                                  BookingStatus bookingStatus,
+                                                  CinemaPaymentStatus paymentStatus) {
         int resolvedLimit = limit == null ? 200 : Math.max(1, Math.min(limit, 1000));
         return bookingRepository.findAllByOrderByCreatedAtDesc().stream()
-                .limit(resolvedLimit)
                 .map(this::toBookingRow)
+                .filter(row -> matchesBookingFilters(row, movieId, cinemaId, showDate, bookingStatus, paymentStatus))
+                .limit(resolvedLimit)
                 .toList();
     }
 
@@ -464,12 +472,87 @@ public class AdminCinemaService {
                 .toList();
     }
 
-    public List<Map<String, Object>> listPaymentTransactions(Integer limit) {
+    public List<Map<String, Object>> listPaymentTransactions(Integer limit,
+                                                             String movieId,
+                                                             String cinemaId,
+                                                             LocalDate showDate,
+                                                             CinemaPaymentStatus paymentStatus) {
         int resolvedLimit = limit == null ? 200 : Math.max(1, Math.min(limit, 1000));
         return paymentTransactionRepository.findAllByOrderByCreatedAtDesc().stream()
-                .limit(resolvedLimit)
                 .map(this::toPaymentRow)
+                .filter(row -> matchesPaymentFilters(row, movieId, cinemaId, showDate, paymentStatus))
+                .limit(resolvedLimit)
                 .toList();
+    }
+
+    public List<Map<String, Object>> listTickets(Integer limit,
+                                                 String movieId,
+                                                 String cinemaId,
+                                                 LocalDate showDate,
+                                                 BookingStatus bookingStatus,
+                                                 CinemaPaymentStatus paymentStatus) {
+        int resolvedLimit = limit == null ? 200 : Math.max(1, Math.min(limit, 1000));
+        return ticketRepository.findAll().stream()
+                .sorted(Comparator.comparing(com.moviex.cinema.model.Ticket::getIssuedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::toTicketRow)
+                .filter(row -> matchesBookingFilters(row, movieId, cinemaId, showDate, bookingStatus, paymentStatus))
+                .limit(resolvedLimit)
+                .toList();
+    }
+
+    public Map<String, Object> getShowtimeSeatInspection(String showtimeId) {
+        if (isBlank(showtimeId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "showtimeId is required");
+        }
+
+        MovieShowtime showtime = showtimeRepository.findById(showtimeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Showtime not found"));
+        Movie movie = movieRepository.findById(showtime.getMovieId()).orElse(null);
+        Cinema cinema = cinemaRepository.findById(showtime.getCinemaId()).orElse(null);
+        Auditorium auditorium = auditoriumRepository.findById(showtime.getAuditoriumId()).orElse(null);
+        List<SeatAvailabilityResponse> availability = seatService.listSeatAvailability(showtimeId);
+
+        Map<String, Long> statusCounts = availability.stream()
+                .collect(Collectors.groupingBy(item -> item.getStatus().name(), Collectors.counting()));
+
+        List<Map<String, Object>> seats = availability.stream()
+                .sorted(Comparator
+                        .comparing(SeatAvailabilityResponse::getRow, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(SeatAvailabilityResponse::getNumber, Comparator.nullsLast(Integer::compareTo)))
+                .map(item -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("seatId", item.getSeatId());
+                    row.put("label", (item.getRow() == null ? "?" : item.getRow()) + item.getNumber());
+                    row.put("row", item.getRow());
+                    row.put("number", item.getNumber());
+                    row.put("type", item.getType());
+                    row.put("status", item.getStatus());
+                    return row;
+                })
+                .toList();
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("total", availability.size());
+        summary.put("available", statusCounts.getOrDefault("AVAILABLE", 0L));
+        summary.put("reserved", statusCounts.getOrDefault("RESERVED", 0L));
+        summary.put("booked", statusCounts.getOrDefault("BOOKED", 0L));
+        summary.put("outOfService", statusCounts.getOrDefault("OUT_OF_SERVICE", 0L));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("showtimeId", showtime.getId());
+        response.put("movieId", showtime.getMovieId());
+        response.put("movieTitle", movie == null ? null : movie.getTitle());
+        response.put("cinemaId", showtime.getCinemaId());
+        response.put("cinemaName", cinema == null ? null : cinema.getName());
+        response.put("auditoriumId", showtime.getAuditoriumId());
+        response.put("auditoriumName", auditorium == null ? null : auditorium.getName());
+        response.put("showDate", showtime.getShowDate());
+        response.put("startTime", showtime.getStartTime());
+        response.put("endTime", showtime.getEndTime());
+        response.put("summary", summary);
+        response.put("seats", seats);
+        return response;
     }
 
     public Map<String, Object> simulatePaymentDecision(String txnCode, boolean success) {
@@ -563,11 +646,24 @@ public class AdminCinemaService {
                 ? null
                 : bookingRepository.findById(transaction.getBookingId()).orElse(null);
         User user = booking == null ? null : userRepository.findById(booking.getUserId()).orElse(null);
+        MovieShowtime showtime = booking == null || booking.getShowtimeId() == null
+                ? null
+                : showtimeRepository.findById(booking.getShowtimeId()).orElse(null);
+        Movie movie = showtime == null ? null : movieRepository.findById(showtime.getMovieId()).orElse(null);
+        Cinema cinema = booking == null || booking.getCinemaId() == null
+                ? null
+                : cinemaRepository.findById(booking.getCinemaId()).orElse(null);
 
         row.put("id", transaction.getId());
         row.put("txnCode", transaction.getTxnCode());
         row.put("bookingId", transaction.getBookingId());
         row.put("bookingCode", booking == null ? null : booking.getBookingCode());
+        row.put("movieId", showtime == null ? null : showtime.getMovieId());
+        row.put("movieTitle", movie == null ? null : movie.getTitle());
+        row.put("cinemaId", booking == null ? null : booking.getCinemaId());
+        row.put("cinemaName", cinema == null ? null : cinema.getName());
+        row.put("showDate", showtime == null ? null : showtime.getShowDate());
+        row.put("bookingStatus", booking == null ? null : booking.getBookingStatus());
         row.put("userEmail", user == null ? null : user.getEmail());
         row.put("amount", transaction.getAmount());
         row.put("status", transaction.getStatus());
@@ -575,6 +671,120 @@ public class AdminCinemaService {
         row.put("createdAt", transaction.getCreatedAt());
         row.put("updatedAt", transaction.getUpdatedAt());
         return row;
+    }
+
+    private Map<String, Object> toTicketRow(com.moviex.cinema.model.Ticket ticket) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        Booking booking = ticket.getBookingId() == null
+                ? null
+                : bookingRepository.findById(ticket.getBookingId()).orElse(null);
+        User user = booking == null ? null : userRepository.findById(booking.getUserId()).orElse(null);
+        MovieShowtime showtime = ticket.getShowtimeId() != null
+                ? showtimeRepository.findById(ticket.getShowtimeId()).orElse(null)
+                : (booking == null || booking.getShowtimeId() == null
+                ? null
+                : showtimeRepository.findById(booking.getShowtimeId()).orElse(null));
+        Cinema cinema = ticket.getCinemaId() != null
+                ? cinemaRepository.findById(ticket.getCinemaId()).orElse(null)
+                : (booking == null || booking.getCinemaId() == null
+                ? null
+                : cinemaRepository.findById(booking.getCinemaId()).orElse(null));
+        Auditorium auditorium = ticket.getAuditoriumId() != null
+                ? auditoriumRepository.findById(ticket.getAuditoriumId()).orElse(null)
+                : (booking == null || booking.getAuditoriumId() == null
+                ? null
+                : auditoriumRepository.findById(booking.getAuditoriumId()).orElse(null));
+        Movie movie = showtime == null || showtime.getMovieId() == null
+                ? null
+                : movieRepository.findById(showtime.getMovieId()).orElse(null);
+
+        row.put("id", ticket.getId());
+        row.put("ticketCode", ticket.getTicketCode());
+        row.put("bookingId", ticket.getBookingId());
+        row.put("bookingCode", booking == null ? ticket.getBookingCode() : booking.getBookingCode());
+        row.put("userId", ticket.getUserId());
+        row.put("userEmail", user == null ? null : user.getEmail());
+        row.put("movieId", ticket.getMovieId() != null ? ticket.getMovieId() : (showtime == null ? null : showtime.getMovieId()));
+        row.put("movieTitle", movie == null ? ticket.getMovieTitle() : movie.getTitle());
+        row.put("cinemaId", ticket.getCinemaId() != null ? ticket.getCinemaId() : (booking == null ? null : booking.getCinemaId()));
+        row.put("cinemaName", cinema == null ? ticket.getCinemaName() : cinema.getName());
+        row.put("auditoriumId", ticket.getAuditoriumId() != null ? ticket.getAuditoriumId() : (booking == null ? null : booking.getAuditoriumId()));
+        row.put("auditoriumName", auditorium == null ? ticket.getAuditoriumName() : auditorium.getName());
+        row.put("showtimeId", ticket.getShowtimeId());
+        row.put("showDate", ticket.getShowDate() != null ? ticket.getShowDate() : (showtime == null ? null : showtime.getShowDate()));
+        row.put("startTime", ticket.getStartTime() != null ? ticket.getStartTime() : (showtime == null ? null : showtime.getStartTime()));
+        row.put("endTime", ticket.getEndTime() != null ? ticket.getEndTime() : (showtime == null ? null : showtime.getEndTime()));
+        row.put("seatLabel", ticket.getSeatLabel());
+        row.put("totalPrice", ticket.getTotalAmount());
+        row.put("bookingStatus", booking == null ? ticket.getBookingStatus() : booking.getBookingStatus());
+        row.put("paymentStatus", booking == null ? null : booking.getPaymentStatus());
+        row.put("ticketStatus", ticket.getStatus());
+        row.put("issuedAt", ticket.getIssuedAt());
+        row.put("createdAt", booking == null ? ticket.getIssuedAt() : booking.getCreatedAt());
+        return row;
+    }
+
+    private boolean matchesBookingFilters(Map<String, Object> row,
+                                          String movieId,
+                                          String cinemaId,
+                                          LocalDate showDate,
+                                          BookingStatus bookingStatus,
+                                          CinemaPaymentStatus paymentStatus) {
+        if (!isBlank(movieId) && !movieId.equals(row.get("movieId"))) {
+            return false;
+        }
+        if (!isBlank(cinemaId) && !cinemaId.equals(row.get("cinemaId"))) {
+            return false;
+        }
+        if (showDate != null) {
+            Object value = row.get("showDate");
+            if (!(value instanceof LocalDate date) || !showDate.equals(date)) {
+                return false;
+            }
+        }
+        if (bookingStatus != null && !enumMatches(row.get("bookingStatus"), bookingStatus)) {
+            return false;
+        }
+        if (paymentStatus != null && !enumMatches(row.get("paymentStatus"), paymentStatus)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean matchesPaymentFilters(Map<String, Object> row,
+                                          String movieId,
+                                          String cinemaId,
+                                          LocalDate showDate,
+                                          CinemaPaymentStatus paymentStatus) {
+        if (!isBlank(movieId) && !movieId.equals(row.get("movieId"))) {
+            return false;
+        }
+        if (!isBlank(cinemaId) && !cinemaId.equals(row.get("cinemaId"))) {
+            return false;
+        }
+        if (showDate != null) {
+            Object value = row.get("showDate");
+            if (!(value instanceof LocalDate date) || !showDate.equals(date)) {
+                return false;
+            }
+        }
+        if (paymentStatus != null && !enumMatches(row.get("status"), paymentStatus)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean enumMatches(Object value, Enum<?> expected) {
+        if (expected == null) {
+            return true;
+        }
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Enum<?> enumValue) {
+            return enumValue.name().equals(expected.name());
+        }
+        return expected.name().equalsIgnoreCase(String.valueOf(value));
     }
 
     private String toRoleString(Set<Role> roles) {

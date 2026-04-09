@@ -2,28 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { cinemaBranches, cinemaMovies } from '../data/cinemaData';
+import CinemaModuleNav from '../components/CinemaModuleNav';
 import { formatCurrency } from '../utils/cinema';
+import { fetchCinemaShowtimeDetail } from '../utils/cinemaApi';
 
 function CinemaCheckout() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+
   const {
-    movieId,
-    cinemaId,
     showtimeId,
-    showDate,
-    time,
-    auditorium,
     seatIds = [],
     seats = [],
     totalPrice = 0,
+    movieTitle,
+    cinemaName,
+    auditoriumName,
+    showDate,
+    time,
   } = location.state || {};
 
-  const movie = cinemaMovies.find((item) => item.id === movieId);
-  const cinema = cinemaBranches.find((branch) => branch.id === cinemaId);
-
+  const [showtime, setShowtime] = useState(null);
   const [bookingSummary, setBookingSummary] = useState(null);
   const [txnCode, setTxnCode] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
@@ -32,6 +32,31 @@ function CinemaCheckout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReleased, setIsReleased] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+
+  const seatKey = useMemo(() => seatIds.join('|'), [seatIds]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadShowtime = async () => {
+      if (!showtimeId) return;
+      try {
+        const data = await fetchCinemaShowtimeDetail(showtimeId);
+        if (!ignore) {
+          setShowtime(data);
+        }
+      } catch {
+        if (!ignore) {
+          setShowtime(null);
+        }
+      }
+    };
+
+    loadShowtime();
+    return () => {
+      ignore = true;
+    };
+  }, [showtimeId]);
 
   useEffect(() => {
     let ignore = false;
@@ -45,6 +70,8 @@ function CinemaCheckout() {
 
       try {
         setError('');
+        setStatusMessage('');
+
         const bookingRes = await axios.post('/api/cinema/bookings', {
           showtimeId,
           seatIds,
@@ -52,16 +79,18 @@ function CinemaCheckout() {
 
         const booking = bookingRes.data;
         if (ignore) return;
+
         setBookingSummary(booking);
 
         const paymentRes = await axios.post('/api/cinema/payments', {
           bookingId: booking.bookingId,
         });
         if (ignore) return;
+
         setTxnCode(paymentRes.data.paymentTxnCode || '');
       } catch (initError) {
         if (!ignore) {
-          setError(initError?.response?.data?.message || 'Unable to initialize sandbox payment.');
+          setError(initError?.response?.data?.message || 'Failed to create sandbox payment transaction. Please try again.');
         }
       } finally {
         if (!ignore) {
@@ -75,26 +104,35 @@ function CinemaCheckout() {
     return () => {
       ignore = true;
     };
-  }, [showtimeId, seatIds]);
+  }, [showtimeId, seatKey]);
 
-  const hasValidCheckout = useMemo(() => movie && cinema && showtimeId, [movie, cinema, showtimeId]);
+  const summaryMovieTitle = showtime?.movie?.title || movieTitle || '-';
+  const summaryCinemaName = showtime?.cinemaName || cinemaName || '-';
+  const summaryAuditorium = showtime?.auditoriumName || auditoriumName || '-';
+  const summaryShowDate = showtime?.showDate || showDate || '-';
+  const summaryTime = showtime?.startTime || time || '-';
+  const summaryTotal = Number(bookingSummary?.totalPrice) || totalPrice || 0;
+  const hasValidCheckout = Boolean(showtimeId && seatIds.length);
 
   const handleSimulatePayment = async (success) => {
     if (!txnCode) return;
     try {
       setIsSubmitting(true);
       setError('');
+      setStatusMessage('');
+
       const response = await axios.post('/api/cinema/payments/confirm', null, {
         params: {
           txnCode,
           success,
         },
       });
+
       const result = response.data;
       setBookingSummary(result);
       if (success) {
         setIsConfirmed(true);
-        setStatusMessage('Payment succeeded. Seats are booked and tickets are generated.');
+        setStatusMessage('Payment succeeded. Booking confirmed and ticket generated.');
       } else {
         setIsReleased(true);
         setStatusMessage('Payment failed. Reserved seats were released.');
@@ -111,6 +149,7 @@ function CinemaCheckout() {
     try {
       setIsSubmitting(true);
       setError('');
+      setStatusMessage('');
       const response = await axios.post(`/api/cinema/bookings/${bookingSummary.bookingId}/release`);
       setBookingSummary(response.data);
       setIsReleased(true);
@@ -123,6 +162,10 @@ function CinemaCheckout() {
   };
 
   const handleViewTickets = () => {
+    if (bookingSummary?.bookingId) {
+      navigate(`/cinema/tickets/${bookingSummary.bookingId}`);
+      return;
+    }
     navigate('/cinema/tickets');
   };
 
@@ -130,6 +173,7 @@ function CinemaCheckout() {
     return (
       <div className="cinema-shell">
         <div className="page-shell cinema-content">
+          <CinemaModuleNav />
           <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
         </div>
       </div>
@@ -139,44 +183,44 @@ function CinemaCheckout() {
   return (
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
+        <CinemaModuleNav />
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.checkoutTitle')}</p>
             <h1 className="cinema-title">{t('cinema.bookingSummary')}</h1>
-            <p className="cinema-subtitle">{cinema.name} - {auditorium}</p>
+            <p className="cinema-subtitle">{summaryCinemaName} - {summaryAuditorium}</p>
           </div>
-          <Link to="/cinema/seats" className="btn btn-outline">
+          <Link to="/cinema/seats" state={{ showtimeId }} className="btn btn-outline">
             {t('cinema.selectSeats')}
           </Link>
         </div>
 
         <div className="cinema-checkout-grid">
           <div className="cinema-checkout-card">
-            <h3>{movie.title}</h3>
-            <p>{movie.genre} - {movie.duration}</p>
+            <h3>{summaryMovieTitle}</h3>
             <div className="cinema-checkout-row">
               <span>Cinema</span>
-              <strong>{cinema.name}</strong>
+              <strong>{summaryCinemaName}</strong>
             </div>
             <div className="cinema-checkout-row">
               <span>{t('cinema.auditorium')}</span>
-              <strong>{auditorium}</strong>
+              <strong>{summaryAuditorium}</strong>
             </div>
             <div className="cinema-checkout-row">
               <span>Date</span>
-              <strong>{showDate || '-'}</strong>
+              <strong>{summaryShowDate}</strong>
             </div>
             <div className="cinema-checkout-row">
               <span>{t('cinema.selectShowtime')}</span>
-              <strong>{time}</strong>
+              <strong>{summaryTime}</strong>
             </div>
             <div className="cinema-checkout-row">
               <span>{t('cinema.seats')}</span>
-              <strong>{seats.join(', ') || '-'}</strong>
+              <strong>{seats.join(', ') || seatIds.join(', ') || '-'}</strong>
             </div>
             <div className="cinema-checkout-row">
               <span>{t('cinema.total')}</span>
-              <strong>{formatCurrency(totalPrice || 0)}</strong>
+              <strong>{formatCurrency(summaryTotal)}</strong>
             </div>
           </div>
 
@@ -188,7 +232,8 @@ function CinemaCheckout() {
               <>
                 <p>Booking ID: {bookingSummary?.bookingId || '-'}</p>
                 <p>Transaction Code: {txnCode || '-'}</p>
-                <p>Status: {bookingSummary?.bookingStatus || 'PENDING'}</p>
+                <p>Booking Status: {bookingSummary?.bookingStatus || '-'}</p>
+                <p>Payment Status: {bookingSummary?.paymentStatus || '-'}</p>
 
                 <button
                   type="button"
@@ -201,8 +246,7 @@ function CinemaCheckout() {
 
                 <button
                   type="button"
-                  className="btn btn-outline"
-                  style={{ marginTop: 12 }}
+                  className="btn btn-outline cinema-stack-btn"
                   disabled={!txnCode || isSubmitting || isConfirmed || isReleased}
                   onClick={() => handleSimulatePayment(false)}
                 >
@@ -211,8 +255,7 @@ function CinemaCheckout() {
 
                 <button
                   type="button"
-                  className="btn btn-outline"
-                  style={{ marginTop: 12 }}
+                  className="btn btn-outline cinema-stack-btn"
                   disabled={!bookingSummary?.bookingId || isSubmitting || isConfirmed || isReleased}
                   onClick={handleReleaseBooking}
                 >
@@ -220,7 +263,7 @@ function CinemaCheckout() {
                 </button>
 
                 {isConfirmed && (
-                  <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={handleViewTickets}>
+                  <button type="button" className="btn btn-primary cinema-stack-btn" onClick={handleViewTickets}>
                     {t('cinema.navTickets')}
                   </button>
                 )}
@@ -229,8 +272,8 @@ function CinemaCheckout() {
           </div>
         </div>
 
-        {statusMessage && <p className="muted-text" style={{ marginTop: 12 }}>{statusMessage}</p>}
-        {error && <p className="muted-text" style={{ marginTop: 12, color: '#fca5a5' }}>{error}</p>}
+        {statusMessage && <p className="cinema-note">{statusMessage}</p>}
+        {error && <p className="cinema-note cinema-note-error">{error}</p>}
       </div>
     </div>
   );

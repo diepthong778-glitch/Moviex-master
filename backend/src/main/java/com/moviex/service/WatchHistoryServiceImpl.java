@@ -65,7 +65,10 @@ public class WatchHistoryServiceImpl implements WatchHistoryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movie not found"));
 
         User user = currentUserService.getCurrentUser();
-        if (!subscriptionService.canAccessMovie(user.getId(), movie.getRequiredSubscription())) {
+        boolean canAccessByPlan = subscriptionService.canAccessMovie(user.getId(), movie.getRequiredSubscription());
+        boolean unlockedByPurchase = user.getUnlockedMovieIds() != null
+                && user.getUnlockedMovieIds().contains(movie.getId());
+        if (!canAccessByPlan && !unlockedByPurchase) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upgrade required");
         }
 

@@ -32,6 +32,7 @@ public class Ticket {
     private String seatLabel;
     private BigDecimal totalAmount;
     private BookingStatus bookingStatus = BookingStatus.CONFIRMED;
+    @Indexed
     private String ticketCode;
     private TicketStatus status = TicketStatus.ACTIVE;
     private LocalDateTime issuedAt = LocalDateTime.now();

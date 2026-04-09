@@ -21,6 +21,7 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
     : '';
 
   const translatePlanLabel = (plan) => t(`common.plansLabel.${plan || 'NONE'}`);
+  const requiredPlan = String(movie.requiredSubscription || 'BASIC').toUpperCase();
 
   const quickEpisodes = Array.from({ length: 6 }, (_, index) => ({
     id: `${movie.id}-e${index + 1}`,
@@ -61,7 +62,7 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
           <div>
             <h2 className="detail-title">{movie.title}</h2>
             <p className="detail-meta">
-              {movie.genre} | {movie.year} | {translatePlanLabel(movie.requiredSubscription)}
+              {movie.genre} | {movie.year} | {translatePlanLabel(requiredPlan)}
             </p>
           </div>
           <button className="player-close-btn" onClick={onClose} aria-label={t('movie.closeDetails')}>
@@ -73,7 +74,7 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
           <button className="btn btn-primary" onClick={() => onPlay(movie)}>
             {t('movie.playNow')}
           </button>
-          {movie.requiredSubscription !== 'BASIC' && typeof onPurchaseMovie === 'function' && (
+          {requiredPlan !== 'BASIC' && typeof onPurchaseMovie === 'function' && (
             <button className="btn btn-primary" onClick={() => onPurchaseMovie(movie)}>
               {t('plansPage.payWithSandboxQr')}
             </button>

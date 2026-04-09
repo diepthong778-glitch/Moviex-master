@@ -5,6 +5,7 @@ import com.moviex.cinema.model.Auditorium;
 import com.moviex.cinema.model.Booking;
 import com.moviex.cinema.model.BookingSeat;
 import com.moviex.cinema.model.BookingStatus;
+import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.Cinema;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Ticket;
@@ -25,7 +26,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -77,10 +77,47 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
+    public List<CinemaTicketViewResponse> listMyTickets(String segment) {
+        List<CinemaTicketViewResponse> all = listBookingHistoryForCurrentUser();
+        if (segment == null || segment.isBlank() || "all".equalsIgnoreCase(segment)) {
+            return all;
+        }
+
+        return switch (segment.trim().toLowerCase()) {
+            case "upcoming" -> all.stream()
+                    .filter(CinemaTicketViewResponse::isUpcoming)
+                    .toList();
+            case "past", "used" -> all.stream()
+                    .filter(this::isPastUsed)
+                    .toList();
+            case "cancelled", "failed" -> all.stream()
+                    .filter(this::isCancelledOrFailed)
+                    .toList();
+            default -> throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid segment. Use: all, upcoming, past, cancelled"
+            );
+        };
+    }
+
     public CinemaTicketViewResponse getTicketDetailForCurrentUser(String bookingId) {
         User currentUser = currentUserService.getCurrentUser();
         Booking booking = bookingRepository.findByIdAndUserId(bookingId, currentUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        return toTicketView(booking);
+    }
+
+    public CinemaTicketViewResponse getTicketDetailByCodeForCurrentUser(String ticketCode) {
+        if (ticketCode == null || ticketCode.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ticketCode is required");
+        }
+
+        User currentUser = currentUserService.getCurrentUser();
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+
+        Booking booking = bookingRepository.findByIdAndUserId(ticket.getBookingId(), currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         return toTicketView(booking);
     }
 
@@ -146,8 +183,15 @@ public class TicketService {
         response.setPaymentStatus(booking.getPaymentStatus());
         response.setBookingStatus(booking.getBookingStatus());
         response.setIssuedAt(issuedAt);
+        response.setCreatedAt(booking.getCreatedAt() == null ? issuedAt : booking.getCreatedAt());
         response.setUpcoming(isUpcoming(booking, showDate, startTime));
-        response.setTicketCodes(tickets.stream().map(Ticket::getTicketCode).collect(Collectors.toList()));
+        List<String> ticketCodes = tickets.stream()
+                .map(Ticket::getTicketCode)
+                .filter(code -> code != null && !code.isBlank())
+                .distinct()
+                .toList();
+        response.setTicketCodes(ticketCodes);
+        response.setTicketCode(ticketCodes.stream().findFirst().orElse(null));
 
         if (includeUserMeta) {
             response.setUserId(booking.getUserId());
@@ -156,6 +200,21 @@ public class TicketService {
         }
 
         return response;
+    }
+
+    private boolean isPastUsed(CinemaTicketViewResponse view) {
+        if (view == null) return false;
+        if (view.isUpcoming()) return false;
+        return view.getBookingStatus() == BookingStatus.CONFIRMED
+                && view.getPaymentStatus() == CinemaPaymentStatus.PAID;
+    }
+
+    private boolean isCancelledOrFailed(CinemaTicketViewResponse view) {
+        if (view == null) return false;
+        return view.getBookingStatus() == BookingStatus.CANCELLED
+                || view.getBookingStatus() == BookingStatus.EXPIRED
+                || view.getPaymentStatus() == CinemaPaymentStatus.FAILED
+                || view.getPaymentStatus() == CinemaPaymentStatus.CANCELLED;
     }
 
     private boolean isUpcoming(Booking booking, LocalDate showDate, LocalTime startTime) {

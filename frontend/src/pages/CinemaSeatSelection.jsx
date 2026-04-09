@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { cinemaBranches, cinemaMovies } from '../data/cinemaData';
+import CinemaModuleNav from '../components/CinemaModuleNav';
 import { formatCurrency } from '../utils/cinema';
+import { fetchCinemaShowtimeDetail } from '../utils/cinemaApi';
 
 const normalizeSeatType = (type) => {
   const key = String(type || 'NORMAL').toUpperCase();
@@ -42,38 +43,17 @@ const buildSeatRows = (seats) => {
     }));
 };
 
-const buildFallbackSeatMap = () => {
-  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  return rows.map((row, rowIndex) => ({
-    row,
-    seats: Array.from({ length: 12 }).map((_, index) => {
-      const seatNumber = index + 1;
-      const isVipRow = rowIndex >= 2 && rowIndex <= 3;
-      const isCoupleRow = rowIndex >= 6;
-      const type = isCoupleRow ? 'couple' : isVipRow ? 'vip' : 'normal';
-      const status = index === 2 || index === 8 ? 'reserved' : index === 5 ? 'booked' : 'available';
-      return {
-        id: `${row}${seatNumber}`,
-        label: `${row}${seatNumber}`,
-        row,
-        number: seatNumber,
-        type,
-        status,
-      };
-    }),
-  }));
-};
-
 function CinemaSeatSelection() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { movieId, cinemaId, dayIndex, showDate, time, auditorium, price, showtimeId } = location.state || {};
-  const movie = cinemaMovies.find((item) => item.id === movieId);
-  const cinema = cinemaBranches.find((branch) => branch.id === cinemaId);
-  const [seatMap, setSeatMap] = useState(buildFallbackSeatMap());
+  const showtimeId = location.state?.showtimeId;
+
+  const [showtime, setShowtime] = useState(null);
+  const [seatMap, setSeatMap] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setSelectedSeats([]);
@@ -81,20 +61,31 @@ function CinemaSeatSelection() {
 
   useEffect(() => {
     let active = true;
-    const fetchSeatAvailability = async () => {
+
+    const fetchData = async () => {
       if (!showtimeId) {
-        setSeatMap(buildFallbackSeatMap());
+        setError('Missing showtime. Please select a showtime first.');
+        setIsLoading(false);
         return;
       }
+
       setIsLoading(true);
+      setError('');
+
       try {
-        const response = await axios.get(`/api/cinema/showtimes/${showtimeId}/seats`);
-        const data = response.data;
+        const [showtimeData, seatData] = await Promise.all([
+          fetchCinemaShowtimeDetail(showtimeId),
+          axios.get(`/api/cinema/showtimes/${showtimeId}/seats`),
+        ]);
+
         if (!active) return;
-        setSeatMap(buildSeatRows(data));
-      } catch (error) {
+
+        setShowtime(showtimeData);
+        setSeatMap(buildSeatRows(Array.isArray(seatData.data) ? seatData.data : []));
+      } catch (fetchError) {
         if (active) {
-          setSeatMap(buildFallbackSeatMap());
+          setError(fetchError?.response?.data?.message || 'Unable to load seat availability.');
+          setSeatMap([]);
         }
       } finally {
         if (active) {
@@ -103,7 +94,7 @@ function CinemaSeatSelection() {
       }
     };
 
-    fetchSeatAvailability();
+    fetchData();
     return () => {
       active = false;
     };
@@ -124,7 +115,10 @@ function CinemaSeatSelection() {
     [selectedSeats, seatIndex]
   );
 
-  const totalPrice = useMemo(() => (price || 0) * selectedSeats.length, [price, selectedSeats.length]);
+  const totalPrice = useMemo(
+    () => (showtime?.price || 0) * selectedSeats.length,
+    [showtime?.price, selectedSeats.length]
+  );
 
   const toggleSeat = (seat) => {
     if (seat.status !== 'available') return;
@@ -134,28 +128,47 @@ function CinemaSeatSelection() {
   };
 
   const handleCheckout = () => {
+    if (!showtime) return;
+
     navigate('/cinema/checkout', {
       state: {
-        movieId,
-        cinemaId,
-        dayIndex,
-        showDate,
-        time,
-        auditorium,
-        showtimeId,
-        price,
+        showtimeId: showtime.id,
+        movieId: showtime.movieId,
+        movieTitle: showtime.movie.title,
+        cinemaId: showtime.cinemaId,
+        cinemaName: showtime.cinemaName,
+        auditoriumId: showtime.auditoriumId,
+        auditoriumName: showtime.auditoriumName,
+        showDate: showtime.showDate,
+        time: showtime.startTime,
         seatIds: selectedSeats,
         seats: selectedSeatLabels,
         totalPrice,
+        price: showtime.price,
       },
     });
   };
 
-  if (!movie || !cinema) {
+  if (isLoading) {
     return (
       <div className="cinema-shell">
         <div className="page-shell cinema-content">
-          <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
+          <CinemaModuleNav />
+          <p className="cinema-empty">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!showtime || error) {
+    return (
+      <div className="cinema-shell">
+        <div className="page-shell cinema-content">
+          <CinemaModuleNav />
+          <p className="cinema-empty">{error || t('cinema.noShowtimes')}</p>
+          <Link to="/cinema/now-showing" className="btn btn-outline">
+            {t('cinema.navNowShowing')}
+          </Link>
         </div>
       </div>
     );
@@ -164,15 +177,16 @@ function CinemaSeatSelection() {
   return (
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
+        <CinemaModuleNav />
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.selectSeats')}</p>
-            <h1 className="cinema-title">{movie.title}</h1>
+            <h1 className="cinema-title">{showtime.movie.title}</h1>
             <p className="cinema-subtitle">
-              {cinema.name} - {auditorium} - {time}
+              {showtime.cinemaName} - {showtime.auditoriumName} - {showtime.startTime}
             </p>
           </div>
-          <Link to={`/cinema/movie/${movie.id}/showtimes`} className="btn btn-outline">
+          <Link to={`/cinema/movie/${showtime.movieId}/showtimes`} className="btn btn-outline">
             {t('cinema.selectShowtime')}
           </Link>
         </div>
@@ -218,7 +232,6 @@ function CinemaSeatSelection() {
             <span className="legend-chip vip">VIP</span>
             <span className="legend-chip couple">Couple</span>
           </div>
-          {isLoading && <p className="cinema-empty">Loading seats...</p>}
         </div>
 
         <div className="cinema-action-bar">

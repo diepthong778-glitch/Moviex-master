@@ -83,6 +83,14 @@ public class DataInitializer {
                     Movie existingMovie = existingByTitle.get(sampleMovie.getTitle());
                     if (existingMovie != null) {
                         sampleMovie.setId(existingMovie.getId());
+                        sampleMovie.setPosterUrl(existingMovie.getPosterUrl());
+                        sampleMovie.setBackdropUrl(existingMovie.getBackdropUrl());
+                        sampleMovie.setOriginalTitle(existingMovie.getOriginalTitle());
+                        sampleMovie.setRuntimeMinutes(existingMovie.getRuntimeMinutes());
+                        sampleMovie.setAgeRating(existingMovie.getAgeRating());
+                        sampleMovie.setDirector(existingMovie.getDirector());
+                        sampleMovie.setCast(existingMovie.getCast());
+                        sampleMovie.setLanguage(existingMovie.getLanguage());
                     }
                     return sampleMovie;
                 })
