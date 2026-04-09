@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import { formatCurrency } from '../utils/cinema';
-import { fetchCinemaShowtimeDetail } from '../utils/cinemaApi';
+import { fetchCinemaShowtimeDetail, quoteCinemaBooking } from '../utils/cinemaApi';
 
 const normalizeSeatType = (type) => {
   const key = String(type || 'NORMAL').toUpperCase();
@@ -52,6 +52,9 @@ function CinemaSeatSelection() {
   const [showtime, setShowtime] = useState(null);
   const [seatMap, setSeatMap] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [bookingQuote, setBookingQuote] = useState(null);
+  const [isQuoting, setIsQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -115,10 +118,54 @@ function CinemaSeatSelection() {
     [selectedSeats, seatIndex]
   );
 
-  const totalPrice = useMemo(
-    () => (showtime?.price || 0) * selectedSeats.length,
-    [showtime?.price, selectedSeats.length]
-  );
+  const selectedSeatKey = useMemo(() => selectedSeats.join('|'), [selectedSeats]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadQuote = async () => {
+      if (!showtimeId || selectedSeats.length === 0) {
+        setBookingQuote(null);
+        setQuoteError('');
+        setIsQuoting(false);
+        return;
+      }
+
+      setIsQuoting(true);
+      setQuoteError('');
+
+      try {
+        const quote = await quoteCinemaBooking({ showtimeId, seatIds: selectedSeats });
+        if (active) {
+          setBookingQuote(quote);
+        }
+      } catch (quoteFetchError) {
+        if (active) {
+          setBookingQuote(null);
+          setQuoteError(quoteFetchError?.response?.data?.message || 'Unable to calculate booking price.');
+        }
+      } finally {
+        if (active) {
+          setIsQuoting(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(loadQuote, 180);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [showtimeId, selectedSeatKey]);
+
+  const totalPrice = useMemo(() => Number(bookingQuote?.total || 0), [bookingQuote?.total]);
+  const totalPriceDisplay = selectedSeats.length === 0
+    ? formatCurrency(0)
+    : isQuoting
+      ? 'Calculating...'
+      : bookingQuote
+        ? formatCurrency(totalPrice)
+        : 'Unavailable';
 
   const toggleSeat = (seat) => {
     if (seat.status !== 'available') return;
@@ -143,8 +190,7 @@ function CinemaSeatSelection() {
         time: showtime.startTime,
         seatIds: selectedSeats,
         seats: selectedSeatLabels,
-        totalPrice,
-        price: showtime.price,
+        pricingBreakdown: bookingQuote,
       },
     });
   };
@@ -239,12 +285,18 @@ function CinemaSeatSelection() {
             <span>{t('cinema.seats')}:</span>
             <strong>{selectedSeatLabels.join(', ') || '-'}</strong>
             <span>{t('cinema.total')}:</span>
-            <strong>{formatCurrency(totalPrice)}</strong>
+            <strong>{totalPriceDisplay}</strong>
           </div>
           <button type="button" className="btn btn-primary" onClick={handleCheckout} disabled={!selectedSeats.length}>
             {t('cinema.ctaCheckout')}
           </button>
         </div>
+        {quoteError && <p className="cinema-note cinema-note-error">{quoteError}</p>}
+        {selectedSeats.length > 0 && !quoteError && (
+          <p className="cinema-price-note">
+            Price is calculated by the backend and will be verified again at checkout.
+          </p>
+        )}
       </div>
     </div>
   );

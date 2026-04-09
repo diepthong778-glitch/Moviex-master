@@ -2,6 +2,9 @@ package com.moviex.cinema.service;
 
 import com.moviex.cinema.dto.BookingResponse;
 import com.moviex.cinema.dto.CreateBookingRequest;
+import com.moviex.cinema.dto.ShowtimeViewResponse;
+import com.moviex.cinema.model.BookingPriceLine;
+import com.moviex.cinema.model.BookingPricingBreakdown;
 import com.moviex.cinema.model.Booking;
 import com.moviex.cinema.model.BookingSeat;
 import com.moviex.cinema.model.BookingStatus;
@@ -9,6 +12,7 @@ import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Seat;
 import com.moviex.cinema.model.SeatStatus;
+import com.moviex.cinema.model.SeatType;
 import com.moviex.cinema.model.ShowtimeStatus;
 import com.moviex.cinema.repository.BookingRepository;
 import com.moviex.cinema.repository.MovieShowtimeRepository;
@@ -26,8 +30,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +41,8 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final MovieShowtimeRepository showtimeRepository;
     private final SeatRepository seatRepository;
+    private final ShowtimeService showtimeService;
+    private final CinemaPricingService cinemaPricingService;
     private final CurrentUserService currentUserService;
     private final SeatReservationService seatReservationService;
     @Value("${cinema.booking.hold-minutes:10}")
@@ -43,77 +51,37 @@ public class BookingService {
     public BookingService(BookingRepository bookingRepository,
                           MovieShowtimeRepository showtimeRepository,
                           SeatRepository seatRepository,
+                          ShowtimeService showtimeService,
+                          CinemaPricingService cinemaPricingService,
                           CurrentUserService currentUserService,
                           SeatReservationService seatReservationService) {
         this.bookingRepository = bookingRepository;
         this.showtimeRepository = showtimeRepository;
         this.seatRepository = seatRepository;
+        this.showtimeService = showtimeService;
+        this.cinemaPricingService = cinemaPricingService;
         this.currentUserService = currentUserService;
         this.seatReservationService = seatReservationService;
     }
 
+    public BookingPricingBreakdown quoteBooking(CreateBookingRequest request) {
+        return resolveBookingDraft(request).pricingBreakdown();
+    }
+
     public BookingResponse createBooking(CreateBookingRequest request) {
-        if (request.getShowtimeId() == null || request.getShowtimeId().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "showtimeId is required");
-        }
-        if (request.getSeatIds() == null || request.getSeatIds().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds are required");
-        }
-
-        expirePendingBookings();
         User currentUser = currentUserService.getCurrentUser();
-        MovieShowtime showtime = showtimeRepository.findById(request.getShowtimeId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Showtime not found"));
-        if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Showtime is not available for booking");
-        }
-
-        Set<String> deduplicatedSeatIds = new LinkedHashSet<>(request.getSeatIds());
-        if (deduplicatedSeatIds.size() != request.getSeatIds().size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds contains duplicates");
-        }
-
-        List<Seat> seats = seatRepository.findAllById(deduplicatedSeatIds);
-        if (seats.size() != deduplicatedSeatIds.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more seats not found");
-        }
-
-        Set<String> auditoriumIds = seats.stream().map(Seat::getAuditoriumId).collect(Collectors.toSet());
-        if (auditoriumIds.size() != 1 || !auditoriumIds.contains(showtime.getAuditoriumId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seats must belong to the showtime auditorium");
-        }
-
-        Set<String> cinemaIds = seats.stream().map(Seat::getCinemaId).collect(Collectors.toSet());
-        if (cinemaIds.size() != 1 || !cinemaIds.contains(showtime.getCinemaId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seats must belong to the showtime cinema");
-        }
-
-        boolean hasUnavailable = seats.stream().anyMatch(seat -> seat.getStatus() != SeatStatus.AVAILABLE);
-        if (hasUnavailable) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "One or more seats are not available");
-        }
-
-        BigDecimal seatPrice = showtime.getBasePrice();
-        List<BookingSeat> bookingSeats = new ArrayList<>();
-        for (Seat seat : seats) {
-            BookingSeat bookingSeat = new BookingSeat();
-            bookingSeat.setSeatId(seat.getId());
-            bookingSeat.setRow(seat.getRow());
-            bookingSeat.setNumber(seat.getNumber());
-            bookingSeat.setType(seat.getType());
-            bookingSeat.setPrice(seatPrice);
-            bookingSeats.add(bookingSeat);
-        }
+        BookingDraft draft = resolveBookingDraft(request);
 
         LocalDateTime now = LocalDateTime.now();
         Booking booking = new Booking();
         booking.setBookingCode(generateBookingCode());
         booking.setUserId(currentUser.getId());
-        booking.setShowtimeId(showtime.getId());
-        booking.setCinemaId(showtime.getCinemaId());
-        booking.setAuditoriumId(showtime.getAuditoriumId());
-        booking.setSeats(bookingSeats);
-        booking.setTotalPrice(seatPrice.multiply(BigDecimal.valueOf(bookingSeats.size())));
+        booking.setShowtimeId(draft.showtime().getId());
+        booking.setCinemaId(draft.showtime().getCinemaId());
+        booking.setAuditoriumId(draft.showtime().getAuditoriumId());
+        booking.setSeats(draft.bookingSeats());
+        booking.setTotalPrice(draft.pricingBreakdown().getTotal());
+        booking.setPricingBreakdown(draft.pricingBreakdown());
         booking.setPaymentStatus(CinemaPaymentStatus.PENDING);
         booking.setBookingStatus(BookingStatus.PENDING);
         booking.setHoldExpiresAt(now.plusMinutes(holdMinutes));
@@ -128,9 +96,7 @@ public class BookingService {
             throw ex;
         }
 
-        List<String> seatIds = bookingSeats.stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
-        return new BookingResponse(saved.getId(), saved.getShowtimeId(), seatIds, saved.getTotalPrice(),
-                saved.getPaymentStatus(), saved.getBookingStatus(), null);
+        return toBookingResponse(saved, null);
     }
 
     public Booking getBooking(String id) {
@@ -159,16 +125,7 @@ public class BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
         bookingRepository.save(booking);
 
-        List<String> seatIds = booking.getSeats().stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
-        return new BookingResponse(
-                booking.getId(),
-                booking.getShowtimeId(),
-                seatIds,
-                booking.getTotalPrice(),
-                booking.getPaymentStatus(),
-                booking.getBookingStatus(),
-                null
-        );
+        return toBookingResponse(booking, null);
     }
 
     @Scheduled(fixedDelayString = "${cinema.booking.cleanup-interval-ms:60000}")
@@ -197,7 +154,108 @@ public class BookingService {
         bookingRepository.saveAll(expiredBookings);
     }
 
+    private BookingDraft resolveBookingDraft(CreateBookingRequest request) {
+        if (request.getShowtimeId() == null || request.getShowtimeId().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "showtimeId is required");
+        }
+        if (request.getSeatIds() == null || request.getSeatIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds are required");
+        }
+
+        expirePendingBookings();
+        MovieShowtime showtime = showtimeRepository.findById(request.getShowtimeId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Showtime not found"));
+        if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Showtime is not available for booking");
+        }
+
+        ShowtimeViewResponse showtimeView = showtimeService.getShowtimeView(showtime.getId());
+
+        Set<String> deduplicatedSeatIds = new LinkedHashSet<>(request.getSeatIds());
+        if (deduplicatedSeatIds.size() != request.getSeatIds().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "seatIds contains duplicates");
+        }
+
+        List<String> requestedSeatIds = new ArrayList<>(deduplicatedSeatIds);
+        Map<String, Seat> seatById = seatRepository.findAllById(requestedSeatIds).stream()
+                .collect(Collectors.toMap(Seat::getId, Function.identity()));
+        if (seatById.size() != requestedSeatIds.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more seats not found");
+        }
+
+        List<Seat> seats = new ArrayList<>();
+        for (String seatId : requestedSeatIds) {
+            Seat seat = seatById.get(seatId);
+            if (seat == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more seats not found");
+            }
+            seats.add(seat);
+        }
+
+        Set<String> auditoriumIds = seats.stream().map(Seat::getAuditoriumId).collect(Collectors.toSet());
+        if (auditoriumIds.size() != 1 || !auditoriumIds.contains(showtime.getAuditoriumId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seats must belong to the showtime auditorium");
+        }
+
+        Set<String> cinemaIds = seats.stream().map(Seat::getCinemaId).collect(Collectors.toSet());
+        if (cinemaIds.size() != 1 || !cinemaIds.contains(showtime.getCinemaId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seats must belong to the showtime cinema");
+        }
+
+        boolean hasUnavailable = seats.stream().anyMatch(seat -> seat.getStatus() != SeatStatus.AVAILABLE);
+        if (hasUnavailable) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "One or more seats are not available");
+        }
+
+        BookingPricingBreakdown pricingBreakdown = cinemaPricingService.buildBreakdown(showtimeView, seats);
+        Map<String, BookingPriceLine> priceLineBySeatId = pricingBreakdown.getSeats().stream()
+                .collect(Collectors.toMap(BookingPriceLine::getSeatId, Function.identity()));
+
+        List<BookingSeat> bookingSeats = new ArrayList<>();
+        for (Seat seat : seats) {
+            BookingPriceLine priceLine = priceLineBySeatId.get(seat.getId());
+            BookingSeat bookingSeat = new BookingSeat();
+            bookingSeat.setSeatId(seat.getId());
+            bookingSeat.setRow(seat.getRow());
+            bookingSeat.setNumber(seat.getNumber());
+            bookingSeat.setType(normalizeSeatType(seat.getType()));
+            bookingSeat.setPrice(priceLine == null ? BigDecimal.ZERO : priceLine.getLineTotal());
+            bookingSeats.add(bookingSeat);
+        }
+
+        return new BookingDraft(showtime, showtimeView, seats, bookingSeats, pricingBreakdown);
+    }
+
+    private BookingResponse toBookingResponse(Booking booking, String paymentTxnCode) {
+        List<String> seatIds = booking.getSeats().stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
+        BookingResponse response = new BookingResponse();
+        response.setBookingId(booking.getId());
+        response.setShowtimeId(booking.getShowtimeId());
+        response.setSeatIds(seatIds);
+        response.setTotalPrice(booking.getTotalPrice());
+        response.setPricingBreakdown(booking.getPricingBreakdown());
+        response.setPaymentStatus(booking.getPaymentStatus());
+        response.setBookingStatus(booking.getBookingStatus());
+        response.setPaymentTxnCode(paymentTxnCode);
+        return response;
+    }
+
+    private SeatType normalizeSeatType(SeatType type) {
+        if (type == null || type == SeatType.STANDARD) {
+            return SeatType.NORMAL;
+        }
+        return type;
+    }
+
     private String generateBookingCode() {
         return "BKG-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
     }
+
+    private record BookingDraft(
+            MovieShowtime showtime,
+            ShowtimeViewResponse showtimeView,
+            List<Seat> seats,
+            List<BookingSeat> bookingSeats,
+            BookingPricingBreakdown pricingBreakdown
+    ) {}
 }

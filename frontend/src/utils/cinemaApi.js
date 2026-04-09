@@ -184,6 +184,14 @@ export const fetchCinemaShowtimeDetail = async (showtimeId) => {
   return normalizeShowtime(response.data || {});
 };
 
+export const quoteCinemaBooking = async ({ showtimeId, seatIds }) => {
+  const response = await axios.post('/api/cinema/bookings/quote', {
+    showtimeId,
+    seatIds,
+  });
+  return response.data || {};
+};
+
 export const fetchCinemas = async () => {
   const response = await axios.get('/api/cinema/cinemas');
   const list = Array.isArray(response.data) ? response.data : [];

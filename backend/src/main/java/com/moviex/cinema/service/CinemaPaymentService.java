@@ -2,6 +2,8 @@ package com.moviex.cinema.service;
 
 import com.moviex.cinema.dto.BookingResponse;
 import com.moviex.cinema.dto.CreatePaymentRequest;
+import com.moviex.cinema.dto.ShowtimeViewResponse;
+import com.moviex.cinema.model.BookingPricingBreakdown;
 import com.moviex.cinema.model.Booking;
 import com.moviex.cinema.model.BookingSeat;
 import com.moviex.cinema.model.BookingStatus;
@@ -49,6 +51,8 @@ public class CinemaPaymentService {
     private final AuditoriumRepository auditoriumRepository;
     private final MovieRepository movieRepository;
     private final BookingService bookingService;
+    private final ShowtimeService showtimeService;
+    private final CinemaPricingService cinemaPricingService;
     private final SeatReservationService seatReservationService;
     private final CurrentUserService currentUserService;
 
@@ -60,6 +64,8 @@ public class CinemaPaymentService {
                                 AuditoriumRepository auditoriumRepository,
                                 MovieRepository movieRepository,
                                 BookingService bookingService,
+                                ShowtimeService showtimeService,
+                                CinemaPricingService cinemaPricingService,
                                 SeatReservationService seatReservationService,
                                 CurrentUserService currentUserService) {
         this.bookingRepository = bookingRepository;
@@ -70,6 +76,8 @@ public class CinemaPaymentService {
         this.auditoriumRepository = auditoriumRepository;
         this.movieRepository = movieRepository;
         this.bookingService = bookingService;
+        this.showtimeService = showtimeService;
+        this.cinemaPricingService = cinemaPricingService;
         this.seatReservationService = seatReservationService;
         this.currentUserService = currentUserService;
     }
@@ -89,6 +97,7 @@ public class CinemaPaymentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking is not pending");
         }
 
+        resolvePricingBreakdown(booking);
         if (!seatReservationService.hasActiveReservation(booking.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Seat reservation is no longer valid");
         }
@@ -196,15 +205,26 @@ public class CinemaPaymentService {
 
     private BookingResponse toBookingResponse(Booking booking, String txnCode) {
         List<String> seatIds = booking.getSeats().stream().map(BookingSeat::getSeatId).collect(Collectors.toList());
-        return new BookingResponse(
-                booking.getId(),
-                booking.getShowtimeId(),
-                seatIds,
-                booking.getTotalPrice(),
-                booking.getPaymentStatus(),
-                booking.getBookingStatus(),
-                txnCode
-        );
+        BookingResponse response = new BookingResponse();
+        response.setBookingId(booking.getId());
+        response.setShowtimeId(booking.getShowtimeId());
+        response.setSeatIds(seatIds);
+        response.setTotalPrice(booking.getTotalPrice());
+        response.setPricingBreakdown(resolvePricingBreakdown(booking));
+        response.setPaymentStatus(booking.getPaymentStatus());
+        response.setBookingStatus(booking.getBookingStatus());
+        response.setPaymentTxnCode(txnCode);
+        return response;
+    }
+
+    private BookingPricingBreakdown resolvePricingBreakdown(Booking booking) {
+        if (booking.getPricingBreakdown() != null) {
+            return booking.getPricingBreakdown();
+        }
+        ShowtimeViewResponse showtimeView = showtimeService.getShowtimeView(booking.getShowtimeId());
+        BookingPricingBreakdown pricingBreakdown = cinemaPricingService.buildBreakdownFromBooking(showtimeView, booking.getSeats());
+        booking.setPricingBreakdown(pricingBreakdown);
+        return pricingBreakdown;
     }
 
     private String resolveMovieTitle(MovieShowtime showtime, Movie movie) {

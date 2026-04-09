@@ -2,6 +2,7 @@ package com.moviex.cinema.dto;
 
 import com.moviex.cinema.model.BookingStatus;
 import com.moviex.cinema.model.CinemaPaymentStatus;
+import com.moviex.cinema.model.BookingPricingBreakdown;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,6 +12,7 @@ public class BookingResponse {
     private String showtimeId;
     private List<String> seatIds;
     private BigDecimal totalPrice;
+    private BookingPricingBreakdown pricingBreakdown;
     private CinemaPaymentStatus paymentStatus;
     private BookingStatus bookingStatus;
     private String paymentTxnCode;
@@ -36,6 +38,8 @@ public class BookingResponse {
     public void setSeatIds(List<String> seatIds) { this.seatIds = seatIds; }
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+    public BookingPricingBreakdown getPricingBreakdown() { return pricingBreakdown; }
+    public void setPricingBreakdown(BookingPricingBreakdown pricingBreakdown) { this.pricingBreakdown = pricingBreakdown; }
     public CinemaPaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(CinemaPaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
     public BookingStatus getBookingStatus() { return bookingStatus; }

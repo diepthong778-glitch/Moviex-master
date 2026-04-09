@@ -1452,6 +1452,153 @@ body {
   gap: 8px;
 }
 
+.cinema-price-breakdown {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 14px;
+}
+
+.cinema-breakdown-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cinema-breakdown-label {
+  color: rgba(203, 213, 225, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  margin-bottom: 4px;
+}
+
+.cinema-price-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(229, 9, 20, 0.14);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  color: #fecaca;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cinema-breakdown-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.cinema-breakdown-meta div {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cinema-breakdown-meta span {
+  display: block;
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 6px;
+}
+
+.cinema-breakdown-meta strong {
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.cinema-breakdown-list {
+  display: grid;
+  gap: 10px;
+}
+
+.cinema-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cinema-breakdown-seat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cinema-breakdown-seat strong {
+  font-size: 15px;
+  letter-spacing: 0.2px;
+}
+
+.cinema-breakdown-seat span {
+  color: rgba(203, 213, 225, 0.78);
+  font-size: 12px;
+}
+
+.cinema-breakdown-price {
+  min-width: 180px;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  text-align: right;
+}
+
+.cinema-breakdown-price div {
+  display: grid;
+  gap: 2px;
+}
+
+.cinema-breakdown-price span {
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.cinema-breakdown-price strong {
+  font-size: 15px;
+}
+
+.cinema-breakdown-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.cinema-breakdown-total div {
+  display: grid;
+  gap: 4px;
+}
+
+.cinema-breakdown-total span {
+  color: rgba(203, 213, 225, 0.72);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.cinema-breakdown-total strong {
+  font-size: 18px;
+}
+
 .cinema-link {
   color: var(--text-secondary);
   text-decoration: none;

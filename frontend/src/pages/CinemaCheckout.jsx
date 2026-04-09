@@ -15,12 +15,12 @@ function CinemaCheckout() {
     showtimeId,
     seatIds = [],
     seats = [],
-    totalPrice = 0,
     movieTitle,
     cinemaName,
     auditoriumName,
     showDate,
     time,
+    pricingBreakdown: initialPricingBreakdown = null,
   } = location.state || {};
 
   const [showtime, setShowtime] = useState(null);
@@ -106,12 +106,15 @@ function CinemaCheckout() {
     };
   }, [showtimeId, seatKey]);
 
-  const summaryMovieTitle = showtime?.movie?.title || movieTitle || '-';
-  const summaryCinemaName = showtime?.cinemaName || cinemaName || '-';
-  const summaryAuditorium = showtime?.auditoriumName || auditoriumName || '-';
-  const summaryShowDate = showtime?.showDate || showDate || '-';
-  const summaryTime = showtime?.startTime || time || '-';
-  const summaryTotal = Number(bookingSummary?.totalPrice) || totalPrice || 0;
+  const pricingBreakdown = bookingSummary?.pricingBreakdown || initialPricingBreakdown;
+  const summaryMovieTitle = showtime?.movie?.title || movieTitle || pricingBreakdown?.movieTitle || '-';
+  const summaryCinemaName = showtime?.cinemaName || cinemaName || pricingBreakdown?.cinemaName || '-';
+  const summaryAuditorium = showtime?.auditoriumName || auditoriumName || pricingBreakdown?.auditoriumName || '-';
+  const summaryShowDate = showtime?.showDate || showDate || pricingBreakdown?.showDate || '-';
+  const summaryTime = showtime?.startTime || time || pricingBreakdown?.startTime || '-';
+  const summaryTotal = Number(pricingBreakdown?.total ?? bookingSummary?.totalPrice ?? 0);
+  const summarySubtotal = Number(pricingBreakdown?.subtotal ?? summaryTotal);
+  const breakdownSeats = Array.isArray(pricingBreakdown?.seats) ? pricingBreakdown.seats : [];
   const hasValidCheckout = Boolean(showtimeId && seatIds.length);
 
   const handleSimulatePayment = async (success) => {
@@ -221,6 +224,77 @@ function CinemaCheckout() {
             <div className="cinema-checkout-row">
               <span>{t('cinema.total')}</span>
               <strong>{formatCurrency(summaryTotal)}</strong>
+            </div>
+
+            <div className="cinema-price-breakdown">
+              <div className="cinema-breakdown-header">
+                <div>
+                  <p className="cinema-breakdown-label">Backend price breakdown</p>
+                  <h4>Seat-by-seat pricing</h4>
+                </div>
+                <span className="cinema-price-chip">Verified by server</span>
+              </div>
+
+              <div className="cinema-breakdown-meta">
+                <div>
+                  <span>Movie</span>
+                  <strong>{summaryMovieTitle}</strong>
+                </div>
+                <div>
+                  <span>Cinema</span>
+                  <strong>{summaryCinemaName}</strong>
+                </div>
+                <div>
+                  <span>{t('cinema.auditorium')}</span>
+                  <strong>{summaryAuditorium}</strong>
+                </div>
+                <div>
+                  <span>Date</span>
+                  <strong>{summaryShowDate}</strong>
+                </div>
+                <div>
+                  <span>{t('cinema.selectShowtime')}</span>
+                  <strong>{summaryTime}</strong>
+                </div>
+              </div>
+
+              {breakdownSeats.length > 0 ? (
+                <div className="cinema-breakdown-list">
+                  {breakdownSeats.map((line) => (
+                    <div key={line.seatId} className="cinema-breakdown-row">
+                      <div className="cinema-breakdown-seat">
+                        <strong>{line.seatLabel || line.seatId}</strong>
+                        <span>
+                          {(line.seatType || 'NORMAL').toString()} · {line.pricingRule || 'Base price'}
+                        </span>
+                      </div>
+                      <div className="cinema-breakdown-price">
+                        <div>
+                          <span>Unit price</span>
+                          <strong>{formatCurrency(Number(line.unitPrice || 0))}</strong>
+                        </div>
+                        <div>
+                          <span>Line total</span>
+                          <strong>{formatCurrency(Number(line.lineTotal || 0))}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="cinema-price-note">Preparing pricing details from the backend...</p>
+              )}
+
+              <div className="cinema-breakdown-total">
+                <div>
+                  <span>Subtotal</span>
+                  <strong>{formatCurrency(summarySubtotal)}</strong>
+                </div>
+                <div>
+                  <span>Total</span>
+                  <strong>{formatCurrency(summaryTotal)}</strong>
+                </div>
+              </div>
             </div>
           </div>
 

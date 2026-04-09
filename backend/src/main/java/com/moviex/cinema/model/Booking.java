@@ -23,6 +23,7 @@ public class Booking {
     private String auditoriumId;
     private List<BookingSeat> seats = new ArrayList<>();
     private BigDecimal totalPrice = BigDecimal.ZERO;
+    private BookingPricingBreakdown pricingBreakdown;
     private CinemaPaymentStatus paymentStatus = CinemaPaymentStatus.PENDING;
     private BookingStatus bookingStatus = BookingStatus.PENDING;
     private LocalDateTime holdExpiresAt;
@@ -47,6 +48,8 @@ public class Booking {
     public void setSeats(List<BookingSeat> seats) { this.seats = seats; }
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+    public BookingPricingBreakdown getPricingBreakdown() { return pricingBreakdown; }
+    public void setPricingBreakdown(BookingPricingBreakdown pricingBreakdown) { this.pricingBreakdown = pricingBreakdown; }
     public CinemaPaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(CinemaPaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
     public BookingStatus getBookingStatus() { return bookingStatus; }

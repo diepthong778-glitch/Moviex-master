@@ -2,6 +2,7 @@ package com.moviex.cinema.controller;
 
 import com.moviex.cinema.dto.BookingResponse;
 import com.moviex.cinema.dto.CreateBookingRequest;
+import com.moviex.cinema.model.BookingPricingBreakdown;
 import com.moviex.cinema.model.Booking;
 import com.moviex.cinema.service.BookingService;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,11 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(@RequestBody CreateBookingRequest request) {
         return ResponseEntity.ok(bookingService.createBooking(request));
+    }
+
+    @PostMapping("/quote")
+    public ResponseEntity<BookingPricingBreakdown> quoteBooking(@RequestBody CreateBookingRequest request) {
+        return ResponseEntity.ok(bookingService.quoteBooking(request));
     }
 
     @GetMapping
