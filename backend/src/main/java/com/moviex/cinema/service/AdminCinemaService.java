@@ -719,6 +719,7 @@ public class AdminCinemaService {
         row.put("bookingStatus", booking == null ? ticket.getBookingStatus() : booking.getBookingStatus());
         row.put("paymentStatus", booking == null ? null : booking.getPaymentStatus());
         row.put("ticketStatus", ticket.getStatus());
+        row.put("checkedInAt", ticket.getCheckedInAt());
         row.put("issuedAt", ticket.getIssuedAt());
         row.put("createdAt", booking == null ? ticket.getIssuedAt() : booking.getCreatedAt());
         return row;

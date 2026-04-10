@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+ï»¿import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CinemaModuleNav from '../components/CinemaModuleNav';
@@ -18,8 +18,20 @@ import {
 } from '../utils/cinemaApi';
 
 function CinemaSchedule() {
-  const { t } = useTranslation();
-  const weekDates = useMemo(() => getWeekDates(), []);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || 'en-US';
+  const weekDates = useMemo(
+    () => getWeekDates([
+      t('cinema.weekdayMonday'),
+      t('cinema.weekdayTuesday'),
+      t('cinema.weekdayWednesday'),
+      t('cinema.weekdayThursday'),
+      t('cinema.weekdayFriday'),
+      t('cinema.weekdaySaturday'),
+      t('cinema.weekdaySunday'),
+    ]),
+    [i18n.language]
+  );
   const [activeDay, setActiveDay] = useState(getTodayWeekIndex());
   const [selectedMovieId, setSelectedMovieId] = useState('');
   const [selectedCinemaId, setSelectedCinemaId] = useState('');
@@ -40,7 +52,7 @@ function CinemaSchedule() {
         }
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load cinema schedule.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadScheduleFailed'));
         }
       } finally {
         if (!ignore) {
@@ -131,7 +143,7 @@ function CinemaSchedule() {
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.navSchedule')}</p>
             <h1 className="cinema-title">{t('cinema.navSchedule')}</h1>
-            <p className="cinema-subtitle">{t('cinema.selectDate')}</p>
+            <p className="cinema-subtitle">{t('cinema.scheduleSubtitle')}</p>
           </div>
         </div>
 
@@ -159,7 +171,7 @@ function CinemaSchedule() {
               onClick={() => setActiveDay(day.key)}
             >
               <span>{day.label}</span>
-              <strong>{formatShortDate(day.date)}</strong>
+              <strong>{formatShortDate(day.date, locale)}</strong>
               {day.isToday && <em>{t('cinema.todayLabel')}</em>}
             </button>
           ))}
@@ -189,7 +201,9 @@ function CinemaSchedule() {
                       <p className="cinema-original-title">{group.movie?.originalTitle}</p>
                     )}
                     <p>{group.movie?.genre}</p>
-                    <p>{group.movie?.runtime} • {group.movie?.ageRating} • {group.movie?.releaseYear || 'TBA'}</p>
+                    <p>
+                      {group.movie?.runtime} â€¢ {group.movie?.ageRating || t('common.unknown')} â€¢ {group.movie?.releaseYear || t('common.unknown')}
+                    </p>
                     <p className="cinema-card-synopsis">{group.movie?.shortSynopsis}</p>
                   </div>
                 </div>
@@ -234,3 +248,4 @@ function CinemaSchedule() {
 }
 
 export default CinemaSchedule;
+

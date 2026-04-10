@@ -64,7 +64,7 @@ function AppLayout() {
   const location = useLocation();
   const isLanding = location.pathname === '/';
   const isCinemaModuleRoute = location.pathname.startsWith('/cinema') || location.pathname.startsWith('/admin/cinema');
-  const activeModuleLabel = isCinemaModuleRoute ? 'JDWoMoviex Cinema' : 'Moviex Streaming';
+  const activeModuleLabel = isCinemaModuleRoute ? t('cinema.moduleCinema') : t('cinema.moduleStreaming');
 
   return (
     <div className="app">
@@ -88,6 +88,7 @@ function AppLayout() {
           <Route path="/cinema/locations" element={<LazyPage><CinemaLocations /></LazyPage>} />
           <Route path="/cinema/movie/:movieId" element={<LazyPage><CinemaMovieDetail /></LazyPage>} />
           <Route path="/cinema/movie/:movieId/showtimes" element={<LazyPage><CinemaShowtimeSelection /></LazyPage>} />
+          <Route path="/cinema/check-in/:ticketCode" element={<LazyPage><CinemaTickets /></LazyPage>} />
           <Route path="/" element={<LazyPage><Landing /></LazyPage>} />
           <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
           <Route path="/register" element={<LazyPage><Register /></LazyPage>} />

@@ -1,13 +1,13 @@
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SHOWTIME_STORAGE_KEY = 'cinema.showtimes';
 
-export const getWeekDates = (baseDate = new Date()) => {
+export const getWeekDates = (labels = WEEK_DAYS, baseDate = new Date()) => {
   const current = new Date(baseDate);
   const day = current.getDay();
   const diff = (day === 0 ? -6 : 1) - day;
   current.setDate(current.getDate() + diff);
 
-  return WEEK_DAYS.map((label, index) => {
+  return labels.map((label, index) => {
     const date = new Date(current);
     date.setDate(current.getDate() + index);
     return {
@@ -27,8 +27,8 @@ export const isSameDay = (dateA, dateB) => {
   );
 };
 
-export const formatShortDate = (date) => {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+export const formatShortDate = (date, locale = 'en-US') => {
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 };
 
 export const getTodayWeekIndex = () => {

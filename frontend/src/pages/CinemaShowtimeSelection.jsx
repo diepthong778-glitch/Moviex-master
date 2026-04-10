@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+ï»¿import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CinemaModuleNav from '../components/CinemaModuleNav';
@@ -13,10 +13,22 @@ import {
 
 function CinemaShowtimeSelection() {
   const { movieId } = useParams();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const weekDates = useMemo(() => getWeekDates(), []);
+  const locale = i18n.language || 'en-US';
+  const weekDates = useMemo(
+    () => getWeekDates([
+      t('cinema.weekdayMonday'),
+      t('cinema.weekdayTuesday'),
+      t('cinema.weekdayWednesday'),
+      t('cinema.weekdayThursday'),
+      t('cinema.weekdayFriday'),
+      t('cinema.weekdaySaturday'),
+      t('cinema.weekdaySunday'),
+    ]),
+    [i18n.language]
+  );
 
   const [cinemas, setCinemas] = useState([]);
   const [allShowtimes, setAllShowtimes] = useState([]);
@@ -55,7 +67,7 @@ function CinemaShowtimeSelection() {
         }
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load showtime options.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadShowtimeOptionsFailed'));
         }
       } finally {
         if (!ignore) {
@@ -163,7 +175,7 @@ function CinemaShowtimeSelection() {
                 <p className="cinema-original-title">{movie.originalTitle}</p>
               )}
               <p className="cinema-subtitle">
-                {movie.genre} • {movie.runtime} • {movie.ageRating || 'TBA'} • {movie.releaseYear || 'TBA'}
+                {movie.genre} â€¢ {movie.runtime} â€¢ {movie.ageRating || t('common.unknown')} â€¢ {movie.releaseYear || t('common.unknown')}
               </p>
               <p className="cinema-card-synopsis">{movie.shortSynopsis}</p>
             </div>
@@ -202,7 +214,7 @@ function CinemaShowtimeSelection() {
                   onClick={() => setSelectedDayIndex(day.key)}
                 >
                   <span>{day.label}</span>
-                  <strong>{formatShortDate(day.date)}</strong>
+                  <strong>{formatShortDate(day.date, locale)}</strong>
                 </button>
               ))}
             </div>
@@ -246,3 +258,4 @@ function CinemaShowtimeSelection() {
 }
 
 export default CinemaShowtimeSelection;
+

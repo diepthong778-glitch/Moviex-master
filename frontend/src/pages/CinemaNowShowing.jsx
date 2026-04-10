@@ -32,7 +32,7 @@ function CinemaNowShowing() {
         }
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load now showing data.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadNowShowingFailed'));
         }
       } finally {
         if (!ignore) {
@@ -95,7 +95,7 @@ function CinemaNowShowing() {
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.todayLabel')}</p>
             <h1 className="cinema-title">{t('cinema.navNowShowing')}</h1>
-            <p className="cinema-subtitle">Scan movie info first, then pick a showtime and branch.</p>
+            <p className="cinema-subtitle">{t('cinema.nowShowingSubtitle')}</p>
           </div>
           <Link to="/cinema/schedule" className="btn btn-outline">
             {t('cinema.navSchedule')}
@@ -104,14 +104,14 @@ function CinemaNowShowing() {
 
         <div className="cinema-filter-bar">
           <select value={selectedCinemaId} onChange={(event) => setSelectedCinemaId(event.target.value)}>
-            <option value="">All branches</option>
+            <option value="">{t('cinema.allBranches')}</option>
             {cinemaOptions.map((cinema) => (
               <option key={cinema.id} value={cinema.id}>{cinema.name}</option>
             ))}
           </select>
           <div className="cinema-results-strip">
-            <span>{nowShowing.length} movies</span>
-            <span>{filteredShowtimes.length} showtimes</span>
+            <span>{t('cinema.moviesCount', { count: nowShowing.length })}</span>
+            <span>{t('cinema.showtimesCount', { count: filteredShowtimes.length })}</span>
           </div>
         </div>
 
@@ -143,17 +143,19 @@ function CinemaNowShowing() {
                   </div>
 
                   <p className="cinema-card-meta-line">
-                    {movie.genre} • {movie.runtime} • {movie.ageRating || 'TBA'}
+                    {movie.genre} • {movie.runtime} • {movie.ageRating || t('common.unknown')}
                   </p>
                   <p className="cinema-card-synopsis">{movie.shortSynopsis}</p>
 
                   <div className="cinema-info-grid">
                     <div className="cinema-info-block">
-                      <p className="cinema-info-label">Movie Info</p>
-                      <p className="cinema-info-value">{movie.releaseYear || 'TBA'} • {movie.language || 'Unknown'}</p>
+                      <p className="cinema-info-label">{t('cinema.movieInfo')}</p>
+                      <p className="cinema-info-value">
+                        {movie.releaseYear || t('common.unknown')} • {movie.language || t('common.unknown')}
+                      </p>
                     </div>
                     <div className="cinema-info-block">
-                      <p className="cinema-info-label">Showtimes</p>
+                      <p className="cinema-info-label">{t('cinema.showtimesToday')}</p>
                       <div className="cinema-times-row">
                         {times.slice(0, 5).map((time) => (
                           <span key={`${movie.id}-${time}`} className="cinema-time-mini">{time}</span>
@@ -162,8 +164,10 @@ function CinemaNowShowing() {
                       </div>
                     </div>
                     <div className="cinema-info-block">
-                      <p className="cinema-info-label">Cinema Availability</p>
-                      <p className="cinema-info-value">{cinemaCount} branches • {showtimeCount} shows today</p>
+                      <p className="cinema-info-label">{t('cinema.cinemaBranches')}</p>
+                      <p className="cinema-info-value">
+                        {t('cinema.branchShowSummary', { branchCount: cinemaCount, showCount: showtimeCount })}
+                      </p>
                     </div>
                   </div>
 

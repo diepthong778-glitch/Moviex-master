@@ -9,6 +9,7 @@ import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.Cinema;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Ticket;
+import com.moviex.cinema.model.TicketStatus;
 import com.moviex.cinema.repository.AuditoriumRepository;
 import com.moviex.cinema.repository.BookingRepository;
 import com.moviex.cinema.repository.CinemaRepository;
@@ -30,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -121,6 +123,52 @@ public class TicketService {
         return toTicketView(booking);
     }
 
+    public CinemaTicketViewResponse getTicketValidationByCode(String ticketCode) {
+        if (ticketCode == null || ticketCode.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ticketCode is required");
+        }
+
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        Booking booking = bookingRepository.findById(ticket.getBookingId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        return toTicketView(booking);
+    }
+
+    public CinemaTicketViewResponse checkInTicketByCodeForAdmin(String ticketCode) {
+        validateAdmin();
+        if (ticketCode == null || ticketCode.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ticketCode is required");
+        }
+
+        Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        Booking booking = bookingRepository.findById(ticket.getBookingId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+
+        if (booking.getBookingStatus() != BookingStatus.CONFIRMED
+                || booking.getPaymentStatus() != CinemaPaymentStatus.PAID) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only confirmed and paid bookings can be checked in");
+        }
+
+        List<Ticket> bookingTickets = ticketRepository.findByBookingId(booking.getId());
+        if (bookingTickets.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found");
+        }
+
+        boolean alreadyCheckedIn = bookingTickets.stream().allMatch(item -> item.getStatus() == TicketStatus.CHECKED_IN);
+        if (!alreadyCheckedIn) {
+            LocalDateTime now = LocalDateTime.now();
+            bookingTickets.forEach(item -> {
+                item.setStatus(TicketStatus.CHECKED_IN);
+                item.setCheckedInAt(now);
+            });
+            ticketRepository.saveAll(bookingTickets);
+        }
+
+        return toTicketView(booking);
+    }
+
     public List<CinemaTicketViewResponse> listBookingHistoryForAdmin() {
         return bookingRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(this::toTicketViewWithUser)
@@ -185,6 +233,8 @@ public class TicketService {
         response.setIssuedAt(issuedAt);
         response.setCreatedAt(booking.getCreatedAt() == null ? issuedAt : booking.getCreatedAt());
         response.setUpcoming(isUpcoming(booking, showDate, startTime));
+        response.setTicketStatus(resolveTicketStatus(tickets));
+        response.setCheckedInAt(resolveCheckedInAt(tickets));
         List<String> ticketCodes = tickets.stream()
                 .map(Ticket::getTicketCode)
                 .filter(code -> code != null && !code.isBlank())
@@ -281,5 +331,43 @@ public class TicketService {
                 .filter(name -> name != null && !name.isBlank())
                 .findFirst()
                 .orElse("Unknown auditorium");
+    }
+
+    private TicketStatus resolveTicketStatus(List<Ticket> tickets) {
+        if (tickets == null || tickets.isEmpty()) {
+            return TicketStatus.ACTIVE;
+        }
+        if (tickets.stream().anyMatch(ticket -> ticket.getStatus() == TicketStatus.CHECKED_IN)) {
+            return TicketStatus.CHECKED_IN;
+        }
+        if (tickets.stream().anyMatch(ticket -> ticket.getStatus() == TicketStatus.CANCELLED)) {
+            return TicketStatus.CANCELLED;
+        }
+        return tickets.stream()
+                .map(Ticket::getStatus)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(TicketStatus.ACTIVE);
+    }
+
+    private LocalDateTime resolveCheckedInAt(List<Ticket> tickets) {
+        if (tickets == null || tickets.isEmpty()) {
+            return null;
+        }
+        return tickets.stream()
+                .map(Ticket::getCheckedInAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    private void validateAdmin() {
+        User currentUser = currentUserService.getCurrentUser();
+        boolean isAdmin = currentUser != null
+                && currentUser.getRoles() != null
+                && currentUser.getRoles().contains(com.moviex.model.Role.ROLE_ADMIN);
+        if (!isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
     }
 }

@@ -1452,6 +1452,17 @@ body {
   gap: 8px;
 }
 
+.cinema-checkout-row-wrap {
+  align-items: flex-start;
+}
+
+.cinema-validation-url {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: right;
+}
+
 .cinema-price-breakdown {
   margin-top: 10px;
   padding-top: 14px;
@@ -1671,6 +1682,17 @@ body {
   letter-spacing: 0.16em;
   color: #ffffff;
   text-shadow: 0 2px 8px rgba(2, 6, 23, 0.9);
+}
+
+@media (max-width: 768px) {
+  .cinema-checkout-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cinema-validation-url {
+    text-align: left;
+  }
 }
 
 .cinema-ticket-head {

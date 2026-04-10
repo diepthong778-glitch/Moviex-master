@@ -14,13 +14,25 @@ import {
 } from '../utils/cinemaApi';
 
 function CinemaHome() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showtimes, setShowtimes] = useState([]);
   const [cinemas, setCinemas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const weekDates = useMemo(() => getWeekDates(), []);
+  const locale = i18n.language || 'en-US';
+  const weekDates = useMemo(
+    () => getWeekDates([
+      t('cinema.weekdayMonday'),
+      t('cinema.weekdayTuesday'),
+      t('cinema.weekdayWednesday'),
+      t('cinema.weekdayThursday'),
+      t('cinema.weekdayFriday'),
+      t('cinema.weekdaySaturday'),
+      t('cinema.weekdaySunday'),
+    ]),
+    [i18n.language]
+  );
   const todayIso = useMemo(() => getTodayIsoDate(), []);
 
   useEffect(() => {
@@ -39,7 +51,7 @@ function CinemaHome() {
         setShowtimes(showtimeList);
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load cinema schedule.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadScheduleFailed'));
         }
       } finally {
         if (!ignore) {
@@ -140,9 +152,7 @@ function CinemaHome() {
           <div className="cinema-hero-panel cinema-hero-panel-primary">
             <span className="cinema-badge">{t('cinemaPage.badge')}</span>
             <h1 className="cinema-title">{t('cinemaPage.title')}</h1>
-            <p className="cinema-subtitle">
-              Find movies showing today, check this week at a glance, pick your nearest branch, and book in minutes.
-            </p>
+            <p className="cinema-subtitle">{t('cinema.homeSubtitle')}</p>
             <div className="cinema-actions">
               <Link to="/cinema/now-showing" className="btn btn-primary">
                 {t('cinema.ctaBrowseMovies')}
@@ -155,43 +165,43 @@ function CinemaHome() {
               </Link>
             </div>
 
-            <ol className="cinema-flow-list" aria-label="How to start booking">
-              <li><span>1</span><p>Choose a movie</p></li>
-              <li><span>2</span><p>Select branch and showtime</p></li>
-              <li><span>3</span><p>Pick seats and checkout</p></li>
+            <ol className="cinema-flow-list" aria-label={t('cinema.homeBookingAria')}>
+              <li><span>1</span><p>{t('cinema.bookingStepOne')}</p></li>
+              <li><span>2</span><p>{t('cinema.bookingStepTwo')}</p></li>
+              <li><span>3</span><p>{t('cinema.bookingStepThree')}</p></li>
             </ol>
           </div>
 
           <div className="cinema-hero-panel cinema-hero-panel-secondary">
-            <p className="cinema-card-label">Cinema Snapshot</p>
+            <p className="cinema-card-label">{t('cinema.cinemaSnapshot')}</p>
             <div className="cinema-kpi-grid">
               <div className="cinema-kpi-card">
-                <span>Today Movies</span>
+                <span>{t('cinema.todayMovies')}</span>
                 <strong>{nowShowing.length}</strong>
               </div>
               <div className="cinema-kpi-card">
-                <span>Today Shows</span>
+                <span>{t('cinema.todayShows')}</span>
                 <strong>{todayShowtimes.length}</strong>
               </div>
               <div className="cinema-kpi-card">
-                <span>This Week Movies</span>
+                <span>{t('cinema.thisWeekMovies')}</span>
                 <strong>{weeklyMovieCount}</strong>
               </div>
               <div className="cinema-kpi-card">
-                <span>Branches</span>
+                <span>{t('cinema.branches')}</span>
                 <strong>{cinemas.length}</strong>
               </div>
             </div>
 
             {spotlight && (
               <div className="cinema-spotlight">
-                <p className="cinema-info-label">Recommended to start</p>
+                <p className="cinema-info-label">{t('cinema.recommendedToStart')}</p>
                 <h3>{spotlight.movie.title}</h3>
                 <p>
                   {spotlight.firstShowtime.cinemaName} • {spotlight.firstShowtime.startTime}
                 </p>
                 <Link to={`/cinema/movie/${spotlight.movie.id}`} className="btn btn-primary cinema-compact-btn">
-                  Start Booking
+                  {t('cinema.startBooking')}
                 </Link>
               </div>
             )}
@@ -202,7 +212,7 @@ function CinemaHome() {
           <div className="cinema-section-header">
             <div>
               <p className="cinema-section-eyebrow">{t('cinema.todayLabel')}</p>
-              <h2 className="cinema-section-title">Now Showing Today</h2>
+              <h2 className="cinema-section-title">{t('cinema.nowShowingToday')}</h2>
             </div>
             <Link to="/cinema/now-showing" className="btn btn-outline cinema-link-btn">
               {t('cinema.navNowShowing')}
@@ -239,17 +249,19 @@ function CinemaHome() {
                       </div>
 
                       <p className="cinema-card-meta-line">
-                        {movie.genre} • {movie.runtime} • {movie.ageRating || 'TBA'}
+                        {movie.genre} • {movie.runtime} • {movie.ageRating || t('common.unknown')}
                       </p>
                       <p className="cinema-card-synopsis">{movie.shortSynopsis}</p>
 
                       <div className="cinema-info-grid">
                         <div className="cinema-info-block">
-                          <p className="cinema-info-label">Movie Info</p>
-                          <p className="cinema-info-value">{movie.releaseYear || 'TBA'} • {movie.language || 'Unknown'}</p>
+                          <p className="cinema-info-label">{t('cinema.movieInfo')}</p>
+                          <p className="cinema-info-value">
+                            {movie.releaseYear || t('common.unknown')} • {movie.language || t('common.unknown')}
+                          </p>
                         </div>
                         <div className="cinema-info-block">
-                          <p className="cinema-info-label">Showtimes Today</p>
+                          <p className="cinema-info-label">{t('cinema.showtimesToday')}</p>
                           <div className="cinema-times-row">
                             {item.times.slice(0, 4).map((time) => (
                               <span key={`${movie.id}-${time}`} className="cinema-time-mini">{time}</span>
@@ -260,8 +272,13 @@ function CinemaHome() {
                           </div>
                         </div>
                         <div className="cinema-info-block">
-                          <p className="cinema-info-label">Cinema Branches</p>
-                          <p className="cinema-info-value">{item.cinemaCount} branches • {item.showtimeCount} shows</p>
+                          <p className="cinema-info-label">{t('cinema.cinemaBranches')}</p>
+                          <p className="cinema-info-value">
+                            {t('cinema.branchShowSummary', {
+                              branchCount: item.cinemaCount,
+                              showCount: item.showtimeCount,
+                            })}
+                          </p>
                         </div>
                       </div>
 
@@ -285,7 +302,7 @@ function CinemaHome() {
           <div className="cinema-section-header">
             <div>
               <p className="cinema-section-eyebrow">{t('cinema.weeklySchedule')}</p>
-              <h2 className="cinema-section-title">Movies This Week</h2>
+              <h2 className="cinema-section-title">{t('cinema.moviesThisWeek')}</h2>
             </div>
             <Link to="/cinema/schedule" className="btn btn-outline cinema-link-btn">
               {t('cinema.navSchedule')}
@@ -297,14 +314,19 @@ function CinemaHome() {
               <div key={day.key} className="cinema-weekly-card">
                 <div className="cinema-weekly-head">
                   <div>
-                    <strong>{day.label}</strong>
-                    <p>{formatShortDate(day.date)}</p>
+                  <strong>{day.label}</strong>
+                    <p>{formatShortDate(day.date, locale)}</p>
                   </div>
-                  <span>{day.isToday ? t('cinema.todayLabel') : `${day.showtimeCount} shows`}</span>
+                      <span>
+                        {day.isToday ? t('cinema.todayLabel') : t('cinema.showtimesCount', { count: day.showtimeCount })}
+                      </span>
                 </div>
 
                 <p className="cinema-weekly-summary">
-                  {day.movieCount} movies • {day.showtimeCount} showtimes
+                  {t('cinema.moviesShowtimesSummary', {
+                    movieCount: day.movieCount,
+                    showtimeCount: day.showtimeCount,
+                  })}
                 </p>
 
                 {day.movies.length === 0 ? (
@@ -319,13 +341,18 @@ function CinemaHome() {
                       >
                         <div>
                           <span>{item.movie?.title}</span>
-                          <small>{item.cinemaCount} cinemas • {item.showtimeCount} shows</small>
+                          <small>
+                            {t('cinema.branchShowSummary', {
+                              branchCount: item.cinemaCount,
+                              showCount: item.showtimeCount,
+                            })}
+                          </small>
                         </div>
                         <em>{item.firstTime}</em>
                       </Link>
                     ))}
                     {day.movies.length > 5 && (
-                      <p className="cinema-weekly-empty">+{day.movies.length - 5} more movies</p>
+                      <p className="cinema-weekly-empty">{t('cinema.moreMovies', { count: day.movies.length - 5 })}</p>
                     )}
                   </div>
                 )}
@@ -338,7 +365,7 @@ function CinemaHome() {
           <div className="cinema-section-header">
             <div>
               <p className="cinema-section-eyebrow">{t('cinema.navLocations')}</p>
-              <h2 className="cinema-section-title">Available Cinema Locations</h2>
+              <h2 className="cinema-section-title">{t('cinema.availableCinemaLocations')}</h2>
             </div>
             <Link to="/cinema/locations" className="btn btn-outline cinema-link-btn">
               {t('cinema.navLocations')}
@@ -356,7 +383,7 @@ function CinemaHome() {
                     <span key={feature}>{feature}</span>
                   ))}
                 </div>
-                <Link to="/cinema/schedule" className="cinema-branch-link">View showtimes at this branch</Link>
+                <Link to="/cinema/schedule" className="cinema-branch-link">{t('cinema.viewShowtimesAtThisBranch')}</Link>
               </div>
             ))}
           </div>
@@ -365,18 +392,16 @@ function CinemaHome() {
         <section className="cinema-section">
           <div className="cinema-quick-booking">
             <div>
-              <p className="cinema-section-eyebrow">Quick Booking</p>
-              <h2 className="cinema-section-title">Start Booking in Under 1 Minute</h2>
-              <p className="cinema-subtitle cinema-quick-copy">
-                Pick a movie, choose your branch and showtime, then proceed to seats and checkout.
-              </p>
+              <p className="cinema-section-eyebrow">{t('cinema.quickBooking')}</p>
+              <h2 className="cinema-section-title">{t('cinema.startBookingUnderOneMinute')}</h2>
+              <p className="cinema-subtitle cinema-quick-copy">{t('cinema.quickBookingDescription')}</p>
             </div>
             <div className="cinema-quick-steps">
-              <span>Choose Movie</span>
-              <span>Select Branch</span>
-              <span>Pick Showtime</span>
-              <span>Choose Seats</span>
-              <span>Checkout</span>
+              <span>{t('cinema.chooseMovie')}</span>
+              <span>{t('cinema.selectBranch')}</span>
+              <span>{t('cinema.pickShowtime')}</span>
+              <span>{t('cinema.chooseSeats')}</span>
+              <span>{t('cinema.checkoutTitle')}</span>
             </div>
             <div className="cinema-booking-actions">
               <Link to="/cinema/now-showing" className="btn btn-primary">{t('cinema.navNowShowing')}</Link>

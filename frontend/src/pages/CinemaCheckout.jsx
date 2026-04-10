@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +63,7 @@ function CinemaCheckout() {
 
     const initializeCheckout = async () => {
       if (!showtimeId || !seatIds.length) {
-        setError('Missing showtime or seats for checkout.');
+        setError(t('cinema.missingShowtimeOrSeatsForCheckout'));
         setIsInitializing(false);
         return;
       }
@@ -90,7 +90,7 @@ function CinemaCheckout() {
         setTxnCode(paymentRes.data.paymentTxnCode || '');
       } catch (initError) {
         if (!ignore) {
-          setError(initError?.response?.data?.message || 'Failed to create sandbox payment transaction. Please try again.');
+          setError(initError?.response?.data?.message || t('cinema.createSandboxPaymentTransactionFailed'));
         }
       } finally {
         if (!ignore) {
@@ -135,13 +135,13 @@ function CinemaCheckout() {
       setBookingSummary(result);
       if (success) {
         setIsConfirmed(true);
-        setStatusMessage('Payment succeeded. Booking confirmed and ticket generated.');
+        setStatusMessage(t('cinema.paymentSucceededBookingConfirmedAndTicketGenerated'));
       } else {
         setIsReleased(true);
-        setStatusMessage('Payment failed. Reserved seats were released.');
+        setStatusMessage(t('cinema.paymentFailedReservedSeatsReleased'));
       }
     } catch (submitError) {
-      setError(submitError?.response?.data?.message || 'Unable to confirm sandbox payment.');
+      setError(submitError?.response?.data?.message || t('cinema.unableToConfirmSandboxPayment'));
     } finally {
       setIsSubmitting(false);
     }
@@ -156,9 +156,9 @@ function CinemaCheckout() {
       const response = await axios.post(`/api/cinema/bookings/${bookingSummary.bookingId}/release`);
       setBookingSummary(response.data);
       setIsReleased(true);
-      setStatusMessage('Booking released. Seats are available again.');
+      setStatusMessage(t('cinema.bookingReleasedSeatsAvailableAgain'));
     } catch (releaseError) {
-      setError(releaseError?.response?.data?.message || 'Unable to release booking.');
+      setError(releaseError?.response?.data?.message || t('cinema.unableToReleaseBooking'));
     } finally {
       setIsSubmitting(false);
     }
@@ -202,19 +202,19 @@ function CinemaCheckout() {
           <div className="cinema-checkout-card">
             <h3>{summaryMovieTitle}</h3>
             <div className="cinema-checkout-row">
-              <span>Cinema</span>
+              <span>{t('cinema.cinemaLabel')}</span>
               <strong>{summaryCinemaName}</strong>
             </div>
             <div className="cinema-checkout-row">
-              <span>{t('cinema.auditorium')}</span>
+              <span>{t('cinema.auditoriumLabel')}</span>
               <strong>{summaryAuditorium}</strong>
             </div>
             <div className="cinema-checkout-row">
-              <span>Date</span>
+              <span>{t('cinema.dateLabel')}</span>
               <strong>{summaryShowDate}</strong>
             </div>
             <div className="cinema-checkout-row">
-              <span>{t('cinema.selectShowtime')}</span>
+              <span>{t('cinema.timeLabel')}</span>
               <strong>{summaryTime}</strong>
             </div>
             <div className="cinema-checkout-row">
@@ -229,31 +229,31 @@ function CinemaCheckout() {
             <div className="cinema-price-breakdown">
               <div className="cinema-breakdown-header">
                 <div>
-                  <p className="cinema-breakdown-label">Backend price breakdown</p>
-                  <h4>Seat-by-seat pricing</h4>
+                  <p className="cinema-breakdown-label">{t('cinema.backendPriceBreakdown')}</p>
+                  <h4>{t('cinema.seatBySeatPricing')}</h4>
                 </div>
-                <span className="cinema-price-chip">Verified by server</span>
+                <span className="cinema-price-chip">{t('cinema.verifiedByServer')}</span>
               </div>
 
               <div className="cinema-breakdown-meta">
                 <div>
-                  <span>Movie</span>
+                  <span>{t('cinema.movieLabel')}</span>
                   <strong>{summaryMovieTitle}</strong>
                 </div>
                 <div>
-                  <span>Cinema</span>
+                  <span>{t('cinema.cinemaLabel')}</span>
                   <strong>{summaryCinemaName}</strong>
                 </div>
                 <div>
-                  <span>{t('cinema.auditorium')}</span>
+                  <span>{t('cinema.auditoriumLabel')}</span>
                   <strong>{summaryAuditorium}</strong>
                 </div>
                 <div>
-                  <span>Date</span>
+                  <span>{t('cinema.dateLabel')}</span>
                   <strong>{summaryShowDate}</strong>
                 </div>
                 <div>
-                  <span>{t('cinema.selectShowtime')}</span>
+                  <span>{t('cinema.timeLabel')}</span>
                   <strong>{summaryTime}</strong>
                 </div>
               </div>
@@ -265,16 +265,16 @@ function CinemaCheckout() {
                       <div className="cinema-breakdown-seat">
                         <strong>{line.seatLabel || line.seatId}</strong>
                         <span>
-                          {(line.seatType || 'NORMAL').toString()} · {line.pricingRule || 'Base price'}
+                          {(line.seatType || 'NORMAL').toString()} · {line.pricingRule || t('cinema.basePrice')}
                         </span>
                       </div>
                       <div className="cinema-breakdown-price">
                         <div>
-                          <span>Unit price</span>
+                          <span>{t('cinema.unitPrice')}</span>
                           <strong>{formatCurrency(Number(line.unitPrice || 0))}</strong>
                         </div>
                         <div>
-                          <span>Line total</span>
+                          <span>{t('cinema.lineTotal')}</span>
                           <strong>{formatCurrency(Number(line.lineTotal || 0))}</strong>
                         </div>
                       </div>
@@ -282,12 +282,12 @@ function CinemaCheckout() {
                   ))}
                 </div>
               ) : (
-                <p className="cinema-price-note">Preparing pricing details from the backend...</p>
+                <p className="cinema-price-note">{t('cinema.preparingPricingDetailsFromBackend')}</p>
               )}
 
               <div className="cinema-breakdown-total">
                 <div>
-                  <span>Subtotal</span>
+                  <span>{t('cinema.subtotal')}</span>
                   <strong>{formatCurrency(summarySubtotal)}</strong>
                 </div>
                 <div>
@@ -299,15 +299,15 @@ function CinemaCheckout() {
           </div>
 
           <div className="cinema-checkout-card accent">
-            <h3>Sandbox Payment</h3>
+            <h3>{t('cinema.sandboxPayment')}</h3>
             {isInitializing ? (
-              <p>Preparing booking and payment transaction...</p>
+              <p>{t('cinema.preparingBookingAndPaymentTransaction')}</p>
             ) : (
               <>
-                <p>Booking ID: {bookingSummary?.bookingId || '-'}</p>
-                <p>Transaction Code: {txnCode || '-'}</p>
-                <p>Booking Status: {bookingSummary?.bookingStatus || '-'}</p>
-                <p>Payment Status: {bookingSummary?.paymentStatus || '-'}</p>
+                <p>{t('cinema.bookingId')}: {bookingSummary?.bookingId || '-'}</p>
+                <p>{t('cinema.transactionCode')}: {txnCode || '-'}</p>
+                <p>{t('cinema.bookingStatus')}: {bookingSummary?.bookingStatus || '-'}</p>
+                <p>{t('cinema.paymentStatus')}: {bookingSummary?.paymentStatus || '-'}</p>
 
                 <button
                   type="button"
@@ -315,7 +315,7 @@ function CinemaCheckout() {
                   disabled={!txnCode || isSubmitting || isConfirmed || isReleased}
                   onClick={() => handleSimulatePayment(true)}
                 >
-                  {isSubmitting ? 'Processing...' : 'Simulate Payment Success'}
+                  {isSubmitting ? t('cinema.processing') : t('cinema.simulatePaymentSuccess')}
                 </button>
 
                 <button
@@ -324,7 +324,7 @@ function CinemaCheckout() {
                   disabled={!txnCode || isSubmitting || isConfirmed || isReleased}
                   onClick={() => handleSimulatePayment(false)}
                 >
-                  Simulate Payment Failure
+                  {t('cinema.simulatePaymentFailure')}
                 </button>
 
                 <button
@@ -333,7 +333,7 @@ function CinemaCheckout() {
                   disabled={!bookingSummary?.bookingId || isSubmitting || isConfirmed || isReleased}
                   onClick={handleReleaseBooking}
                 >
-                  Cancel Checkout and Release Seats
+                  {t('cinema.cancelCheckoutAndReleaseSeats')}
                 </button>
 
                 {isConfirmed && (
@@ -354,3 +354,4 @@ function CinemaCheckout() {
 }
 
 export default CinemaCheckout;
+

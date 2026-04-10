@@ -2,6 +2,7 @@ package com.moviex.cinema.dto;
 
 import com.moviex.cinema.model.BookingStatus;
 import com.moviex.cinema.model.CinemaPaymentStatus;
+import com.moviex.cinema.model.TicketStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +29,8 @@ public class CinemaTicketViewResponse {
     private LocalDateTime createdAt;
     private String ticketCode;
     private List<String> ticketCodes = new ArrayList<>();
+    private TicketStatus ticketStatus;
+    private LocalDateTime checkedInAt;
     private String userId;
     private String userEmail;
 
@@ -67,6 +70,10 @@ public class CinemaTicketViewResponse {
     public void setTicketCode(String ticketCode) { this.ticketCode = ticketCode; }
     public List<String> getTicketCodes() { return ticketCodes; }
     public void setTicketCodes(List<String> ticketCodes) { this.ticketCodes = ticketCodes; }
+    public TicketStatus getTicketStatus() { return ticketStatus; }
+    public void setTicketStatus(TicketStatus ticketStatus) { this.ticketStatus = ticketStatus; }
+    public LocalDateTime getCheckedInAt() { return checkedInAt; }
+    public void setCheckedInAt(LocalDateTime checkedInAt) { this.checkedInAt = checkedInAt; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
     public String getUserEmail() { return userEmail; }

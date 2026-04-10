@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+﻿import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CinemaModuleNav from '../components/CinemaModuleNav';
@@ -11,31 +11,31 @@ import {
   getTodayIsoDate,
 } from '../utils/cinemaApi';
 
-const formatDateLabel = (isoDate) => {
+const formatDateLabel = (isoDate, locale = 'en-US') => {
   if (!isoDate) return '-';
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
-  return parsed.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return parsed.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-const formatWeekday = (isoDate) => {
+const formatWeekday = (isoDate, locale = 'en-US') => {
   if (!isoDate) return '-';
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
-  return parsed.toLocaleDateString('en-US', { weekday: 'short' });
+  return parsed.toLocaleDateString(locale, { weekday: 'short' });
 };
 
-const formatMonthDay = (isoDate) => {
+const formatMonthDay = (isoDate, locale = 'en-US') => {
   if (!isoDate) return '-';
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return parsed.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 };
 
 function CinemaMovieDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showtimes, setShowtimes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,6 +43,7 @@ function CinemaMovieDetail() {
   const [selectedShowDate, setSelectedShowDate] = useState('');
   const [selectedShowtimeId, setSelectedShowtimeId] = useState('');
   const todayIso = useMemo(() => getTodayIsoDate(), []);
+  const locale = i18n.language || 'en-US';
 
   useEffect(() => {
     let ignore = false;
@@ -57,7 +58,7 @@ function CinemaMovieDetail() {
         }
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load movie showtimes.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadMovieShowtimesFailed'));
         }
       } finally {
         if (!ignore) {
@@ -231,7 +232,7 @@ function CinemaMovieDetail() {
 
         return {
           showDate,
-          label: formatDateLabel(showDate),
+          label: formatDateLabel(showDate, locale),
           count: entries.length,
           cinemas: Array.from(cinemas.values())
             .map((cinema) => ({
@@ -250,9 +251,9 @@ function CinemaMovieDetail() {
   );
 
   const castText = useMemo(() => {
-    if (!movie?.cast || movie.cast.length === 0) return 'Updating';
+    if (!movie?.cast || movie.cast.length === 0) return t('cinema.updating');
     return movie.cast.join(', ');
-  }, [movie]);
+  }, [movie, t]);
 
   const handleSelectShowtime = (showtime) => {
     setSelectedCinemaId(showtime.cinemaId);
@@ -325,7 +326,7 @@ function CinemaMovieDetail() {
               className="cinema-detail-poster"
             />
             <div className="cinema-detail-copy">
-              <p className="cinema-section-eyebrow">Now Showing</p>
+              <p className="cinema-section-eyebrow">{t('cinema.nowShowing')}</p>
               <h1 className="cinema-title">{movie.title}</h1>
               {movie.originalTitle && movie.originalTitle !== movie.title && (
                 <p className="cinema-original-title">{movie.originalTitle}</p>
@@ -334,16 +335,16 @@ function CinemaMovieDetail() {
               <div className="cinema-detail-meta">
                 <span>{movie.genre}</span>
                 <span>{movie.runtime}</span>
-                <span>{movie.ageRating || 'TBA'}</span>
-                <span>{movie.releaseYear || 'TBA'}</span>
-                <span>{movie.language || 'Unknown'}</span>
+                <span>{movie.ageRating || t('common.unknown')}</span>
+                <span>{movie.releaseYear || t('common.unknown')}</span>
+                <span>{movie.language || t('common.unknown')}</span>
               </div>
 
               <p className="cinema-subtitle">{movie.synopsis || movie.shortSynopsis}</p>
 
               <div className="cinema-actions">
                 <a href="#movie-booking-planner" className="btn btn-primary">
-                  Start Booking
+                  {t('cinema.startBooking')}
                 </a>
                 <Link to={`/cinema/movie/${movie.id}/showtimes`} className="btn btn-outline">
                   {t('cinema.selectShowtime')}
@@ -358,64 +359,62 @@ function CinemaMovieDetail() {
 
         <section className="cinema-section cinema-detail-layout">
           <article className="cinema-detail-panel">
-            <h2>Movie Information</h2>
+            <h2>{t('cinema.movieInformation')}</h2>
             <p>{movie.synopsis || movie.shortSynopsis}</p>
             <div className="cinema-detail-info-grid">
               <div className="cinema-detail-info-item">
-                <span>Genre</span>
-                <strong>{movie.genre || 'Unknown'}</strong>
+                <span>{t('cinema.genre')}</span>
+                <strong>{movie.genre || t('common.unknown')}</strong>
               </div>
               <div className="cinema-detail-info-item">
-                <span>Runtime</span>
+                <span>{t('cinema.runtime')}</span>
                 <strong>{movie.runtime || '-'}</strong>
               </div>
               <div className="cinema-detail-info-item">
-                <span>Age Rating</span>
-                <strong>{movie.ageRating || 'TBA'}</strong>
+                <span>{t('cinema.ageRating')}</span>
+                <strong>{movie.ageRating || t('common.unknown')}</strong>
               </div>
               <div className="cinema-detail-info-item">
-                <span>Release Year</span>
-                <strong>{movie.releaseYear || 'TBA'}</strong>
+                <span>{t('cinema.releaseYear')}</span>
+                <strong>{movie.releaseYear || t('common.unknown')}</strong>
               </div>
               <div className="cinema-detail-info-item">
-                <span>Director</span>
-                <strong>{movie.director || 'Updating'}</strong>
+                <span>{t('cinema.director')}</span>
+                <strong>{movie.director || t('cinema.updating')}</strong>
               </div>
               <div className="cinema-detail-info-item">
-                <span>Cast</span>
+                <span>{t('cinema.cast')}</span>
                 <strong>{castText}</strong>
               </div>
             </div>
           </article>
 
           <article className="cinema-detail-panel cinema-booking-summary">
-            <h2>Booking Summary</h2>
-            <p className="cinema-booking-summary-note">
-              Choose cinema, date, and showtime below to continue directly to seat selection.
-            </p>
+            <h2>{t('cinema.bookingSummary')}</h2>
+            <p className="cinema-booking-summary-note">{t('cinema.chooseCinemaDateShowtime')}</p>
 
             {!selectedShowtime ? (
               <p className="cinema-weekly-empty">{t('cinema.noShowtimes')}</p>
             ) : (
               <div className="cinema-booking-summary-list">
                 <div className="cinema-booking-summary-item">
-                  <span>Cinema</span>
+                  <span>{t('cinema.cinemaLabel')}</span>
                   <strong>{selectedShowtime.cinemaName}</strong>
                 </div>
                 <div className="cinema-booking-summary-item">
-                  <span>Date</span>
-                  <strong>{formatDateLabel(selectedShowtime.showDate)}</strong>
+                  <span>{t('cinema.dateLabel')}</span>
+                  <strong>{formatDateLabel(selectedShowtime.showDate, locale)}</strong>
                 </div>
                 <div className="cinema-booking-summary-item">
-                  <span>Showtime</span>
+                  <span>{t('cinema.timeLabel')}</span>
                   <strong>{selectedShowtime.startTime} - {selectedShowtime.endTime}</strong>
                 </div>
                 <div className="cinema-booking-summary-item">
-                  <span>Auditorium</span>
+                  <span>{t('cinema.auditoriumLabel')}</span>
                   <strong>{selectedShowtime.auditoriumName}</strong>
                 </div>
                 <div className="cinema-booking-summary-item">
-                  <span>Ticket Price</span>
+                  <span>{t('cinema.ticketPrice')}</span>
                   <strong>{formatCurrency(selectedShowtime.price)}</strong>
                 </div>
 
@@ -424,7 +423,7 @@ function CinemaMovieDetail() {
                     {t('cinema.ctaSelectSeats')}
                   </button>
                   <Link to={`/cinema/movie/${movie.id}/showtimes`} className="btn btn-outline">
-                    Browse All Showtimes
+                    {t('cinema.browseAllShowtimes')}
                   </Link>
                 </div>
               </div>
@@ -435,10 +434,10 @@ function CinemaMovieDetail() {
         <section id="movie-booking-planner" className="cinema-section cinema-booking-planner">
           <div className="cinema-section-header">
             <div>
-              <p className="cinema-section-eyebrow">Booking Flow</p>
-              <h2 className="cinema-section-title">Choose Cinema - Date - Showtime</h2>
+              <p className="cinema-section-eyebrow">{t('cinema.bookingFlow')}</p>
+              <h2 className="cinema-section-title">{t('cinema.chooseCinemaDateShowtime')}</h2>
             </div>
-            <span className="cinema-pill">{showtimesForBooking.length} showtimes for your selection</span>
+            <span className="cinema-pill">{t('cinema.showtimesForYourSelection', { count: showtimesForBooking.length })}</span>
           </div>
 
           <div className="cinema-step-grid">
@@ -454,7 +453,7 @@ function CinemaMovieDetail() {
                   >
                     <strong>{cinema.name}</strong>
                     <span>{cinema.city}</span>
-                    <span>{cinema.showCount} showtimes</span>
+                    <span>{t('cinema.showtimesCount', { count: cinema.showCount })}</span>
                   </button>
                 ))}
               </div>
@@ -470,8 +469,8 @@ function CinemaMovieDetail() {
                     className={`cinema-week-tab${selectedShowDate === showDate ? ' is-active' : ''}`}
                     onClick={() => setSelectedShowDate(showDate)}
                   >
-                    <span>{formatWeekday(showDate)}</span>
-                    <strong>{formatMonthDay(showDate)}</strong>
+                    <span>{formatWeekday(showDate, locale)}</span>
+                    <strong>{formatMonthDay(showDate, locale)}</strong>
                   </button>
                 ))}
               </div>
@@ -502,7 +501,7 @@ function CinemaMovieDetail() {
 
           <div className="cinema-action-bar">
             <Link to={`/cinema/movie/${movie.id}/showtimes`} className="btn btn-outline">
-              Open Full Showtime Page
+              {t('cinema.openFullShowtimePage')}
             </Link>
             <button
               type="button"
@@ -516,12 +515,12 @@ function CinemaMovieDetail() {
         </section>
 
         <section className="cinema-section">
-          <div className="cinema-section-header">
+            <div className="cinema-section-header">
             <div>
               <p className="cinema-section-eyebrow">{t('cinema.todayLabel')}</p>
-              <h2 className="cinema-section-title">Today by Cinema Branch</h2>
+              <h2 className="cinema-section-title">{t('cinema.todayByCinemaBranch')}</h2>
             </div>
-            <span className="cinema-pill">{todayShowtimes.length} showtimes today</span>
+            <span className="cinema-pill">{t('cinema.showtimesTodayCount', { count: todayShowtimes.length })}</span>
           </div>
 
           {todayByCinema.length === 0 ? (
@@ -561,14 +560,14 @@ function CinemaMovieDetail() {
         <section className="cinema-section">
           <div className="cinema-section-header">
             <div>
-              <p className="cinema-section-eyebrow">Upcoming</p>
-              <h2 className="cinema-section-title">Upcoming Showtimes</h2>
+              <p className="cinema-section-eyebrow">{t('cinema.upcoming')}</p>
+              <h2 className="cinema-section-title">{t('cinema.upcomingShowtimes')}</h2>
             </div>
-            <span className="cinema-pill">{nextShowtimes.length} next available slots</span>
+            <span className="cinema-pill">{t('cinema.nextAvailableSlots', { count: nextShowtimes.length })}</span>
           </div>
 
           {upcomingAvailability.length === 0 ? (
-            <div className="cinema-empty">No upcoming showtimes after today.</div>
+            <div className="cinema-empty">{t('cinema.noUpcomingShowtimesAfterToday')}</div>
           ) : (
             <div className="cinema-weekly-availability-grid">
               {upcomingAvailability.map((day) => (
@@ -576,9 +575,9 @@ function CinemaMovieDetail() {
                   <div className="cinema-weekly-head">
                     <div>
                       <strong>{day.label}</strong>
-                      <p>{day.cinemas.length} branches</p>
+                      <p>{t('cinema.branchesCount', { count: day.cinemas.length })}</p>
                     </div>
-                    <span>{day.count} shows</span>
+                    <span>{t('cinema.showtimesCount', { count: day.count })}</span>
                   </div>
 
                   <div className="cinema-weekly-list">
@@ -614,3 +613,4 @@ function CinemaMovieDetail() {
 }
 
 export default CinemaMovieDetail;
+

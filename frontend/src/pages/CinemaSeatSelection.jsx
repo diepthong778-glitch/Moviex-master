@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -67,7 +67,7 @@ function CinemaSeatSelection() {
 
     const fetchData = async () => {
       if (!showtimeId) {
-        setError('Missing showtime. Please select a showtime first.');
+        setError(t('cinema.missingShowtimePleaseSelectFirst'));
         setIsLoading(false);
         return;
       }
@@ -87,7 +87,7 @@ function CinemaSeatSelection() {
         setSeatMap(buildSeatRows(Array.isArray(seatData.data) ? seatData.data : []));
       } catch (fetchError) {
         if (active) {
-          setError(fetchError?.response?.data?.message || 'Unable to load seat availability.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadSeatAvailabilityFailed'));
           setSeatMap([]);
         }
       } finally {
@@ -142,7 +142,7 @@ function CinemaSeatSelection() {
       } catch (quoteFetchError) {
         if (active) {
           setBookingQuote(null);
-          setQuoteError(quoteFetchError?.response?.data?.message || 'Unable to calculate booking price.');
+          setQuoteError(quoteFetchError?.response?.data?.message || t('cinema.unableToCalculateBookingPrice'));
         }
       } finally {
         if (active) {
@@ -162,10 +162,10 @@ function CinemaSeatSelection() {
   const totalPriceDisplay = selectedSeats.length === 0
     ? formatCurrency(0)
     : isQuoting
-      ? 'Calculating...'
+      ? t('cinema.calculating')
       : bookingQuote
         ? formatCurrency(totalPrice)
-        : 'Unavailable';
+        : t('cinema.unavailable');
 
   const toggleSeat = (seat) => {
     if (seat.status !== 'available') return;
@@ -238,7 +238,7 @@ function CinemaSeatSelection() {
         </div>
 
         <div className="cinema-seat-layout">
-          <div className="cinema-screen">Screen</div>
+          <div className="cinema-screen">{t('cinema.screen')}</div>
           <div className="cinema-seat-grid">
             {seatMap.map((row) => (
               <div key={row.row} className="cinema-seat-row">
@@ -270,13 +270,13 @@ function CinemaSeatSelection() {
             ))}
           </div>
           <div className="cinema-seat-legend">
-            <span><i className="legend-dot available" /> Available</span>
-            <span><i className="legend-dot selected" /> Selected</span>
-            <span><i className="legend-dot reserved" /> Reserved</span>
-            <span><i className="legend-dot booked" /> Booked</span>
-            <span><i className="legend-dot out" /> Out of service</span>
-            <span className="legend-chip vip">VIP</span>
-            <span className="legend-chip couple">Couple</span>
+            <span><i className="legend-dot available" /> {t('cinema.legendAvailable')}</span>
+            <span><i className="legend-dot selected" /> {t('cinema.legendSelected')}</span>
+            <span><i className="legend-dot reserved" /> {t('cinema.legendReserved')}</span>
+            <span><i className="legend-dot booked" /> {t('cinema.legendBooked')}</span>
+            <span><i className="legend-dot out" /> {t('cinema.legendOutOfService')}</span>
+            <span className="legend-chip vip">{t('cinema.legendVip')}</span>
+            <span className="legend-chip couple">{t('cinema.legendCouple')}</span>
           </div>
         </div>
 
@@ -294,7 +294,7 @@ function CinemaSeatSelection() {
         {quoteError && <p className="cinema-note cinema-note-error">{quoteError}</p>}
         {selectedSeats.length > 0 && !quoteError && (
           <p className="cinema-price-note">
-            Price is calculated by the backend and will be verified again at checkout.
+            {t('cinema.priceIsCalculatedByBackendAndWillBeVerifiedAgainAtCheckout')}
           </p>
         )}
       </div>
@@ -303,3 +303,4 @@ function CinemaSeatSelection() {
 }
 
 export default CinemaSeatSelection;
+

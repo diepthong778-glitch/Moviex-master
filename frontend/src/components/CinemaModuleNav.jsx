@@ -29,12 +29,12 @@ function CinemaModuleNav() {
   };
 
   return (
-    <section className="cinema-module-nav" aria-label="Cinema module navigation">
+    <section className="cinema-module-nav" aria-label={t('cinema.moduleNavAria')}>
       <div className="cinema-module-brand">
-        <span className="cinema-module-kicker">One Account, Two Modules</span>
+        <span className="cinema-module-kicker">{t('cinema.moduleKicker')}</span>
         <p className="cinema-module-title">
-          <span>Moviex Streaming</span>
-          <strong>JDWoMoviex Cinema</strong>
+          <span>{t('cinema.moduleStreaming')}</span>
+          <strong>{t('cinema.moduleCinema')}</strong>
         </p>
       </div>
       <nav className="cinema-module-links">

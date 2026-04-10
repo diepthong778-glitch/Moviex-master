@@ -111,6 +111,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/cinema/cinemas/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/cinema/showtimes/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/cinema/auditoriums/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/cinema/tickets/validate/**").permitAll()
                     .requestMatchers("/ws/**").permitAll()
                     .requestMatchers("/api/history/**").hasAnyRole("USER", "ADMIN")
                     .requestMatchers("/api/watchlist/**").hasAnyRole("USER", "ADMIN")

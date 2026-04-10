@@ -35,6 +35,7 @@ public class Ticket {
     @Indexed
     private String ticketCode;
     private TicketStatus status = TicketStatus.ACTIVE;
+    private LocalDateTime checkedInAt;
     private LocalDateTime issuedAt = LocalDateTime.now();
 
     public Ticket() {}
@@ -79,6 +80,8 @@ public class Ticket {
     public void setTicketCode(String ticketCode) { this.ticketCode = ticketCode; }
     public TicketStatus getStatus() { return status; }
     public void setStatus(TicketStatus status) { this.status = status; }
+    public LocalDateTime getCheckedInAt() { return checkedInAt; }
+    public void setCheckedInAt(LocalDateTime checkedInAt) { this.checkedInAt = checkedInAt; }
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
 }

@@ -21,7 +21,7 @@ function CinemaLocations() {
         }
       } catch (fetchError) {
         if (!ignore) {
-          setError(fetchError?.response?.data?.message || 'Unable to load cinema locations.');
+          setError(fetchError?.response?.data?.message || t('cinema.loadLocationsFailed'));
         }
       } finally {
         if (!ignore) {
@@ -44,7 +44,7 @@ function CinemaLocations() {
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.navLocations')}</p>
             <h1 className="cinema-title">{t('cinema.navLocations')}</h1>
-            <p className="cinema-subtitle">{t('cinema.selectCinema')}</p>
+            <p className="cinema-subtitle">{t('cinema.locationsSubtitle')}</p>
           </div>
         </div>
 
@@ -52,8 +52,8 @@ function CinemaLocations() {
           <p className="cinema-empty">{t('common.loading')}</p>
         ) : error ? (
           <p className="cinema-empty">{error}</p>
-        ) : cinemas.length === 0 ? (
-          <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
+          ) : cinemas.length === 0 ? (
+          <p className="cinema-empty">{t('cinema.noLocationsAvailable')}</p>
         ) : (
           <div className="cinema-branch-grid">
             {cinemas.map((branch) => (

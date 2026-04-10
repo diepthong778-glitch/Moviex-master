@@ -48,6 +48,17 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.getTicketDetailByCodeForCurrentUser(ticketCode));
     }
 
+    @GetMapping("/validate/{ticketCode}")
+    public ResponseEntity<CinemaTicketViewResponse> validateTicket(@PathVariable String ticketCode) {
+        return ResponseEntity.ok(ticketService.getTicketValidationByCode(ticketCode));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/code/{ticketCode}/check-in")
+    public ResponseEntity<CinemaTicketViewResponse> checkInTicket(@PathVariable String ticketCode) {
+        return ResponseEntity.ok(ticketService.checkInTicketByCodeForAdmin(ticketCode));
+    }
+
     @GetMapping("/{bookingId}")
     public ResponseEntity<CinemaTicketViewResponse> getTicketDetail(@PathVariable String bookingId) {
         return ResponseEntity.ok(ticketService.getTicketDetailForCurrentUser(bookingId));
