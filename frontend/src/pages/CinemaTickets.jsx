@@ -4,7 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import CinemaModuleNav from '../components/CinemaModuleNav';
-import { formatCurrency } from '../utils/cinema';
+import { buildQrCodeImageUrl, formatCurrency } from '../utils/cinema';
 
 const formatShowtime = (ticket) => {
   const date = ticket?.showDate || '-';
@@ -26,11 +26,6 @@ const resolveTicketCode = (ticket) => {
     return ticket.ticketCodes[0];
   }
   return '';
-};
-
-const buildQrUrl = (validationUrl) => {
-  if (!validationUrl) return '';
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(validationUrl)}`;
 };
 
 function CinemaTickets() {
@@ -167,7 +162,7 @@ function CinemaTickets() {
 
   if (bookingId || ticketCode) {
     const displayCode = resolveTicketCode(detail);
-    const qrUrl = buildQrUrl(validationUrl);
+    const qrUrl = buildQrCodeImageUrl(validationUrl, 260);
     const backTarget = isCheckInRoute ? '/cinema' : '/cinema/tickets';
     const canCheckIn = isAdmin
       && detail
@@ -258,17 +253,20 @@ function CinemaTickets() {
               </div>
 
               <div className="cinema-checkout-card accent">
-                <h3>{isCheckInRoute ? t('cinema.scanToValidate') : t('cinema.scanDemoTicket')}</h3>
+                <h3>{isCheckInRoute ? t('cinema.ticketValidationQrTitle') : t('cinema.ticketQrTitle')}</h3>
                 {displayCode ? (
                   <>
                     <div className="cinema-ticket-qr-shell">
                       <img className="cinema-ticket-qr" src={qrUrl} alt={t('cinema.ticketQrAlt', { code: displayCode })} loading="lazy" />
                     </div>
-                    <div className="cinema-ticket-barcode" aria-label={t('cinema.ticketBarcodePreview')}>
+                    <div className="cinema-ticket-barcode" aria-label={t('cinema.ticketCodeDisplay')}>
                       <span>{displayCode}</span>
                     </div>
                     <p className="cinema-price-note">
-                      {t('cinema.qrOpensValidationPage')}
+                      {isCheckInRoute ? t('cinema.ticketQrOpensCheckInPage') : t('cinema.ticketQrOpensDetailPage')}
+                    </p>
+                    <p className="cinema-price-note">
+                      {t('cinema.ticketQrNotPaymentQr')}
                     </p>
                   </>
                 ) : (

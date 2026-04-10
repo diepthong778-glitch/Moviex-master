@@ -16,6 +16,7 @@ public class BookingResponse {
     private CinemaPaymentStatus paymentStatus;
     private BookingStatus bookingStatus;
     private String paymentTxnCode;
+    private String paymentPageUrl;
 
     public BookingResponse() {}
 
@@ -46,4 +47,6 @@ public class BookingResponse {
     public void setBookingStatus(BookingStatus bookingStatus) { this.bookingStatus = bookingStatus; }
     public String getPaymentTxnCode() { return paymentTxnCode; }
     public void setPaymentTxnCode(String paymentTxnCode) { this.paymentTxnCode = paymentTxnCode; }
+    public String getPaymentPageUrl() { return paymentPageUrl; }
+    public void setPaymentPageUrl(String paymentPageUrl) { this.paymentPageUrl = paymentPageUrl; }
 }

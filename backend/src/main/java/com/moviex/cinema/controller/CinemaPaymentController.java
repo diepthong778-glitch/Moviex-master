@@ -1,6 +1,7 @@
 package com.moviex.cinema.controller;
 
 import com.moviex.cinema.dto.BookingResponse;
+import com.moviex.cinema.dto.CinemaPaymentTransactionResponse;
 import com.moviex.cinema.dto.CreatePaymentRequest;
 import com.moviex.cinema.service.CinemaPaymentService;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,21 @@ public class CinemaPaymentController {
     @PostMapping
     public ResponseEntity<BookingResponse> createPayment(@RequestBody CreatePaymentRequest request) {
         return ResponseEntity.ok(paymentService.createPayment(request));
+    }
+
+    @GetMapping("/public/transactions/{txnCode}")
+    public ResponseEntity<CinemaPaymentTransactionResponse> getPublicPaymentTransaction(@PathVariable String txnCode) {
+        return ResponseEntity.ok(paymentService.getPublicPaymentTransaction(txnCode));
+    }
+
+    @PostMapping("/public/transactions/{txnCode}/confirm")
+    public ResponseEntity<CinemaPaymentTransactionResponse> confirmPaymentPublic(@PathVariable String txnCode) {
+        return ResponseEntity.ok(paymentService.confirmPaymentPublic(txnCode));
+    }
+
+    @PostMapping("/public/transactions/{txnCode}/fail")
+    public ResponseEntity<CinemaPaymentTransactionResponse> failPaymentPublic(@PathVariable String txnCode) {
+        return ResponseEntity.ok(paymentService.failPaymentPublic(txnCode));
     }
 
     @PostMapping("/confirm")

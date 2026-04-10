@@ -18,6 +18,22 @@ const localCinemaAssetOverrides = new Map([
 export const DEFAULT_CINEMA_POSTER_URL = '/posters/p1.svg';
 export const DEFAULT_CINEMA_BACKDROP_URL = '/posters/p4.svg';
 
+const SEEDED_HALLS = [
+  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-a', auditoriumName: 'Hall A', basePrice: 98000 },
+  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-b', auditoriumName: 'Hall B', basePrice: 108000 },
+  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-c', auditoriumName: 'Hall C', basePrice: 118000 },
+  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-1', auditoriumName: 'Hall 1', basePrice: 102000 },
+  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-2', auditoriumName: 'Hall 2', basePrice: 92000 },
+  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-3', auditoriumName: 'Hall 3', basePrice: 120000 },
+  { cinemaId: 'cinema-dn-01', auditoriumId: 'aud-dn-1', auditoriumName: 'Hall 1', basePrice: 90000 },
+  { cinemaId: 'cinema-dn-01', auditoriumId: 'aud-dn-2', auditoriumName: 'Hall 2', basePrice: 98000 },
+];
+
+const SEEDED_SLOT_STARTS = ['08:40', '11:30', '14:20', '17:20', '20:20'];
+
+const posterCache = new Map();
+const backdropCache = new Map();
+
 const resolveLocalAssetOverride = (showtime, fallbackMovie) => {
   const movieTitle = String(
     showtime?.movieTitle
@@ -30,6 +46,68 @@ const resolveLocalAssetOverride = (showtime, fallbackMovie) => {
   }
 
   return localCinemaAssetOverrides.get(movieTitle) || null;
+};
+
+const hashText = (text) => {
+  const value = String(text || '').trim().toLowerCase();
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const seededColorSet = (title) => {
+  const hash = hashText(title);
+  const hueA = hash % 360;
+  const hueB = (hueA + 46 + (hash % 37)) % 360;
+  const hueC = (hueA + 170) % 360;
+  return {
+    colorA: `hsl(${hueA} 70% 32%)`,
+    colorB: `hsl(${hueB} 74% 46%)`,
+    colorC: `hsl(${hueC} 80% 24%)`,
+  };
+};
+
+const toSeededImageDataUri = (title, type = 'poster') => {
+  const cache = type === 'backdrop' ? backdropCache : posterCache;
+  const key = `${type}:${String(title || '').trim().toLowerCase()}`;
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+
+  const safeTitle = String(title || 'JDWoMoviex Cinema').trim();
+  const headline = safeTitle.length > 30 ? `${safeTitle.slice(0, 30)}...` : safeTitle;
+  const subline = type === 'backdrop' ? 'NOW SHOWING' : 'JDWOMOVIEX CINEMA';
+  const width = type === 'backdrop' ? 1280 : 720;
+  const height = type === 'backdrop' ? 720 : 1080;
+  const { colorA, colorB, colorC } = seededColorSet(safeTitle);
+
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${colorA}" />
+      <stop offset="52%" stop-color="${colorB}" />
+      <stop offset="100%" stop-color="${colorC}" />
+    </linearGradient>
+    <radialGradient id="g2" cx="0.8" cy="0.15" r="0.75">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.28)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </radialGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#g1)" />
+  <rect width="${width}" height="${height}" fill="url(#g2)" />
+  <rect x="${type === 'backdrop' ? 52 : 44}" y="${type === 'backdrop' ? 48 : 64}" width="${type === 'backdrop' ? width - 104 : width - 88}" height="${type === 'backdrop' ? height - 96 : height - 128}" rx="${type === 'backdrop' ? 24 : 28}" fill="rgba(9,12,21,0.38)" stroke="rgba(255,255,255,0.18)" />
+  <text x="${type === 'backdrop' ? 92 : 84}" y="${type === 'backdrop' ? 170 : 250}" fill="rgba(255,255,255,0.82)" font-size="${type === 'backdrop' ? 32 : 30}" font-family="Arial, Helvetica, sans-serif" letter-spacing="2">${subline}</text>
+  <text x="${type === 'backdrop' ? 92 : 84}" y="${type === 'backdrop' ? 272 : 402}" fill="#ffffff" font-size="${type === 'backdrop' ? 64 : 70}" font-family="Arial, Helvetica, sans-serif" font-weight="700">${headline}</text>
+  <text x="${type === 'backdrop' ? 92 : 84}" y="${type === 'backdrop' ? 340 : 470}" fill="rgba(255,255,255,0.78)" font-size="${type === 'backdrop' ? 20 : 24}" font-family="Arial, Helvetica, sans-serif">Weekly schedule seed</text>
+</svg>`.trim();
+
+  const dataUri = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  cache.set(key, dataUri);
+  return dataUri;
 };
 
 const toIsoDate = (dateValue) => {
@@ -93,18 +171,21 @@ const toShortSynopsis = (text, maxLength = 170) => {
 
 const resolvePosterUrl = (showtime, fallbackMovie) => {
   const localOverride = resolveLocalAssetOverride(showtime, fallbackMovie);
+  const titleSeed = showtime.movieTitle || fallbackMovie?.title || showtime.movieId;
   return (
     localOverride?.posterUrl
     || localOverride?.backdropUrl
     || showtime.posterUrl
     || fallbackMovie?.posterUrl
     || fallbackMovie?.poster
+    || toSeededImageDataUri(titleSeed, 'poster')
     || DEFAULT_CINEMA_POSTER_URL
   );
 };
 
 const resolveBackdropUrl = (showtime, fallbackMovie) => {
   const localOverride = resolveLocalAssetOverride(showtime, fallbackMovie);
+  const titleSeed = showtime.movieTitle || fallbackMovie?.title || showtime.movieId;
   return (
     localOverride?.backdropUrl
     || localOverride?.posterUrl
@@ -112,6 +193,7 @@ const resolveBackdropUrl = (showtime, fallbackMovie) => {
     || fallbackMovie?.backdropUrl
     || fallbackMovie?.posterUrl
     || fallbackMovie?.poster
+    || toSeededImageDataUri(titleSeed, 'backdrop')
     || DEFAULT_CINEMA_BACKDROP_URL
   );
 };
@@ -166,13 +248,142 @@ export const normalizeShowtime = (showtime) => {
     endTime: normalizeTime(showtime.endTime),
     price: normalizeNumber(showtime.basePrice, 0),
     status: showtime.status || 'SCHEDULED',
+    isSeeded: Boolean(showtime.isSeeded),
   };
 };
 
+const addMinutesToTime = (timeValue, minutes) => {
+  if (!timeValue || !Number.isFinite(minutes)) return '';
+  const [hourRaw, minuteRaw] = String(timeValue).split(':');
+  const totalMinutes = (Number(hourRaw) * 60) + Number(minuteRaw) + minutes;
+  const normalized = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const hour = String(Math.floor(normalized / 60)).padStart(2, '0');
+  const minute = String(normalized % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
+const getCurrentWeekMonday = () => {
+  const today = new Date();
+  const weekday = today.getDay();
+  const distance = (weekday === 0 ? -6 : 1) - weekday;
+  const monday = new Date(today);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(today.getDate() + distance);
+  return monday;
+};
+
+const buildSeededShowtimeRows = () => {
+  const monday = getCurrentWeekMonday();
+  const branchesById = new Map(cinemaBranches.map((branch) => [branch.id, branch]));
+  const movies = cinemaMovies.length ? cinemaMovies : [];
+  if (!movies.length) {
+    return [];
+  }
+
+  const rows = [];
+  const showsPerDay = SEEDED_HALLS.length * SEEDED_SLOT_STARTS.length;
+
+  for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
+    const showDateObj = new Date(monday);
+    showDateObj.setDate(monday.getDate() + dayOffset);
+    const showDate = toIsoDate(showDateObj);
+    const isWeekend = dayOffset >= 5;
+
+    for (let hallIndex = 0; hallIndex < SEEDED_HALLS.length; hallIndex += 1) {
+      const hall = SEEDED_HALLS[hallIndex];
+      const cinema = branchesById.get(hall.cinemaId);
+
+      for (let slotIndex = 0; slotIndex < SEEDED_SLOT_STARTS.length; slotIndex += 1) {
+        const movieIndex = (dayOffset * showsPerDay + hallIndex * SEEDED_SLOT_STARTS.length + slotIndex) % movies.length;
+        const movie = movies[movieIndex];
+        const runtimeMinutes = parseRuntimeMinutes(movie.runtime) || 120;
+        const startTime = SEEDED_SLOT_STARTS[slotIndex];
+        const endTime = addMinutesToTime(startTime, runtimeMinutes + 15);
+        const weekendSurcharge = isWeekend ? 12000 : 0;
+        const slotSurcharge = slotIndex * 4000;
+        const price = hall.basePrice + weekendSurcharge + slotSurcharge;
+
+        rows.push({
+          id: `st-seed-${hall.auditoriumId}-d${dayOffset + 1}-s${slotIndex + 1}`,
+          movieId: movie.id,
+          movieTitle: movie.title,
+          movieOriginalTitle: movie.originalTitle,
+          movieGenre: movie.genre,
+          movieAgeRating: movie.ageRating,
+          movieReleaseYear: movie.releaseYear,
+          movieDirector: movie.director,
+          movieCast: movie.cast,
+          movieLanguage: movie.language,
+          movieSynopsis: movie.synopsis,
+          durationMinutes: parseRuntimeMinutes(movie.runtime),
+          posterUrl: movie.posterUrl,
+          backdropUrl: movie.backdropUrl,
+          cinemaId: hall.cinemaId,
+          cinemaName: cinema?.name || hall.cinemaId,
+          cinemaCity: cinema?.city || '',
+          auditoriumId: hall.auditoriumId,
+          auditoriumName: hall.auditoriumName,
+          showDate,
+          startTime,
+          endTime,
+          basePrice: price,
+          status: 'SCHEDULED',
+          isSeeded: true,
+        });
+      }
+    }
+  }
+
+  return rows;
+};
+
+const buildShowtimeKey = (showtime) => [
+  showtime.movieId,
+  showtime.cinemaId,
+  showtime.auditoriumId,
+  showtime.showDate,
+  showtime.startTime,
+].join('|');
+
+const matchesShowtimeParams = (showtime, params = {}) => {
+  const movieId = params.movieId ? String(params.movieId) : '';
+  const cinemaId = params.cinemaId ? String(params.cinemaId) : '';
+  const auditoriumId = params.auditoriumId ? String(params.auditoriumId) : '';
+  const showDate = params.showDate ? String(params.showDate) : '';
+
+  if (movieId && showtime.movieId !== movieId) return false;
+  if (cinemaId && showtime.cinemaId !== cinemaId) return false;
+  if (auditoriumId && showtime.auditoriumId !== auditoriumId) return false;
+  if (showDate && showtime.showDate !== showDate) return false;
+  return true;
+};
+
 export const fetchCinemaShowtimes = async (params = {}) => {
-  const response = await axios.get('/api/cinema/showtimes/view', { params });
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list.map(normalizeShowtime).sort((a, b) => {
+  const seededRows = buildSeededShowtimeRows().filter((showtime) => matchesShowtimeParams(showtime, params));
+  let apiRows = [];
+  let apiError = null;
+
+  try {
+    const response = await axios.get('/api/cinema/showtimes/view', { params });
+    apiRows = Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    apiError = error;
+  }
+
+  const merged = new Map();
+  seededRows.map(normalizeShowtime).forEach((showtime) => {
+    merged.set(buildShowtimeKey(showtime), showtime);
+  });
+  apiRows.map(normalizeShowtime).forEach((showtime) => {
+    merged.set(buildShowtimeKey(showtime), showtime);
+  });
+
+  const list = Array.from(merged.values()).filter((showtime) => matchesShowtimeParams(showtime, params));
+  if (!list.length && apiError) {
+    throw apiError;
+  }
+
+  return list.sort((a, b) => {
     const dateCompare = String(a.showDate).localeCompare(String(b.showDate));
     if (dateCompare !== 0) return dateCompare;
     return String(a.startTime).localeCompare(String(b.startTime));
@@ -192,22 +403,49 @@ export const quoteCinemaBooking = async ({ showtimeId, seatIds }) => {
   return response.data || {};
 };
 
+export const fetchCinemaPaymentSession = async (txnCode) => {
+  const response = await axios.get(`/api/cinema/payments/public/transactions/${encodeURIComponent(txnCode)}`);
+  return response.data || {};
+};
+
 export const fetchCinemas = async () => {
-  const response = await axios.get('/api/cinema/cinemas');
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list
-    .filter((cinema) => cinema?.active !== false)
-    .map((cinema) => {
-      const staticCinema = staticCinemaById.get(cinema.id);
-      return {
-        id: cinema.id,
-        name: cinema.name,
-        address: cinema.address,
-        city: cinema.city,
-        active: cinema.active !== false,
-        features: cinema.features || staticCinema?.features || [],
-      };
+  let apiList = [];
+  try {
+    const response = await axios.get('/api/cinema/cinemas');
+    apiList = Array.isArray(response.data) ? response.data : [];
+  } catch {
+    apiList = [];
+  }
+
+  const merged = new Map();
+
+  cinemaBranches.forEach((cinema) => {
+    merged.set(cinema.id, {
+      id: cinema.id,
+      name: cinema.name,
+      address: cinema.address,
+      city: cinema.city,
+      active: true,
+      features: Array.isArray(cinema.features) ? cinema.features : [],
     });
+  });
+
+  apiList.forEach((cinema) => {
+    if (!cinema?.id) return;
+    const staticCinema = staticCinemaById.get(cinema.id);
+    merged.set(cinema.id, {
+      id: cinema.id,
+      name: cinema.name || staticCinema?.name || cinema.id,
+      address: cinema.address || staticCinema?.address || '',
+      city: cinema.city || staticCinema?.city || '',
+      active: cinema.active !== false,
+      features: cinema.features || staticCinema?.features || [],
+    });
+  });
+
+  return Array.from(merged.values())
+    .filter((cinema) => cinema.active !== false)
+    .sort((left, right) => String(left.name).localeCompare(String(right.name)));
 };
 
 export const getMovieCatalogFromShowtimes = (showtimes = []) => {

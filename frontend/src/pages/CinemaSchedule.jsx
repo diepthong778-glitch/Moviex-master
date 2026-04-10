@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CinemaModuleNav from '../components/CinemaModuleNav';
@@ -10,7 +10,7 @@ import {
   getWeekDates,
 } from '../utils/cinema';
 import {
-  DEFAULT_CINEMA_BACKDROP_URL,
+  DEFAULT_CINEMA_POSTER_URL,
   fetchCinemaShowtimes,
   filterShowtimesByWeek,
   getMovieCatalogFromShowtimes,
@@ -32,6 +32,7 @@ function CinemaSchedule() {
     ]),
     [i18n.language]
   );
+
   const [activeDay, setActiveDay] = useState(getTodayWeekIndex());
   const [selectedMovieId, setSelectedMovieId] = useState('');
   const [selectedCinemaId, setSelectedCinemaId] = useState('');
@@ -72,9 +73,19 @@ function CinemaSchedule() {
     [showtimes, weekDates]
   );
 
+  const dayIso = useMemo(
+    () => isoDateFromWeekDate(weekDates[activeDay]?.date),
+    [weekDates, activeDay]
+  );
+
+  const dayShowtimes = useMemo(
+    () => weeklyShowtimes.filter((showtime) => showtime.showDate === dayIso),
+    [weeklyShowtimes, dayIso]
+  );
+
   const cinemas = useMemo(() => {
     const byId = new Map();
-    weeklyShowtimes.forEach((showtime) => {
+    dayShowtimes.forEach((showtime) => {
       if (byId.has(showtime.cinemaId)) return;
       byId.set(showtime.cinemaId, {
         id: showtime.cinemaId,
@@ -82,20 +93,48 @@ function CinemaSchedule() {
         city: showtime.cinemaCity,
       });
     });
-    return Array.from(byId.values());
-  }, [weeklyShowtimes]);
+    return Array.from(byId.values()).sort((left, right) => left.name.localeCompare(right.name));
+  }, [dayShowtimes]);
 
-  const movies = useMemo(() => getMovieCatalogFromShowtimes(weeklyShowtimes), [weeklyShowtimes]);
+  const movies = useMemo(
+    () => getMovieCatalogFromShowtimes(dayShowtimes).sort((left, right) => left.title.localeCompare(right.title)),
+    [dayShowtimes]
+  );
+
+  useEffect(() => {
+    if (selectedMovieId && !movies.some((movie) => movie.id === selectedMovieId)) {
+      setSelectedMovieId('');
+    }
+  }, [selectedMovieId, movies]);
+
+  useEffect(() => {
+    if (selectedCinemaId && !cinemas.some((cinema) => cinema.id === selectedCinemaId)) {
+      setSelectedCinemaId('');
+    }
+  }, [selectedCinemaId, cinemas]);
 
   const filteredShowtimes = useMemo(() => {
-    const dayIso = isoDateFromWeekDate(weekDates[activeDay]?.date);
-    return weeklyShowtimes.filter((showtime) => {
-      if (dayIso && showtime.showDate !== dayIso) return false;
+    return dayShowtimes.filter((showtime) => {
       if (selectedMovieId && showtime.movieId !== selectedMovieId) return false;
       if (selectedCinemaId && showtime.cinemaId !== selectedCinemaId) return false;
       return true;
     });
-  }, [weeklyShowtimes, weekDates, activeDay, selectedMovieId, selectedCinemaId]);
+  }, [dayShowtimes, selectedMovieId, selectedCinemaId]);
+
+  const dayMetrics = useMemo(() => {
+    const metricMap = new Map();
+
+    weekDates.forEach((day) => {
+      const dateIso = isoDateFromWeekDate(day.date);
+      const entries = weeklyShowtimes.filter((showtime) => showtime.showDate === dateIso);
+      metricMap.set(day.key, {
+        movieCount: new Set(entries.map((showtime) => showtime.movieId)).size,
+        showtimeCount: entries.length,
+      });
+    });
+
+    return metricMap;
+  }, [weekDates, weeklyShowtimes]);
 
   const movieGroups = useMemo(() => {
     const grouped = new Map();
@@ -105,11 +144,16 @@ function CinemaSchedule() {
         grouped.set(showtime.movieId, {
           movie: showtime.movie,
           entries: new Map(),
+          showtimeCount: 0,
+          minPrice: Number.POSITIVE_INFINITY,
+          firstTime: showtime.startTime,
+          cinemaSet: new Set(),
         });
       }
 
       const group = grouped.get(showtime.movieId);
       const key = `${showtime.cinemaId}-${showtime.auditoriumId}-${showtime.price}`;
+
       if (!group.entries.has(key)) {
         group.entries.set(key, {
           cinema: {
@@ -117,6 +161,7 @@ function CinemaSchedule() {
             name: showtime.cinemaName,
             city: showtime.cinemaCity,
           },
+          auditoriumId: showtime.auditoriumId,
           auditorium: showtime.auditoriumName,
           price: showtime.price,
           showtimes: [],
@@ -124,21 +169,52 @@ function CinemaSchedule() {
       }
 
       group.entries.get(key).showtimes.push(showtime);
+      group.showtimeCount += 1;
+      group.minPrice = Math.min(group.minPrice, Number(showtime.price || 0));
+      if (showtime.startTime < group.firstTime) {
+        group.firstTime = showtime.startTime;
+      }
+      group.cinemaSet.add(showtime.cinemaId);
     });
 
-    return Array.from(grouped.values()).map((group) => ({
-      movie: group.movie,
-      entries: Array.from(group.entries.values()).map((entry) => ({
-        ...entry,
-        showtimes: entry.showtimes.slice().sort((a, b) => a.startTime.localeCompare(b.startTime)),
-      })),
-    }));
+    return Array.from(grouped.values())
+      .map((group) => ({
+        movie: group.movie,
+        showtimeCount: group.showtimeCount,
+        firstTime: group.firstTime,
+        minPrice: Number.isFinite(group.minPrice) ? group.minPrice : 0,
+        cinemaCount: group.cinemaSet.size,
+        entries: Array.from(group.entries.values())
+          .map((entry) => ({
+            ...entry,
+            showtimes: entry.showtimes.slice().sort((left, right) => left.startTime.localeCompare(right.startTime)),
+          }))
+          .sort((left, right) => {
+            const cinemaCompare = left.cinema.name.localeCompare(right.cinema.name);
+            if (cinemaCompare !== 0) return cinemaCompare;
+            return left.auditorium.localeCompare(right.auditorium);
+          }),
+      }))
+      .sort((left, right) => {
+        const timeCompare = left.firstTime.localeCompare(right.firstTime);
+        if (timeCompare !== 0) return timeCompare;
+        return left.movie.title.localeCompare(right.movie.title);
+      });
   }, [filteredShowtimes]);
+
+  const filteredBranchCount = useMemo(
+    () => new Set(filteredShowtimes.map((showtime) => showtime.cinemaId)).size,
+    [filteredShowtimes]
+  );
+
+  const activeDayLabel = weekDates[activeDay]?.label || t('cinema.todayLabel');
+  const activeDayDisplayDate = weekDates[activeDay] ? formatShortDate(weekDates[activeDay].date, locale) : '';
 
   return (
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.navSchedule')}</p>
@@ -160,6 +236,16 @@ function CinemaSchedule() {
               <option key={branch.id} value={branch.id}>{branch.name}</option>
             ))}
           </select>
+          <button
+            type="button"
+            className="btn btn-outline cinema-compact-btn"
+            onClick={() => {
+              setSelectedMovieId('');
+              setSelectedCinemaId('');
+            }}
+          >
+            Clear Filters
+          </button>
         </div>
 
         <div className="cinema-week-tabs">
@@ -172,9 +258,16 @@ function CinemaSchedule() {
             >
               <span>{day.label}</span>
               <strong>{formatShortDate(day.date, locale)}</strong>
-              {day.isToday && <em>{t('cinema.todayLabel')}</em>}
+              <em>{t('cinema.showtimesCount', { count: dayMetrics.get(day.key)?.showtimeCount || 0 })}</em>
             </button>
           ))}
+        </div>
+
+        <div className="cinema-results-strip">
+          <span>{`${activeDayLabel} • ${activeDayDisplayDate}`}</span>
+          <span>{t('cinema.moviesCount', { count: movieGroups.length })}</span>
+          <span>{t('cinema.showtimesCount', { count: filteredShowtimes.length })}</span>
+          <span>{t('cinema.branchesCount', { count: filteredBranchCount })}</span>
         </div>
 
         {loading ? (
@@ -186,32 +279,62 @@ function CinemaSchedule() {
         ) : (
           <div className="cinema-schedule-list">
             {movieGroups.map((group) => (
-              <div key={group.movie?.id} className="cinema-schedule-card cinema-rich-schedule-card">
-                <div className="cinema-schedule-media">
-                  <CinemaImage
-                    src={group.movie?.backdropUrl || group.movie?.posterUrl}
-                    fallbackSrc={DEFAULT_CINEMA_BACKDROP_URL}
-                    alt={group.movie?.title}
-                    className="cinema-schedule-backdrop"
-                  />
-                  <div className="cinema-schedule-media-overlay" />
-                  <div className="cinema-schedule-media-copy">
-                    <h3>{group.movie?.title}</h3>
+              <article key={group.movie?.id} className="cinema-schedule-card cinema-rich-schedule-card cinema-schedule-card-compact">
+                <div className="cinema-schedule-card-head">
+                  <Link to={`/cinema/movie/${group.movie?.id}`} className="cinema-schedule-poster-link">
+                    <CinemaImage
+                      src={group.movie?.posterUrl}
+                      fallbackSrc={DEFAULT_CINEMA_POSTER_URL}
+                      alt={group.movie?.title}
+                      className="cinema-schedule-poster"
+                    />
+                  </Link>
+
+                  <div className="cinema-schedule-card-summary">
+                    <h3>
+                      <Link to={`/cinema/movie/${group.movie?.id}`} className="cinema-title-link">
+                        {group.movie?.title}
+                      </Link>
+                    </h3>
                     {group.movie?.originalTitle && group.movie?.originalTitle !== group.movie?.title && (
                       <p className="cinema-original-title">{group.movie?.originalTitle}</p>
                     )}
-                    <p>{group.movie?.genre}</p>
-                    <p>
-                      {group.movie?.runtime} • {group.movie?.ageRating || t('common.unknown')} • {group.movie?.releaseYear || t('common.unknown')}
+                    <p className="cinema-card-meta-line">
+                      {group.movie?.genre} • {group.movie?.runtime} • {group.movie?.ageRating || t('common.unknown')}
                     </p>
                     <p className="cinema-card-synopsis">{group.movie?.shortSynopsis}</p>
+
+                    <div className="cinema-results-strip cinema-schedule-summary-pills">
+                      <span>{t('cinema.showtimesCount', { count: group.showtimeCount })}</span>
+                      <span>{t('cinema.branchesCount', { count: group.cinemaCount })}</span>
+                      <span>{`${t('cinema.startTime')}: ${group.firstTime}`}</span>
+                      <span>{`${t('cinema.price')}: ${formatCurrency(group.minPrice)}`}</span>
+                    </div>
+
+                    <div className="cinema-card-actions">
+                      <Link to={`/cinema/movie/${group.movie?.id}`} className="btn btn-outline cinema-compact-btn">
+                        {t('cinema.movieInformation')}
+                      </Link>
+                      <Link
+                        to={`/cinema/movie/${group.movie?.id}/showtimes`}
+                        state={{
+                          showDate: dayIso,
+                          showtimeId: group.entries[0]?.showtimes[0]?.id,
+                          cinemaId: group.entries[0]?.cinema?.id,
+                          time: group.entries[0]?.showtimes[0]?.startTime,
+                        }}
+                        className="btn btn-primary cinema-compact-btn"
+                      >
+                        {t('cinema.selectShowtime')}
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
                 <div className="cinema-schedule-body">
                   <div className="cinema-schedule-rows">
                     {group.entries.map((entry) => (
-                      <div key={`${entry.cinema?.id}-${entry.auditorium}`} className="cinema-schedule-row">
+                      <div key={`${entry.cinema?.id}-${entry.auditoriumId}-${entry.price}`} className="cinema-schedule-row">
                         <div>
                           <p>{entry.cinema?.name}</p>
                           <span>{entry.cinema?.city} - {entry.auditorium}</span>
@@ -220,8 +343,13 @@ function CinemaSchedule() {
                           {entry.showtimes.map((showtime) => (
                             <Link
                               key={showtime.id}
-                              to="/cinema/seats"
-                              state={{ showtimeId: showtime.id }}
+                              to={`/cinema/movie/${group.movie?.id}/showtimes`}
+                              state={{
+                                showDate: showtime.showDate,
+                                showtimeId: showtime.id,
+                                cinemaId: showtime.cinemaId,
+                                time: showtime.startTime,
+                              }}
                               className="cinema-time-chip"
                             >
                               {showtime.startTime}
@@ -233,10 +361,11 @@ function CinemaSchedule() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
+
         <div className="cinema-back-link">
           <Link to="/cinema" className="btn btn-outline">
             {t('cinema.backToCinema')}
@@ -248,4 +377,3 @@ function CinemaSchedule() {
 }
 
 export default CinemaSchedule;
-

@@ -17,6 +17,7 @@ import com.moviex.cinema.model.CinemaPaymentStatus;
 import com.moviex.cinema.model.MovieShowtime;
 import com.moviex.cinema.model.Seat;
 import com.moviex.cinema.service.AdminCinemaService;
+import com.moviex.cinema.service.CinemaRevenueAnalyticsService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,9 +32,12 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminCinemaController {
     private final AdminCinemaService adminCinemaService;
+    private final CinemaRevenueAnalyticsService cinemaRevenueAnalyticsService;
 
-    public AdminCinemaController(AdminCinemaService adminCinemaService) {
+    public AdminCinemaController(AdminCinemaService adminCinemaService,
+                                 CinemaRevenueAnalyticsService cinemaRevenueAnalyticsService) {
         this.adminCinemaService = adminCinemaService;
+        this.cinemaRevenueAnalyticsService = cinemaRevenueAnalyticsService;
     }
 
     @GetMapping("/stats")
@@ -228,5 +232,44 @@ public class AdminCinemaController {
     public ResponseEntity<Map<String, Object>> simulatePaymentDecision(@PathVariable String txnCode,
                                                                        @RequestParam(defaultValue = "true") boolean success) {
         return ResponseEntity.ok(adminCinemaService.simulatePaymentDecision(txnCode, success));
+    }
+
+    @GetMapping("/revenue/daily")
+    public ResponseEntity<Map<String, Object>> getDailyRevenue(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getDailyRevenue(date));
+    }
+
+    @GetMapping("/revenue/weekly")
+    public ResponseEntity<Map<String, Object>> getWeeklyRevenue(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getWeeklyRevenue(date));
+    }
+
+    @GetMapping("/revenue/monthly")
+    public ResponseEntity<Map<String, Object>> getMonthlyRevenue(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getMonthlyRevenue(date));
+    }
+
+    @GetMapping("/revenue/by-cinema")
+    public ResponseEntity<Map<String, Object>> getRevenueByCinema(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getRevenueByCinema(fromDate, toDate));
+    }
+
+    @GetMapping("/revenue/by-movie")
+    public ResponseEntity<Map<String, Object>> getRevenueByMovie(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getRevenueByMovie(fromDate, toDate));
+    }
+
+    @GetMapping("/revenue/by-showtime")
+    public ResponseEntity<Map<String, Object>> getRevenueByShowtime(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(cinemaRevenueAnalyticsService.getRevenueByShowtime(fromDate, toDate));
     }
 }

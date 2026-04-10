@@ -668,6 +668,7 @@ public class AdminCinemaService {
         row.put("amount", transaction.getAmount());
         row.put("status", transaction.getStatus());
         row.put("provider", transaction.getProvider());
+        row.put("paymentPageUrl", transaction.getPaymentPageUrl());
         row.put("createdAt", transaction.getCreatedAt());
         row.put("updatedAt", transaction.getUpdatedAt());
         return row;

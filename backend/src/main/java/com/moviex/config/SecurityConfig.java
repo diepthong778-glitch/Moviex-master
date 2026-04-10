@@ -108,6 +108,7 @@ public class SecurityConfig {
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/api/movies/**").permitAll() // read-only movies allowed
                     .requestMatchers("/api/payment/public/**").permitAll()
+                    .requestMatchers("/api/cinema/payments/public/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/cinema/cinemas/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/cinema/showtimes/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/cinema/auditoriums/**").permitAll()

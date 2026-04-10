@@ -45,6 +45,11 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+export const buildQrCodeImageUrl = (payloadUrl, size = 260) => {
+  if (!payloadUrl) return '';
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(payloadUrl)}`;
+};
+
 const parseDurationMinutes = (durationLabel) => {
   if (!durationLabel) return null;
   const match = String(durationLabel).match(/(\d+)/);

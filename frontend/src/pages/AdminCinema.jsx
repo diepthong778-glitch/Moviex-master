@@ -25,6 +25,11 @@ const initialFilters = { movieId: '', cinemaId: '', showDate: '', bookingStatus:
 const datePart = (v) => (v ? String(v).slice(0, 10) : '-');
 const timePart = (v) => (v ? String(v).slice(0, 5) : '--:--');
 const amountText = (v) => `${Number(v || 0).toLocaleString('vi-VN')} VND`;
+const asRevenue = (v) => Number(v || 0);
+const barPercent = (value, max) => {
+  if (!max || max <= 0) return 0;
+  return Math.max(0, Math.min(100, (asRevenue(value) / max) * 100));
+};
 
 function AdminCinema() {
   const [tab, setTab] = useState('dashboard');
@@ -42,6 +47,14 @@ function AdminCinema() {
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [revenueAnalytics, setRevenueAnalytics] = useState({
+    daily: {},
+    weekly: { daily: [] },
+    monthly: { daily: [] },
+    byCinema: { items: [] },
+    byMovie: { items: [] },
+    byShowtime: { items: [] },
+  });
 
   const [filters, setFilters] = useState(initialFilters);
 
@@ -107,6 +120,33 @@ function AdminCinema() {
     });
   };
 
+  const loadRevenueAnalytics = async () => {
+    const [
+      dailyResponse,
+      weeklyResponse,
+      monthlyResponse,
+      byCinemaResponse,
+      byMovieResponse,
+      byShowtimeResponse,
+    ] = await Promise.all([
+      axios.get('/api/admin/cinema/revenue/daily'),
+      axios.get('/api/admin/cinema/revenue/weekly'),
+      axios.get('/api/admin/cinema/revenue/monthly'),
+      axios.get('/api/admin/cinema/revenue/by-cinema'),
+      axios.get('/api/admin/cinema/revenue/by-movie'),
+      axios.get('/api/admin/cinema/revenue/by-showtime'),
+    ]);
+
+    setRevenueAnalytics({
+      daily: dailyResponse.data || {},
+      weekly: weeklyResponse.data || { daily: [] },
+      monthly: monthlyResponse.data || { daily: [] },
+      byCinema: byCinemaResponse.data || { items: [] },
+      byMovie: byMovieResponse.data || { items: [] },
+      byShowtime: byShowtimeResponse.data || { items: [] },
+    });
+  };
+
   const withCommonFilterParams = (base = {}) => ({
     ...base,
     movieId: filters.movieId || undefined,
@@ -117,7 +157,10 @@ function AdminCinema() {
   });
 
   const loadByTab = async () => {
-    if (tab === 'dashboard') return loadStats();
+    if (tab === 'dashboard') {
+      await Promise.all([loadStats(), loadRevenueAnalytics()]);
+      return;
+    }
     if (tab === 'branches') return setBranches((await axios.get('/api/admin/cinema/branches')).data || []);
     if (tab === 'auditoriums') return setAuditoriums((await axios.get('/api/admin/cinema/auditoriums')).data || []);
     if (tab === 'seats') {
@@ -137,7 +180,7 @@ function AdminCinema() {
     }
   };
 
-  useEffect(() => { runTask(async () => { await Promise.all([loadStats(), loadReference()]); }); }, []);
+  useEffect(() => { runTask(loadReference); }, []);
   useEffect(() => { runTask(loadByTab); }, [tab, seatLayoutForm.auditoriumId, filters.movieId, filters.cinemaId, filters.showDate, filters.bookingStatus, filters.paymentStatus]);
 
   const saveBranch = async (event) => {
@@ -274,6 +317,22 @@ function AdminCinema() {
     return reference.auditoriums.filter((a) => a.cinemaId === showtimeForm.cinemaId);
   }, [reference.auditoriums, showtimeForm.cinemaId]);
 
+  const weeklyRevenueSeries = Array.isArray(revenueAnalytics.weekly?.daily) ? revenueAnalytics.weekly.daily : [];
+  const monthlyRevenueSeries = Array.isArray(revenueAnalytics.monthly?.daily) ? revenueAnalytics.monthly.daily : [];
+  const monthlyRevenueBars = monthlyRevenueSeries.slice(-10);
+  const cinemaRevenueRows = Array.isArray(revenueAnalytics.byCinema?.items) ? revenueAnalytics.byCinema.items : [];
+  const movieRevenueRows = Array.isArray(revenueAnalytics.byMovie?.items) ? revenueAnalytics.byMovie.items : [];
+  const showtimeRevenueRows = Array.isArray(revenueAnalytics.byShowtime?.items) ? revenueAnalytics.byShowtime.items : [];
+
+  const topCinemaRevenue = cinemaRevenueRows.slice(0, 6);
+  const topMovieRevenue = movieRevenueRows.slice(0, 6);
+  const topShowtimeRevenue = showtimeRevenueRows.slice(0, 8);
+
+  const weeklyMaxRevenue = Math.max(1, ...weeklyRevenueSeries.map((item) => asRevenue(item?.revenue)));
+  const monthlyMaxRevenue = Math.max(1, ...monthlyRevenueBars.map((item) => asRevenue(item?.revenue)));
+  const cinemaMaxRevenue = Math.max(1, ...topCinemaRevenue.map((item) => asRevenue(item?.revenue)));
+  const movieMaxRevenue = Math.max(1, ...topMovieRevenue.map((item) => asRevenue(item?.revenue)));
+
   return (
     <div className="page-shell admin-shell">
       <div className="page-header">
@@ -328,16 +387,118 @@ function AdminCinema() {
       {notice && <p className="muted-text">{notice}</p>}
 
       {tab === 'dashboard' && (
-        <section className="admin-stats">
-          <article className="admin-stat-card"><span className="admin-stat-label">Branches</span><strong className="admin-stat-value">{stats.cinemaBranches || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Auditoriums</span><strong className="admin-stat-value">{stats.auditoriums || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Seats</span><strong className="admin-stat-value">{stats.seats || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Showtimes</span><strong className="admin-stat-value">{stats.showtimes || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Bookings</span><strong className="admin-stat-value">{stats.bookingsTotal || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Tickets</span><strong className="admin-stat-value">{stats.ticketsTotal || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Payments</span><strong className="admin-stat-value">{stats.paymentsTotal || 0}</strong></article>
-          <article className="admin-stat-card"><span className="admin-stat-label">Users</span><strong className="admin-stat-value">{stats.usersTotal || 0}</strong></article>
-        </section>
+        <>
+          <section className="admin-stats">
+            <article className="admin-stat-card"><span className="admin-stat-label">Branches</span><strong className="admin-stat-value">{stats.cinemaBranches || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Auditoriums</span><strong className="admin-stat-value">{stats.auditoriums || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Seats</span><strong className="admin-stat-value">{stats.seats || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Showtimes</span><strong className="admin-stat-value">{stats.showtimes || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Bookings</span><strong className="admin-stat-value">{stats.bookingsTotal || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Tickets</span><strong className="admin-stat-value">{stats.ticketsTotal || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Payments</span><strong className="admin-stat-value">{stats.paymentsTotal || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Users</span><strong className="admin-stat-value">{stats.usersTotal || 0}</strong></article>
+          </section>
+
+          <section className="admin-stats">
+            <article className="admin-stat-card"><span className="admin-stat-label">Bookings Today</span><strong className="admin-stat-value">{revenueAnalytics.daily?.bookings || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Tickets Sold Today</span><strong className="admin-stat-value">{revenueAnalytics.daily?.tickets || 0}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Revenue Today</span><strong className="admin-stat-value">{amountText(revenueAnalytics.daily?.revenue)}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Revenue This Week</span><strong className="admin-stat-value">{amountText(revenueAnalytics.weekly?.revenue)}</strong></article>
+            <article className="admin-stat-card"><span className="admin-stat-label">Revenue This Month</span><strong className="admin-stat-value">{amountText(revenueAnalytics.monthly?.revenue)}</strong></article>
+          </section>
+
+          <section className="admin-revenue-grid">
+            <article className="account-panel">
+              <div className="panel-header"><h2 className="panel-title">Weekly Revenue</h2></div>
+              <div className="admin-revenue-bars">
+                {weeklyRevenueSeries.map((item) => (
+                  <div key={`weekly-${item.date}`} className="admin-revenue-bar-row">
+                    <span className="admin-revenue-bar-label">{datePart(item.date).slice(5)}</span>
+                    <div className="admin-revenue-bar-track">
+                      <span className="admin-revenue-bar-fill" style={{ width: `${barPercent(item.revenue, weeklyMaxRevenue)}%` }} />
+                    </div>
+                    <span className="admin-revenue-bar-value">{amountText(item.revenue)}</span>
+                  </div>
+                ))}
+                {weeklyRevenueSeries.length === 0 && <p className="muted-text">No paid bookings in this week yet.</p>}
+              </div>
+            </article>
+
+            <article className="account-panel">
+              <div className="panel-header"><h2 className="panel-title">Monthly Revenue (Last 10 Days)</h2></div>
+              <div className="admin-revenue-bars">
+                {monthlyRevenueBars.map((item) => (
+                  <div key={`monthly-${item.date}`} className="admin-revenue-bar-row">
+                    <span className="admin-revenue-bar-label">{datePart(item.date).slice(5)}</span>
+                    <div className="admin-revenue-bar-track">
+                      <span className="admin-revenue-bar-fill" style={{ width: `${barPercent(item.revenue, monthlyMaxRevenue)}%` }} />
+                    </div>
+                    <span className="admin-revenue-bar-value">{amountText(item.revenue)}</span>
+                  </div>
+                ))}
+                {monthlyRevenueBars.length === 0 && <p className="muted-text">No paid bookings in this month yet.</p>}
+              </div>
+            </article>
+          </section>
+
+          <section className="admin-revenue-grid">
+            <article className="account-panel">
+              <div className="panel-header"><h2 className="panel-title">Revenue by Cinema (Month-to-Date)</h2></div>
+              <div className="admin-revenue-bars">
+                {topCinemaRevenue.map((item) => (
+                  <div key={`cinema-${item.cinemaId || item.cinemaName}`} className="admin-revenue-bar-row">
+                    <span className="admin-revenue-bar-label">{item.cinemaName || '-'}</span>
+                    <div className="admin-revenue-bar-track">
+                      <span className="admin-revenue-bar-fill" style={{ width: `${barPercent(item.revenue, cinemaMaxRevenue)}%` }} />
+                    </div>
+                    <span className="admin-revenue-bar-value">{amountText(item.revenue)}</span>
+                  </div>
+                ))}
+                {topCinemaRevenue.length === 0 && <p className="muted-text">No cinema revenue data for this month.</p>}
+              </div>
+            </article>
+
+            <article className="account-panel">
+              <div className="panel-header"><h2 className="panel-title">Revenue by Movie (Month-to-Date)</h2></div>
+              <div className="admin-revenue-bars">
+                {topMovieRevenue.map((item) => (
+                  <div key={`movie-${item.movieId || item.movieTitle}`} className="admin-revenue-bar-row">
+                    <span className="admin-revenue-bar-label">{item.movieTitle || '-'}</span>
+                    <div className="admin-revenue-bar-track">
+                      <span className="admin-revenue-bar-fill" style={{ width: `${barPercent(item.revenue, movieMaxRevenue)}%` }} />
+                    </div>
+                    <span className="admin-revenue-bar-value">{amountText(item.revenue)}</span>
+                  </div>
+                ))}
+                {topMovieRevenue.length === 0 && <p className="muted-text">No movie revenue data for this month.</p>}
+              </div>
+            </article>
+          </section>
+
+          <section className="account-panel admin-table-wrap">
+            <div className="panel-header"><h2 className="panel-title">Top Showtimes by Revenue (Month-to-Date)</h2></div>
+            <table className="admin-table">
+              <thead><tr><th>Movie</th><th>Cinema</th><th>Showtime</th><th>Bookings</th><th>Tickets</th><th>Revenue</th></tr></thead>
+              <tbody>
+                {topShowtimeRevenue.map((item) => (
+                  <tr key={`showtime-${item.showtimeId || `${item.movieTitle}-${item.showDate}-${item.startTime}`}`}>
+                    <td>{item.movieTitle || '-'}</td>
+                    <td>{item.cinemaName || '-'}</td>
+                    <td>{datePart(item.showDate)} {timePart(item.startTime)}</td>
+                    <td>{item.bookings || 0}</td>
+                    <td>{item.tickets || 0}</td>
+                    <td>{amountText(item.revenue)}</td>
+                  </tr>
+                ))}
+                {topShowtimeRevenue.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="muted-text">No showtime revenue data for this month.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        </>
       )}
 
       {tab === 'branches' && (

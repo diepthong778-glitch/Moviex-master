@@ -18,6 +18,7 @@ public class PaymentTransaction {
     private String provider = "SANDBOX";
     @Indexed
     private String txnCode;
+    private String paymentPageUrl;
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -35,6 +36,8 @@ public class PaymentTransaction {
     public void setProvider(String provider) { this.provider = provider; }
     public String getTxnCode() { return txnCode; }
     public void setTxnCode(String txnCode) { this.txnCode = txnCode; }
+    public String getPaymentPageUrl() { return paymentPageUrl; }
+    public void setPaymentPageUrl(String paymentPageUrl) { this.paymentPageUrl = paymentPageUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
