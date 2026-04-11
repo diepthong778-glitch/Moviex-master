@@ -18,21 +18,10 @@ const localCinemaAssetOverrides = new Map([
 export const DEFAULT_CINEMA_POSTER_URL = '/posters/p1.svg';
 export const DEFAULT_CINEMA_BACKDROP_URL = '/posters/p4.svg';
 
-const SEEDED_HALLS = [
-  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-a', auditoriumName: 'Hall A', basePrice: 98000 },
-  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-b', auditoriumName: 'Hall B', basePrice: 108000 },
-  { cinemaId: 'cinema-hcm-01', auditoriumId: 'aud-hcm-c', auditoriumName: 'Hall C', basePrice: 118000 },
-  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-1', auditoriumName: 'Hall 1', basePrice: 102000 },
-  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-2', auditoriumName: 'Hall 2', basePrice: 92000 },
-  { cinemaId: 'cinema-hn-01', auditoriumId: 'aud-hn-3', auditoriumName: 'Hall 3', basePrice: 120000 },
-  { cinemaId: 'cinema-dn-01', auditoriumId: 'aud-dn-1', auditoriumName: 'Hall 1', basePrice: 90000 },
-  { cinemaId: 'cinema-dn-01', auditoriumId: 'aud-dn-2', auditoriumName: 'Hall 2', basePrice: 98000 },
-];
-
-const SEEDED_SLOT_STARTS = ['08:40', '11:30', '14:20', '17:20', '20:20'];
-
 const posterCache = new Map();
 const backdropCache = new Map();
+
+const normalizeKey = (value) => String(value || '').trim().toLowerCase();
 
 const resolveLocalAssetOverride = (showtime, fallbackMovie) => {
   const movieTitle = String(
@@ -252,136 +241,39 @@ export const normalizeShowtime = (showtime) => {
   };
 };
 
-const addMinutesToTime = (timeValue, minutes) => {
-  if (!timeValue || !Number.isFinite(minutes)) return '';
-  const [hourRaw, minuteRaw] = String(timeValue).split(':');
-  const totalMinutes = (Number(hourRaw) * 60) + Number(minuteRaw) + minutes;
-  const normalized = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
-  const hour = String(Math.floor(normalized / 60)).padStart(2, '0');
-  const minute = String(normalized % 60).padStart(2, '0');
-  return `${hour}:${minute}`;
-};
-
-const getCurrentWeekMonday = () => {
-  const today = new Date();
-  const weekday = today.getDay();
-  const distance = (weekday === 0 ? -6 : 1) - weekday;
-  const monday = new Date(today);
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(today.getDate() + distance);
-  return monday;
-};
-
-const buildSeededShowtimeRows = () => {
-  const monday = getCurrentWeekMonday();
-  const branchesById = new Map(cinemaBranches.map((branch) => [branch.id, branch]));
-  const movies = cinemaMovies.length ? cinemaMovies : [];
-  if (!movies.length) {
-    return [];
-  }
-
-  const rows = [];
-  const showsPerDay = SEEDED_HALLS.length * SEEDED_SLOT_STARTS.length;
-
-  for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
-    const showDateObj = new Date(monday);
-    showDateObj.setDate(monday.getDate() + dayOffset);
-    const showDate = toIsoDate(showDateObj);
-    const isWeekend = dayOffset >= 5;
-
-    for (let hallIndex = 0; hallIndex < SEEDED_HALLS.length; hallIndex += 1) {
-      const hall = SEEDED_HALLS[hallIndex];
-      const cinema = branchesById.get(hall.cinemaId);
-
-      for (let slotIndex = 0; slotIndex < SEEDED_SLOT_STARTS.length; slotIndex += 1) {
-        const movieIndex = (dayOffset * showsPerDay + hallIndex * SEEDED_SLOT_STARTS.length + slotIndex) % movies.length;
-        const movie = movies[movieIndex];
-        const runtimeMinutes = parseRuntimeMinutes(movie.runtime) || 120;
-        const startTime = SEEDED_SLOT_STARTS[slotIndex];
-        const endTime = addMinutesToTime(startTime, runtimeMinutes + 15);
-        const weekendSurcharge = isWeekend ? 12000 : 0;
-        const slotSurcharge = slotIndex * 4000;
-        const price = hall.basePrice + weekendSurcharge + slotSurcharge;
-
-        rows.push({
-          id: `st-seed-${hall.auditoriumId}-d${dayOffset + 1}-s${slotIndex + 1}`,
-          movieId: movie.id,
-          movieTitle: movie.title,
-          movieOriginalTitle: movie.originalTitle,
-          movieGenre: movie.genre,
-          movieAgeRating: movie.ageRating,
-          movieReleaseYear: movie.releaseYear,
-          movieDirector: movie.director,
-          movieCast: movie.cast,
-          movieLanguage: movie.language,
-          movieSynopsis: movie.synopsis,
-          durationMinutes: parseRuntimeMinutes(movie.runtime),
-          posterUrl: movie.posterUrl,
-          backdropUrl: movie.backdropUrl,
-          cinemaId: hall.cinemaId,
-          cinemaName: cinema?.name || hall.cinemaId,
-          cinemaCity: cinema?.city || '',
-          auditoriumId: hall.auditoriumId,
-          auditoriumName: hall.auditoriumName,
-          showDate,
-          startTime,
-          endTime,
-          basePrice: price,
-          status: 'SCHEDULED',
-          isSeeded: true,
-        });
-      }
-    }
-  }
-
-  return rows;
-};
-
-const buildShowtimeKey = (showtime) => [
-  showtime.movieId,
-  showtime.cinemaId,
-  showtime.auditoriumId,
-  showtime.showDate,
-  showtime.startTime,
-].join('|');
-
 const matchesShowtimeParams = (showtime, params = {}) => {
   const movieId = params.movieId ? String(params.movieId) : '';
   const cinemaId = params.cinemaId ? String(params.cinemaId) : '';
   const auditoriumId = params.auditoriumId ? String(params.auditoriumId) : '';
   const showDate = params.showDate ? String(params.showDate) : '';
+  const fallbackMovie = movieId ? staticMoviesById.get(movieId) : null;
+  const fallbackTitle = normalizeKey(fallbackMovie?.title);
+  const showtimeTitle = normalizeKey(showtime.movieTitle || showtime.movie?.title);
 
-  if (movieId && showtime.movieId !== movieId) return false;
+  if (movieId && showtime.movieId !== movieId && (!fallbackTitle || showtimeTitle !== fallbackTitle)) return false;
   if (cinemaId && showtime.cinemaId !== cinemaId) return false;
   if (auditoriumId && showtime.auditoriumId !== auditoriumId) return false;
   if (showDate && showtime.showDate !== showDate) return false;
   return true;
 };
 
+const fetchShowtimeViewRows = async (params = {}) => {
+  const response = await axios.get('/api/cinema/showtimes/view', { params });
+  return Array.isArray(response.data) ? response.data : [];
+};
+
 export const fetchCinemaShowtimes = async (params = {}) => {
-  const seededRows = buildSeededShowtimeRows().filter((showtime) => matchesShowtimeParams(showtime, params));
-  let apiRows = [];
-  let apiError = null;
+  let apiRows = await fetchShowtimeViewRows(params);
 
-  try {
-    const response = await axios.get('/api/cinema/showtimes/view', { params });
-    apiRows = Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    apiError = error;
+  if (!apiRows.length && params.movieId && staticMoviesById.has(String(params.movieId))) {
+    const relaxedParams = { ...params, movieId: undefined };
+    const fallbackRows = await fetchShowtimeViewRows(relaxedParams);
+    apiRows = fallbackRows.filter((showtime) => matchesShowtimeParams(showtime, params));
   }
 
-  const merged = new Map();
-  seededRows.map(normalizeShowtime).forEach((showtime) => {
-    merged.set(buildShowtimeKey(showtime), showtime);
-  });
-  apiRows.map(normalizeShowtime).forEach((showtime) => {
-    merged.set(buildShowtimeKey(showtime), showtime);
-  });
-
-  const list = Array.from(merged.values()).filter((showtime) => matchesShowtimeParams(showtime, params));
-  if (!list.length && apiError) {
-    throw apiError;
-  }
+  const list = apiRows
+    .map(normalizeShowtime)
+    .filter((showtime) => matchesShowtimeParams(showtime, params));
 
   return list.sort((a, b) => {
     const dateCompare = String(a.showDate).localeCompare(String(b.showDate));

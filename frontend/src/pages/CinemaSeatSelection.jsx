@@ -2,8 +2,9 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
+import CinemaBookingSummary from '../components/CinemaBookingSummary';
 import CinemaModuleNav from '../components/CinemaModuleNav';
-import { formatCurrency } from '../utils/cinema';
 import { fetchCinemaShowtimeDetail, quoteCinemaBooking } from '../utils/cinemaApi';
 
 const normalizeSeatType = (type) => {
@@ -159,13 +160,7 @@ function CinemaSeatSelection() {
   }, [showtimeId, selectedSeatKey]);
 
   const totalPrice = useMemo(() => Number(bookingQuote?.total || 0), [bookingQuote?.total]);
-  const totalPriceDisplay = selectedSeats.length === 0
-    ? formatCurrency(0)
-    : isQuoting
-      ? t('cinema.calculating')
-      : bookingQuote
-        ? formatCurrency(totalPrice)
-        : t('cinema.unavailable');
+  const checkoutDisabled = !selectedSeats.length || isQuoting || Boolean(quoteError) || !bookingQuote;
 
   const toggleSeat = (seat) => {
     if (seat.status !== 'available') return;
@@ -224,6 +219,7 @@ function CinemaSeatSelection() {
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+        <CinemaBookingProgress currentStep="seats" />
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.selectSeats')}</p>
@@ -237,66 +233,80 @@ function CinemaSeatSelection() {
           </Link>
         </div>
 
-        <div className="cinema-seat-layout">
-          <div className="cinema-screen">{t('cinema.screen')}</div>
-          <div className="cinema-seat-grid">
-            {seatMap.map((row) => (
-              <div key={row.row} className="cinema-seat-row">
-                <span>{row.row}</span>
-                <div
-                  className="cinema-seat-row-items"
-                  style={{ gridTemplateColumns: `repeat(${row.seats.length}, minmax(0, 1fr))` }}
-                >
-                  {row.seats.map((seat) => {
-                    const isSelected = selectedSeats.includes(seat.id);
-                    const seatClass = `cinema-seat${seat.status !== 'available' ? ` is-${seat.status}` : ''}${
-                      seat.type ? ` is-${seat.type}` : ''
-                    }${isSelected ? ' is-selected' : ''}`;
-                    return (
-                      <button
-                        key={seat.id}
-                        type="button"
-                        className={seatClass}
-                        onClick={() => toggleSeat(seat)}
-                        disabled={seat.status !== 'available'}
-                        title={`${seat.label} ${String(seat.type || 'normal').toUpperCase()}`}
-                      >
-                        {seat.label}
-                      </button>
-                    );
-                  })}
-                </div>
+        <div className="cinema-seat-booking-layout">
+          <section className="cinema-seat-layout cinema-seat-map-panel" aria-label={t('cinema.selectSeats')}>
+            <div className="cinema-seat-map-head">
+              <div>
+                <p className="cinema-section-eyebrow">{t('cinema.flowStep.seats')}</p>
+                <h2>{t('cinema.selectSeats')}</h2>
               </div>
-            ))}
-          </div>
-          <div className="cinema-seat-legend">
-            <span><i className="legend-dot available" /> {t('cinema.legendAvailable')}</span>
-            <span><i className="legend-dot selected" /> {t('cinema.legendSelected')}</span>
-            <span><i className="legend-dot reserved" /> {t('cinema.legendReserved')}</span>
-            <span><i className="legend-dot booked" /> {t('cinema.legendBooked')}</span>
-            <span><i className="legend-dot out" /> {t('cinema.legendOutOfService')}</span>
-            <span className="legend-chip vip">{t('cinema.legendVip')}</span>
-            <span className="legend-chip couple">{t('cinema.legendCouple')}</span>
-          </div>
-        </div>
+              <span className="cinema-pill">{selectedSeatLabels.length} {t('cinema.seats')}</span>
+            </div>
 
-        <div className="cinema-action-bar">
-          <div className="cinema-summary">
-            <span>{t('cinema.seats')}:</span>
-            <strong>{selectedSeatLabels.join(', ') || '-'}</strong>
-            <span>{t('cinema.total')}:</span>
-            <strong>{totalPriceDisplay}</strong>
-          </div>
-          <button type="button" className="btn btn-primary" onClick={handleCheckout} disabled={!selectedSeats.length}>
-            {t('cinema.ctaCheckout')}
-          </button>
+            <div className="cinema-screen">{t('cinema.screen')}</div>
+            <div className="cinema-seat-grid">
+              {seatMap.map((row) => (
+                <div key={row.row} className="cinema-seat-row">
+                  <span>{row.row}</span>
+                  <div
+                    className="cinema-seat-row-items"
+                    style={{ gridTemplateColumns: `repeat(${row.seats.length}, minmax(0, 1fr))` }}
+                  >
+                    {row.seats.map((seat) => {
+                      const isSelected = selectedSeats.includes(seat.id);
+                      const seatClass = `cinema-seat${seat.status !== 'available' ? ` is-${seat.status}` : ''}${
+                        seat.type ? ` is-${seat.type}` : ''
+                      }${isSelected ? ' is-selected' : ''}`;
+                      return (
+                        <button
+                          key={seat.id}
+                          type="button"
+                          className={seatClass}
+                          onClick={() => toggleSeat(seat)}
+                          disabled={seat.status !== 'available'}
+                          title={`${seat.label} ${String(seat.type || 'normal').toUpperCase()}`}
+                        >
+                          {seat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="cinema-seat-legend cinema-seat-legend-clear">
+              <span><i className="legend-dot available" /> {t('cinema.legendAvailable')}</span>
+              <span><i className="legend-dot selected" /> {t('cinema.legendSelected')}</span>
+              <span><i className="legend-dot reserved" /> {t('cinema.legendReserved')}</span>
+              <span><i className="legend-dot booked" /> {t('cinema.legendBooked')}</span>
+              <span><i className="legend-dot out" /> {t('cinema.legendOutOfService')}</span>
+              <span className="legend-chip vip">{t('cinema.legendVip')}</span>
+              <span className="legend-chip couple">{t('cinema.legendCouple')}</span>
+            </div>
+          </section>
+
+          <CinemaBookingSummary
+            movieTitle={showtime.movie.title}
+            cinemaName={showtime.cinemaName}
+            auditoriumName={showtime.auditoriumName}
+            showDate={showtime.showDate}
+            time={showtime.startTime}
+            selectedSeats={selectedSeatLabels}
+            pricingBreakdown={bookingQuote}
+            total={totalPrice}
+            isLoadingPrices={isQuoting}
+            priceError={quoteError}
+            actionLabel={t('cinema.ctaCheckout')}
+            actionDisabled={checkoutDisabled}
+            onAction={handleCheckout}
+          >
+            {selectedSeats.length > 0 && !quoteError && (
+              <p className="cinema-price-note">
+                {t('cinema.priceIsCalculatedByBackendAndWillBeVerifiedAgainAtCheckout')}
+              </p>
+            )}
+          </CinemaBookingSummary>
         </div>
-        {quoteError && <p className="cinema-note cinema-note-error">{quoteError}</p>}
-        {selectedSeats.length > 0 && !quoteError && (
-          <p className="cinema-price-note">
-            {t('cinema.priceIsCalculatedByBackendAndWillBeVerifiedAgainAtCheckout')}
-          </p>
-        )}
       </div>
     </div>
   );

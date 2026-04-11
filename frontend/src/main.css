@@ -1312,11 +1312,42 @@ body {
   flex-wrap: wrap;
 }
 
+.cinema-seat-booking-layout,
+.cinema-checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 20px;
+  align-items: start;
+}
+
+.cinema-checkout-main {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
 .cinema-seat-layout {
   padding: 20px;
   border-radius: 24px;
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cinema-seat-map-panel {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.cinema-seat-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cinema-seat-map-head h2 {
+  font-size: 22px;
 }
 
 .cinema-screen {
@@ -1410,6 +1441,13 @@ body {
   flex-wrap: wrap;
 }
 
+.cinema-seat-legend-clear {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.24);
+}
+
 .legend-dot {
   width: 10px;
   height: 10px;
@@ -1465,6 +1503,17 @@ body {
   color: var(--text-secondary);
 }
 
+.cinema-next-step-label {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(229, 9, 20, 0.14);
+  color: #fecaca;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .cinema-checkout-grid {
   display: grid;
   gap: 18px;
@@ -1482,6 +1531,106 @@ body {
 
 .cinema-checkout-card.accent {
   background: linear-gradient(180deg, rgba(229, 9, 20, 0.15), rgba(15, 23, 42, 0.8));
+}
+
+.cinema-payment-card {
+  align-content: start;
+}
+
+.cinema-booking-side-summary {
+  position: sticky;
+  top: 92px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 11, 18, 0.88);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 16px;
+}
+
+.cinema-booking-side-summary h3 {
+  font-size: 22px;
+}
+
+.cinema-booking-summary-table {
+  display: grid;
+  gap: 10px;
+}
+
+.cinema-booking-summary-table > div,
+.cinema-summary-seat-line,
+.cinema-summary-totals > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cinema-booking-summary-table span,
+.cinema-summary-seat-line span,
+.cinema-summary-totals span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.cinema-booking-summary-table strong,
+.cinema-summary-seat-line strong,
+.cinema-summary-totals strong {
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.cinema-booking-summary-seats {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cinema-summary-seat-list {
+  display: grid;
+  gap: 10px;
+}
+
+.cinema-summary-seat-line {
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cinema-summary-seat-line:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.cinema-summary-seat-line > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cinema-summary-seat-line > strong {
+  white-space: nowrap;
+}
+
+.cinema-summary-totals {
+  display: grid;
+  gap: 10px;
+}
+
+.cinema-summary-grand-total {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cinema-summary-grand-total strong {
+  color: #fecaca;
+  font-size: 22px;
+}
+
+.cinema-summary-primary-action {
+  width: 100%;
+  justify-content: center;
 }
 
 .cinema-checkout-row {
@@ -1908,6 +2057,109 @@ body {
   font-weight: 800;
 }
 
+.cinema-booking-progress {
+  margin: 0 0 24px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(135deg, rgba(229, 9, 20, 0.12), rgba(15, 23, 42, 0.72)),
+    rgba(9, 11, 18, 0.72);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 14px;
+}
+
+.cinema-booking-progress-hero {
+  margin: 4px 0 0;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.cinema-booking-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cinema-booking-progress-head strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.cinema-booking-progress-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cinema-booking-progress-step {
+  position: relative;
+  min-width: 0;
+  border-radius: 16px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.34);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.cinema-booking-progress-step span,
+.cinema-step-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(148, 163, 184, 0.16);
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cinema-booking-progress-step strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cinema-booking-progress-step small {
+  display: block;
+  margin-top: 3px;
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.cinema-booking-progress-step.is-complete {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(22, 101, 52, 0.16);
+}
+
+.cinema-booking-progress-step.is-complete span {
+  background: rgba(34, 197, 94, 0.22);
+  color: #bbf7d0;
+}
+
+.cinema-booking-progress-step.is-current {
+  border-color: rgba(229, 9, 20, 0.55);
+  background: rgba(229, 9, 20, 0.14);
+  box-shadow: 0 12px 24px rgba(229, 9, 20, 0.14);
+}
+
+.cinema-booking-progress-step.is-current span,
+.cinema-step-number {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
 .cinema-now-grid {
   display: grid;
   gap: 16px;
@@ -2137,6 +2389,12 @@ body {
 .cinema-detail-panel p {
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+.cinema-section-helper {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .cinema-booking-summary {
@@ -2578,6 +2836,23 @@ body {
   .cinema-info-grid,
   .cinema-detail-layout {
     grid-template-columns: 1fr;
+  }
+
+  .cinema-seat-booking-layout,
+  .cinema-checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cinema-booking-side-summary {
+    position: static;
+  }
+
+  .cinema-booking-progress-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cinema-booking-progress-step small {
+    display: none;
   }
 
   .cinema-next-show-item {
@@ -3927,6 +4202,172 @@ body {
   max-width: 1280px;
 }
 
+.cinema-ops-shell {
+  max-width: 1480px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.cinema-ops-sidebar {
+  position: sticky;
+  top: 104px;
+  max-height: calc(100vh - 124px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-card) 92%, #020617);
+  box-shadow: var(--shadow-md);
+}
+
+.cinema-ops-brand {
+  display: grid;
+  gap: 5px;
+  padding: 4px 4px 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cinema-ops-brand strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.cinema-ops-brand span:last-child {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.cinema-ops-kicker {
+  color: var(--primary-color);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cinema-ops-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.cinema-ops-nav-item {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.cinema-ops-nav-item span {
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.cinema-ops-nav-item small {
+  color: var(--text-muted);
+}
+
+.cinema-ops-nav-item:hover,
+.cinema-ops-nav-item.active {
+  border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  color: var(--text-primary);
+}
+
+.cinema-ops-main {
+  min-width: 0;
+}
+
+.cinema-ops-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.cinema-ops-toolbar-actions {
+  min-width: min(360px, 100%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.cinema-ops-search {
+  min-width: 220px;
+}
+
+.cinema-ops-quick-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.cinema-ops-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-status-badge.status-active,
+.admin-status-badge.status-available,
+.admin-status-badge.status-confirmed,
+.admin-status-badge.status-paid,
+.admin-status-badge.status-scheduled {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.admin-status-badge.status-pending,
+.admin-status-badge.status-reserved {
+  border-color: rgba(250, 204, 21, 0.36);
+  background: rgba(250, 204, 21, 0.13);
+  color: #fde68a;
+}
+
+.admin-status-badge.status-inactive,
+.admin-status-badge.status-cancelled,
+.admin-status-badge.status-failed,
+.admin-status-badge.status-expired,
+.admin-status-badge.status-out-of-service,
+.admin-status-badge.status-booked {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -4057,6 +4498,92 @@ body {
   font-size: 12px;
   color: var(--text-primary);
   text-align: right;
+}
+
+.realtime-shell {
+  min-height: 100vh;
+}
+
+.realtime-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.realtime-status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.realtime-status-connected {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.realtime-status-connecting {
+  color: #fde68a;
+  background: rgba(250, 204, 21, 0.13);
+}
+
+.realtime-status-disconnected {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.14);
+}
+
+@media (max-width: 980px) {
+  .cinema-ops-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .cinema-ops-sidebar {
+    position: static;
+    max-height: none;
+  }
+
+  .cinema-ops-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cinema-ops-toolbar {
+    flex-direction: column;
+  }
+
+  .cinema-ops-quick-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cinema-ops-quick-actions {
+    justify-content: flex-start;
+  }
+
+  .cinema-ops-toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .cinema-ops-search {
+    flex: 1;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 560px) {
+  .cinema-ops-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .cinema-ops-toolbar-actions .btn {
+    width: 100%;
+  }
 }
 
 /* ===== PAYMENT SANDBOX ===== */

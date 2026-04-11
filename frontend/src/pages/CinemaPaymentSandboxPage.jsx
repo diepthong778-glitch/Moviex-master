@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import { buildQrCodeImageUrl, formatCurrency } from '../utils/cinema';
 
@@ -76,6 +77,7 @@ function CinemaPaymentSandboxPage() {
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+        <CinemaBookingProgress currentStep={isPaid ? 'ticket' : 'payment'} />
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.sandboxPayment')}</p>

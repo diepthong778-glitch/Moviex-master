@@ -2,8 +2,10 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
+import CinemaBookingSummary from '../components/CinemaBookingSummary';
 import CinemaModuleNav from '../components/CinemaModuleNav';
-import { buildQrCodeImageUrl, formatCurrency } from '../utils/cinema';
+import { buildQrCodeImageUrl } from '../utils/cinema';
 import { fetchCinemaPaymentSession, fetchCinemaShowtimeDetail } from '../utils/cinemaApi';
 
 function CinemaCheckout() {
@@ -179,12 +181,28 @@ function CinemaCheckout() {
   const summaryTime = showtime?.startTime || time || pricingBreakdown?.startTime || '-';
   const summaryTotal = Number(pricingBreakdown?.total ?? bookingSummary?.totalPrice ?? 0);
   const summarySubtotal = Number(pricingBreakdown?.subtotal ?? summaryTotal);
-  const breakdownSeats = Array.isArray(pricingBreakdown?.seats) ? pricingBreakdown.seats : [];
   const hasValidCheckout = Boolean(showtimeId && seatIds.length);
   const paymentPageUrl = paymentSession?.paymentPageUrl || bookingSummary?.paymentPageUrl || '';
   const paymentQrUrl = buildQrCodeImageUrl(paymentPageUrl, 260);
   const paymentStatus = paymentSession?.status || paymentSession?.paymentStatus || bookingSummary?.paymentStatus || '-';
   const bookingStatus = paymentSession?.bookingStatus || bookingSummary?.bookingStatus || '-';
+  const checkoutSummaryStatusRows = [
+    { label: t('cinema.transactionCode'), value: txnCode },
+    { label: t('cinema.bookingStatus'), value: bookingStatus },
+    { label: t('cinema.paymentStatus'), value: paymentStatus },
+  ];
+  const summaryActionLabel = isConfirmed ? t('cinema.viewMyTicket') : t('cinema.openSandboxPaymentPage');
+  const summaryActionDisabled = !isConfirmed && !paymentPageUrl;
+
+  const handleSummaryAction = () => {
+    if (isConfirmed) {
+      handleViewTickets();
+      return;
+    }
+    if (paymentPageUrl) {
+      window.open(paymentPageUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const handleReleaseBooking = async () => {
     if (!bookingSummary?.bookingId || isConfirmed) return;
@@ -232,6 +250,7 @@ function CinemaCheckout() {
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+        <CinemaBookingProgress currentStep={isConfirmed ? 'ticket' : 'checkout'} />
         <div className="cinema-page-header">
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.checkoutTitle')}</p>
@@ -243,107 +262,9 @@ function CinemaCheckout() {
           </Link>
         </div>
 
-        <div className="cinema-checkout-grid">
-          <div className="cinema-checkout-card">
-            <h3>{summaryMovieTitle}</h3>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.cinemaLabel')}</span>
-              <strong>{summaryCinemaName}</strong>
-            </div>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.auditoriumLabel')}</span>
-              <strong>{summaryAuditorium}</strong>
-            </div>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.dateLabel')}</span>
-              <strong>{summaryShowDate}</strong>
-            </div>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.timeLabel')}</span>
-              <strong>{summaryTime}</strong>
-            </div>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.seats')}</span>
-              <strong>{seats.join(', ') || seatIds.join(', ') || '-'}</strong>
-            </div>
-            <div className="cinema-checkout-row">
-              <span>{t('cinema.total')}</span>
-              <strong>{formatCurrency(summaryTotal)}</strong>
-            </div>
-
-            <div className="cinema-price-breakdown">
-              <div className="cinema-breakdown-header">
-                <div>
-                  <p className="cinema-breakdown-label">{t('cinema.backendPriceBreakdown')}</p>
-                  <h4>{t('cinema.seatBySeatPricing')}</h4>
-                </div>
-                <span className="cinema-price-chip">{t('cinema.verifiedByServer')}</span>
-              </div>
-
-              <div className="cinema-breakdown-meta">
-                <div>
-                  <span>{t('cinema.movieLabel')}</span>
-                  <strong>{summaryMovieTitle}</strong>
-                </div>
-                <div>
-                  <span>{t('cinema.cinemaLabel')}</span>
-                  <strong>{summaryCinemaName}</strong>
-                </div>
-                <div>
-                  <span>{t('cinema.auditoriumLabel')}</span>
-                  <strong>{summaryAuditorium}</strong>
-                </div>
-                <div>
-                  <span>{t('cinema.dateLabel')}</span>
-                  <strong>{summaryShowDate}</strong>
-                </div>
-                <div>
-                  <span>{t('cinema.timeLabel')}</span>
-                  <strong>{summaryTime}</strong>
-                </div>
-              </div>
-
-              {breakdownSeats.length > 0 ? (
-                <div className="cinema-breakdown-list">
-                  {breakdownSeats.map((line) => (
-                    <div key={line.seatId} className="cinema-breakdown-row">
-                      <div className="cinema-breakdown-seat">
-                        <strong>{line.seatLabel || line.seatId}</strong>
-                        <span>
-                          {(line.seatType || 'NORMAL').toString()} · {line.pricingRule || t('cinema.basePrice')}
-                        </span>
-                      </div>
-                      <div className="cinema-breakdown-price">
-                        <div>
-                          <span>{t('cinema.unitPrice')}</span>
-                          <strong>{formatCurrency(Number(line.unitPrice || 0))}</strong>
-                        </div>
-                        <div>
-                          <span>{t('cinema.lineTotal')}</span>
-                          <strong>{formatCurrency(Number(line.lineTotal || 0))}</strong>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="cinema-price-note">{t('cinema.preparingPricingDetailsFromBackend')}</p>
-              )}
-
-              <div className="cinema-breakdown-total">
-                <div>
-                  <span>{t('cinema.subtotal')}</span>
-                  <strong>{formatCurrency(summarySubtotal)}</strong>
-                </div>
-                <div>
-                  <span>Total</span>
-                  <strong>{formatCurrency(summaryTotal)}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="cinema-checkout-card accent">
+        <div className="cinema-checkout-layout">
+          <div className="cinema-checkout-main">
+            <div className="cinema-checkout-card accent cinema-payment-card">
             <h3>{t('cinema.sandboxPayment')}</h3>
             {isInitializing ? (
               <p>{t('cinema.preparingBookingAndPaymentTransaction')}</p>
@@ -373,15 +294,6 @@ function CinemaCheckout() {
 
                 <button
                   type="button"
-                  className="btn btn-primary"
-                  disabled={!paymentPageUrl}
-                  onClick={() => window.open(paymentPageUrl, '_blank', 'noopener,noreferrer')}
-                >
-                  {t('cinema.openSandboxPaymentPage')}
-                </button>
-
-                <button
-                  type="button"
                   className="btn btn-outline cinema-stack-btn"
                   disabled={!txnCode || isSubmitting}
                   onClick={handleRefreshPaymentStatus}
@@ -405,7 +317,25 @@ function CinemaCheckout() {
                 )}
               </>
             )}
+            </div>
           </div>
+
+          <CinemaBookingSummary
+            movieTitle={summaryMovieTitle}
+            cinemaName={summaryCinemaName}
+            auditoriumName={summaryAuditorium}
+            showDate={summaryShowDate}
+            time={summaryTime}
+            selectedSeats={seats.length ? seats : seatIds}
+            pricingBreakdown={pricingBreakdown}
+            total={summaryTotal}
+            subtotal={summarySubtotal}
+            isLoadingPrices={isInitializing}
+            statusRows={checkoutSummaryStatusRows}
+            actionLabel={summaryActionLabel}
+            actionDisabled={summaryActionDisabled}
+            onAction={handleSummaryAction}
+          />
         </div>
 
         {statusMessage && <p className="cinema-note">{statusMessage}</p>}

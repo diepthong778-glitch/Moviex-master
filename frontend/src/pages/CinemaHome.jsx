@@ -1,6 +1,7 @@
 ﻿import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import CinemaImage from '../components/CinemaImage';
 import { formatCurrency, formatShortDate, getWeekDates } from '../utils/cinema';
@@ -165,11 +166,7 @@ function CinemaHome() {
               </Link>
             </div>
 
-            <ol className="cinema-flow-list" aria-label={t('cinema.homeBookingAria')}>
-              <li><span>1</span><p>{t('cinema.bookingStepOne')}</p></li>
-              <li><span>2</span><p>{t('cinema.bookingStepTwo')}</p></li>
-              <li><span>3</span><p>{t('cinema.bookingStepThree')}</p></li>
-            </ol>
+            <CinemaBookingProgress currentStep="movie" className="cinema-booking-progress-hero" />
           </div>
 
           <div className="cinema-hero-panel cinema-hero-panel-secondary">
@@ -227,7 +224,7 @@ function CinemaHome() {
             <div className="cinema-empty">{t('cinema.noShowtimes')}</div>
           ) : (
             <div className="cinema-now-grid">
-              {nowShowing.map((item) => {
+              {nowShowing.slice(0, 4).map((item) => {
                 const { movie, firstShowtime } = item;
                 return (
                   <article key={movie.id} className="cinema-home-movie-card">
@@ -333,7 +330,7 @@ function CinemaHome() {
                   <p className="cinema-weekly-empty">{t('cinema.noShowtimes')}</p>
                 ) : (
                   <div className="cinema-weekly-list">
-                    {day.movies.slice(0, 5).map((item) => (
+                    {day.movies.slice(0, 3).map((item) => (
                       <Link
                         key={`${day.key}-${item.movie?.id}`}
                         to={`/cinema/movie/${item.movie?.id}`}
@@ -351,8 +348,8 @@ function CinemaHome() {
                         <em>{item.firstTime}</em>
                       </Link>
                     ))}
-                    {day.movies.length > 5 && (
-                      <p className="cinema-weekly-empty">{t('cinema.moreMovies', { count: day.movies.length - 5 })}</p>
+                    {day.movies.length > 3 && (
+                      <p className="cinema-weekly-empty">{t('cinema.moreMovies', { count: day.movies.length - 3 })}</p>
                     )}
                   </div>
                 )}
@@ -373,7 +370,7 @@ function CinemaHome() {
           </div>
 
           <div className="cinema-branch-grid">
-            {cinemas.map((branch) => (
+            {cinemas.slice(0, 3).map((branch) => (
               <div key={branch.id} className="cinema-branch-card cinema-branch-card-rich">
                 <h3>{branch.name}</h3>
                 <p>{branch.address}</p>

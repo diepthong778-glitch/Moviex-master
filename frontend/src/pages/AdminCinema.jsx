@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
 const TABS = [
-  { key: 'dashboard', label: 'Dashboard' },
-  { key: 'branches', label: 'Branches' },
-  { key: 'auditoriums', label: 'Auditoriums' },
-  { key: 'seats', label: 'Seats' },
-  { key: 'showtimes', label: 'Showtimes' },
-  { key: 'bookings', label: 'Bookings' },
-  { key: 'tickets', label: 'Tickets' },
-  { key: 'users', label: 'Users' },
-  { key: 'payments', label: 'Payments' },
+  { key: 'dashboard', label: 'Dashboard', hint: 'Live operations' },
+  { key: 'movies', label: 'Movies', hint: 'Cinema catalog' },
+  { key: 'cinemas', label: 'Cinemas', hint: 'Branches' },
+  { key: 'auditoriums', label: 'Auditoriums', hint: 'Halls' },
+  { key: 'seats', label: 'Seats', hint: 'Layouts' },
+  { key: 'showtimes', label: 'Showtimes', hint: 'Schedules' },
+  { key: 'bookings', label: 'Bookings', hint: 'Reservations' },
+  { key: 'payments', label: 'Payments', hint: 'Sandbox' },
+  { key: 'revenue', label: 'Revenue', hint: 'Analytics' },
 ];
 
 const BOOKING_STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'CANCELLED', 'EXPIRED'];
@@ -30,12 +30,20 @@ const barPercent = (value, max) => {
   if (!max || max <= 0) return 0;
   return Math.max(0, Math.min(100, (asRevenue(value) / max) * 100));
 };
+const statusClass = (value) => String(value || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+const statusBadge = (value) => (
+  <span className={`admin-status-badge status-${statusClass(value)}`}>
+    {value || '-'}
+  </span>
+);
 
 function AdminCinema() {
   const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [adminSearch, setAdminSearch] = useState('');
 
   const [stats, setStats] = useState({});
   const [reference, setReference] = useState({ movies: [], cinemas: [], auditoriums: [] });
@@ -71,6 +79,8 @@ function AdminCinema() {
   const [seatInspectionLoading, setSeatInspectionLoading] = useState(false);
   const [seatInspectionError, setSeatInspectionError] = useState('');
 
+  const activeSection = useMemo(() => TABS.find((item) => item.key === tab) || TABS[0], [tab]);
+
   const cinemaName = useMemo(() => {
     const map = new Map();
     (reference.cinemas || []).forEach((c) => map.set(c.id, c.name));
@@ -88,6 +98,12 @@ function AdminCinema() {
     (reference.auditoriums || []).forEach((a) => map.set(a.id, a.name));
     return map;
   }, [reference.auditoriums]);
+
+  const searchTerm = adminSearch.trim().toLowerCase();
+  const matchesSearch = (record) => {
+    if (!searchTerm) return true;
+    return JSON.stringify(record || {}).toLowerCase().includes(searchTerm);
+  };
 
   const runTask = async (fn) => {
     setLoading(true);
@@ -157,11 +173,12 @@ function AdminCinema() {
   });
 
   const loadByTab = async () => {
-    if (tab === 'dashboard') {
+    if (tab === 'dashboard' || tab === 'revenue') {
       await Promise.all([loadStats(), loadRevenueAnalytics()]);
       return;
     }
-    if (tab === 'branches') return setBranches((await axios.get('/api/admin/cinema/branches')).data || []);
+    if (tab === 'movies') return loadReference();
+    if (tab === 'cinemas') return setBranches((await axios.get('/api/admin/cinema/branches')).data || []);
     if (tab === 'auditoriums') return setAuditoriums((await axios.get('/api/admin/cinema/auditoriums')).data || []);
     if (tab === 'seats') {
       const params = seatLayoutForm.auditoriumId ? { auditoriumId: seatLayoutForm.auditoriumId } : {};
@@ -308,9 +325,9 @@ function AdminCinema() {
   });
 
   const clearFilters = () => setFilters(initialFilters);
-  const shouldShowFilterBar = ['showtimes', 'bookings', 'tickets', 'payments'].includes(tab);
-  const shouldShowBookingStatusFilter = ['bookings', 'tickets'].includes(tab);
-  const shouldShowPaymentStatusFilter = ['bookings', 'tickets', 'payments'].includes(tab);
+  const shouldShowFilterBar = ['showtimes', 'bookings', 'payments'].includes(tab);
+  const shouldShowBookingStatusFilter = ['bookings'].includes(tab);
+  const shouldShowPaymentStatusFilter = ['bookings', 'payments'].includes(tab);
 
   const filteredAuditoriumOptions = useMemo(() => {
     if (!showtimeForm.cinemaId) return reference.auditoriums;
@@ -333,24 +350,66 @@ function AdminCinema() {
   const cinemaMaxRevenue = Math.max(1, ...topCinemaRevenue.map((item) => asRevenue(item?.revenue)));
   const movieMaxRevenue = Math.max(1, ...topMovieRevenue.map((item) => asRevenue(item?.revenue)));
 
-  return (
-    <div className="page-shell admin-shell">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">JDWoMoviex Cinema Admin</h1>
-          <p className="page-subtitle">Cinema branch, auditorium, seat, showtime, booking, ticket, user and payment operations</p>
-        </div>
-      </div>
+  const visibleMovies = (reference.movies || []).filter(matchesSearch);
+  const visibleBranches = branches.filter(matchesSearch);
+  const visibleAuditoriums = auditoriums.filter(matchesSearch);
+  const visibleSeats = seats.filter(matchesSearch);
+  const visibleShowtimes = showtimes.filter((showtime) => matchesSearch({
+    ...showtime,
+    movieTitle: movieTitle.get(showtime.movieId),
+    cinemaName: cinemaName.get(showtime.cinemaId),
+    auditoriumName: auditoriumName.get(showtime.auditoriumId),
+  }));
+  const visibleBookings = bookings.filter(matchesSearch);
+  const visiblePayments = payments.filter(matchesSearch);
 
-      <section className="account-panel">
-        <div className="admin-form-actions" style={{ flexWrap: 'wrap' }}>
+  return (
+    <div className="page-shell admin-shell cinema-ops-shell">
+      <aside className="cinema-ops-sidebar" aria-label="Cinema admin sections">
+        <div className="cinema-ops-brand">
+          <span className="cinema-ops-kicker">Moviex Admin</span>
+          <strong>JDWoMoviex Cinema</strong>
+          <span>Operations dashboard</span>
+        </div>
+        <nav className="cinema-ops-nav">
           {TABS.map((item) => (
-            <button key={item.key} type="button" className={`btn ${tab === item.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setTab(item.key); setSeatInspection(null); setSeatInspectionError(''); }}>
-              {item.label}
+            <button
+              key={item.key}
+              type="button"
+              className={`cinema-ops-nav-item ${tab === item.key ? 'active' : ''}`}
+              onClick={() => {
+                setTab(item.key);
+                setAdminSearch('');
+                setSeatInspection(null);
+                setSeatInspectionError('');
+              }}
+            >
+              <span>{item.label}</span>
+              <small>{item.hint}</small>
             </button>
           ))}
+        </nav>
+      </aside>
+
+      <main className="cinema-ops-main">
+        <div className="cinema-ops-toolbar">
+          <div>
+            <span className="cinema-ops-kicker">Cinema operations</span>
+            <h1 className="page-title">{activeSection.label}</h1>
+            <p className="page-subtitle">
+              Manage {activeSection.label.toLowerCase()} for JDWoMoviex Cinema inside the shared Moviex ecosystem.
+            </p>
+          </div>
+          <div className="cinema-ops-toolbar-actions">
+            <input
+              className="field-control cinema-ops-search"
+              value={adminSearch}
+              onChange={(event) => setAdminSearch(event.target.value)}
+              placeholder={`Search ${activeSection.label.toLowerCase()}...`}
+            />
+            <button type="button" className="btn btn-outline" onClick={() => runTask(loadByTab)}>Refresh</button>
+          </div>
         </div>
-      </section>
 
       {shouldShowFilterBar && (
         <section className="account-panel">
@@ -386,7 +445,7 @@ function AdminCinema() {
       {error && <p className="error-text">{error}</p>}
       {notice && <p className="muted-text">{notice}</p>}
 
-      {tab === 'dashboard' && (
+      {(tab === 'dashboard' || tab === 'revenue') && (
         <>
           <section className="admin-stats">
             <article className="admin-stat-card"><span className="admin-stat-label">Branches</span><strong className="admin-stat-value">{stats.cinemaBranches || 0}</strong></article>
@@ -399,6 +458,23 @@ function AdminCinema() {
             <article className="admin-stat-card"><span className="admin-stat-label">Users</span><strong className="admin-stat-value">{stats.usersTotal || 0}</strong></article>
           </section>
 
+          {tab === 'dashboard' && (
+            <section className="account-panel cinema-ops-quick-panel">
+              <div>
+                <h2 className="panel-title">Quick Operations</h2>
+                <p className="muted-text">Jump straight into the most common JDWoMoviex Cinema management tasks.</p>
+              </div>
+              <div className="cinema-ops-quick-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setTab('showtimes')}>Create Showtime</button>
+                <button type="button" className="btn btn-outline" onClick={() => setTab('bookings')}>Review Bookings</button>
+                <button type="button" className="btn btn-outline" onClick={() => setTab('payments')}>Check Payments</button>
+                <button type="button" className="btn btn-primary" onClick={() => setTab('revenue')}>Open Revenue</button>
+              </div>
+            </section>
+          )}
+
+          {tab === 'revenue' && (
+            <>
           <section className="admin-stats">
             <article className="admin-stat-card"><span className="admin-stat-label">Bookings Today</span><strong className="admin-stat-value">{revenueAnalytics.daily?.bookings || 0}</strong></article>
             <article className="admin-stat-card"><span className="admin-stat-label">Tickets Sold Today</span><strong className="admin-stat-value">{revenueAnalytics.daily?.tickets || 0}</strong></article>
@@ -498,15 +574,58 @@ function AdminCinema() {
               </tbody>
             </table>
           </section>
+            </>
+          )}
         </>
       )}
 
-      {tab === 'branches' && (
+      {tab === 'movies' && (
+        <section className="account-panel admin-table-wrap">
+          <div className="panel-header">
+            <h2 className="panel-title">Cinema Movie Catalog</h2>
+            <p className="muted-text">Shared Moviex movies available for JDWoMoviex Cinema showtime planning.</p>
+          </div>
+          <table className="admin-table">
+            <thead><tr><th>Movie</th><th>Movie ID</th><th>Genre</th><th>Runtime</th><th>Release</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {visibleMovies.map((movie) => (
+                <tr key={movie.id}>
+                  <td>{movie.title || '-'}</td>
+                  <td>{movie.id || '-'}</td>
+                  <td>{Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || '-'}</td>
+                  <td>{movie.runtime ? `${movie.runtime} min` : '-'}</td>
+                  <td>{movie.releaseYear || movie.year || '-'}</td>
+                  <td>{statusBadge(movie.nowShowing === false ? 'ARCHIVE' : 'AVAILABLE')}</td>
+                  <td>
+                    <div className="admin-actions">
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => {
+                          setShowtimeForm((state) => ({ ...state, movieId: movie.id || '' }));
+                          setTab('showtimes');
+                        }}
+                      >
+                        Create Showtime
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {visibleMovies.length === 0 && (
+                <tr><td colSpan={7} className="muted-text">No movies match the current search.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {tab === 'cinemas' && (
         <>
           <section className="account-panel">
-            <div className="panel-header"><h2 className="panel-title">{editBranchId ? 'Edit Branch' : 'Create Branch'}</h2></div>
+            <div className="panel-header"><h2 className="panel-title">{editBranchId ? 'Edit Cinema Branch' : 'Create Cinema Branch'}</h2></div>
             <form className="admin-form-grid" onSubmit={saveBranch}>
-              <input className="field-control" value={branchForm.name} placeholder="Branch name" onChange={(e) => setBranchForm((s) => ({ ...s, name: e.target.value }))} required />
+              <input className="field-control" value={branchForm.name} placeholder="Cinema branch name" onChange={(e) => setBranchForm((s) => ({ ...s, name: e.target.value }))} required />
               <input className="field-control" value={branchForm.city} placeholder="City" onChange={(e) => setBranchForm((s) => ({ ...s, city: e.target.value }))} required />
               <input className="field-control admin-form-wide" value={branchForm.address} placeholder="Address" onChange={(e) => setBranchForm((s) => ({ ...s, address: e.target.value }))} required />
               <div className="admin-form-actions admin-form-wide">
@@ -517,11 +636,11 @@ function AdminCinema() {
           </section>
           <section className="account-panel admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>Name</th><th>City</th><th>Address</th><th>Active</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>City</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {branches.map((branch) => (
+                {visibleBranches.map((branch) => (
                   <tr key={branch.id}>
-                    <td>{branch.name}</td><td>{branch.city}</td><td>{branch.address}</td><td>{branch.active ? 'Yes' : 'No'}</td>
+                    <td>{branch.name}</td><td>{branch.city}</td><td>{branch.address}</td><td>{statusBadge(branch.active ? 'ACTIVE' : 'INACTIVE')}</td>
                     <td><div className="admin-actions">
                       <button className="btn btn-outline" onClick={() => { setEditBranchId(branch.id); setBranchForm({ name: branch.name || '', city: branch.city || '', address: branch.address || '', active: !!branch.active }); }}>Edit</button>
                       <button className="btn btn-outline" onClick={() => toggleBranch(branch.id, !branch.active)}>{branch.active ? 'Deactivate' : 'Activate'}</button>
@@ -529,6 +648,9 @@ function AdminCinema() {
                     </div></td>
                   </tr>
                 ))}
+                {visibleBranches.length === 0 && (
+                  <tr><td colSpan={5} className="muted-text">No cinemas match the current search.</td></tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -554,11 +676,11 @@ function AdminCinema() {
           </section>
           <section className="account-panel admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th>Name</th><th>Cinema</th><th>Capacity</th><th>Active</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Cinema</th><th>Capacity</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {auditoriums.map((auditorium) => (
+                {visibleAuditoriums.map((auditorium) => (
                   <tr key={auditorium.id}>
-                    <td>{auditorium.name}</td><td>{cinemaName.get(auditorium.cinemaId) || auditorium.cinemaId}</td><td>{auditorium.capacity}</td><td>{auditorium.active ? 'Yes' : 'No'}</td>
+                    <td>{auditorium.name}</td><td>{cinemaName.get(auditorium.cinemaId) || auditorium.cinemaId}</td><td>{auditorium.capacity}</td><td>{statusBadge(auditorium.active ? 'ACTIVE' : 'INACTIVE')}</td>
                     <td><div className="admin-actions">
                       <button className="btn btn-outline" onClick={() => { setEditAuditoriumId(auditorium.id); setAuditoriumForm({ cinemaId: auditorium.cinemaId || '', name: auditorium.name || '', capacity: auditorium.capacity || 0, active: !!auditorium.active }); }}>Edit</button>
                       <button className="btn btn-outline" onClick={() => toggleAuditorium(auditorium.id, !auditorium.active)}>{auditorium.active ? 'Deactivate' : 'Activate'}</button>
@@ -566,6 +688,9 @@ function AdminCinema() {
                     </div></td>
                   </tr>
                 ))}
+                {visibleAuditoriums.length === 0 && (
+                  <tr><td colSpan={5} className="muted-text">No auditoriums match the current search.</td></tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -592,15 +717,18 @@ function AdminCinema() {
             <table className="admin-table">
               <thead><tr><th>Seat</th><th>Type</th><th>Status</th><th>Auditorium</th><th>Actions</th></tr></thead>
               <tbody>
-                {seats.map((seat) => (
+                {visibleSeats.map((seat) => (
                   <tr key={seat.id}>
-                    <td>{seat.row}{seat.number}</td><td>{seat.type}</td><td>{seat.status}</td><td>{auditoriumName.get(seat.auditoriumId) || seat.auditoriumId}</td>
+                    <td>{seat.row}{seat.number}</td><td>{seat.type}</td><td>{statusBadge(seat.status)}</td><td>{auditoriumName.get(seat.auditoriumId) || seat.auditoriumId}</td>
                     <td><div className="admin-actions">
                       <button className="btn btn-outline" onClick={() => updateSeatStatus(seat.id, seat.status === 'OUT_OF_SERVICE' ? 'AVAILABLE' : 'OUT_OF_SERVICE')}>{seat.status === 'OUT_OF_SERVICE' ? 'Activate' : 'Deactivate'}</button>
                       <button className="btn btn-primary" onClick={() => deleteSeat(seat.id)}>Delete</button>
                     </div></td>
                   </tr>
                 ))}
+                {visibleSeats.length === 0 && (
+                  <tr><td colSpan={5} className="muted-text">No seats match the current filters.</td></tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -637,12 +765,12 @@ function AdminCinema() {
             <table className="admin-table">
               <thead><tr><th>Movie</th><th>Cinema</th><th>Auditorium</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {showtimes.map((showtime) => (
+                {visibleShowtimes.map((showtime) => (
                   <tr key={showtime.id}>
                     <td>{movieTitle.get(showtime.movieId) || showtime.movieId}</td>
                     <td>{cinemaName.get(showtime.cinemaId) || showtime.cinemaId}</td>
                     <td>{auditoriumName.get(showtime.auditoriumId) || showtime.auditoriumId}</td>
-                    <td>{datePart(showtime.showDate)}</td><td>{timePart(showtime.startTime)} - {timePart(showtime.endTime)}</td><td>{showtime.status}</td>
+                    <td>{datePart(showtime.showDate)}</td><td>{timePart(showtime.startTime)} - {timePart(showtime.endTime)}</td><td>{statusBadge(showtime.status)}</td>
                     <td><div className="admin-actions">
                       <button className="btn btn-outline" onClick={() => { setEditShowtimeId(showtime.id); setShowtimeForm({ movieId: showtime.movieId || '', cinemaId: showtime.cinemaId || '', auditoriumId: showtime.auditoriumId || '', showDate: datePart(showtime.showDate), startTime: timePart(showtime.startTime), endTime: timePart(showtime.endTime), basePrice: showtime.basePrice || 0 }); }}>Edit</button>
                       <button className="btn btn-outline" onClick={() => inspectShowtimeSeats(showtime.id)}>Inspect Seats</button>
@@ -651,6 +779,9 @@ function AdminCinema() {
                     </div></td>
                   </tr>
                 ))}
+                {visibleShowtimes.length === 0 && (
+                  <tr><td colSpan={7} className="muted-text">No showtimes match the current filters.</td></tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -663,7 +794,7 @@ function AdminCinema() {
                 <>
                   <p className="muted-text" style={{ marginBottom: '12px' }}>{seatInspection.movieTitle || '-'} | {seatInspection.cinemaName || '-'} | {seatInspection.auditoriumName || '-'} | {datePart(seatInspection.showDate)} {timePart(seatInspection.startTime)}</p>
                   <p className="muted-text" style={{ marginBottom: '12px' }}>Total: {seatInspection.summary?.total || 0} | Available: {seatInspection.summary?.available || 0} | Reserved: {seatInspection.summary?.reserved || 0} | Booked: {seatInspection.summary?.booked || 0} | Out of Service: {seatInspection.summary?.outOfService || 0}</p>
-                  <table className="admin-table"><thead><tr><th>Seat</th><th>Type</th><th>Status</th></tr></thead><tbody>{(seatInspection.seats || []).map((seat) => (<tr key={seat.seatId}><td>{seat.label}</td><td>{seat.type}</td><td>{seat.status}</td></tr>))}</tbody></table>
+                  <table className="admin-table"><thead><tr><th>Seat</th><th>Type</th><th>Status</th></tr></thead><tbody>{(seatInspection.seats || []).map((seat) => (<tr key={seat.seatId}><td>{seat.label}</td><td>{seat.type}</td><td>{statusBadge(seat.status)}</td></tr>))}</tbody></table>
                 </>
               )}
             </section>
@@ -676,14 +807,17 @@ function AdminCinema() {
           <table className="admin-table">
             <thead><tr><th>Code</th><th>User</th><th>Movie</th><th>Cinema</th><th>Showtime</th><th>Seats</th><th>Total</th><th>Booking</th><th>Payment</th><th>Actions</th></tr></thead>
             <tbody>
-              {bookings.map((b) => (
+              {visibleBookings.map((b) => (
                 <tr key={b.bookingId}>
                   <td>{b.bookingCode || b.bookingId}</td><td>{b.userEmail || b.userId}</td><td>{b.movieTitle || '-'}</td><td>{b.cinemaName || '-'}</td>
                   <td>{datePart(b.showDate)} {timePart(b.startTime)}</td><td>{Array.isArray(b.seatDetails) ? b.seatDetails.map((x) => `${x.label}(${x.state})`).join(', ') : '-'}</td>
-                  <td>{amountText(b.totalPrice)}</td><td>{b.bookingStatus}</td><td>{b.paymentStatus}</td>
+                  <td>{amountText(b.totalPrice)}</td><td>{statusBadge(b.bookingStatus)}</td><td>{statusBadge(b.paymentStatus)}</td>
                   <td>{b.bookingStatus === 'PENDING' ? <div className="admin-actions"><button className="btn btn-outline" onClick={() => updateBookingStatus(b.bookingId, 'CONFIRMED')}>Confirm</button><button className="btn btn-outline" onClick={() => updateBookingStatus(b.bookingId, 'EXPIRED')}>Expire</button><button className="btn btn-primary" onClick={() => updateBookingStatus(b.bookingId, 'CANCELLED')}>Cancel</button></div> : '-'}</td>
                 </tr>
               ))}
+              {visibleBookings.length === 0 && (
+                <tr><td colSpan={10} className="muted-text">No bookings match the current filters.</td></tr>
+              )}
             </tbody>
           </table>
         </section>
@@ -722,17 +856,21 @@ function AdminCinema() {
           <table className="admin-table">
             <thead><tr><th>Txn</th><th>Booking</th><th>User</th><th>Movie</th><th>Cinema</th><th>Date</th><th>Amount</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>
-              {payments.map((p) => (
+              {visiblePayments.map((p) => (
                 <tr key={p.id}>
                   <td>{p.txnCode}</td><td>{p.bookingCode || p.bookingId}</td><td>{p.userEmail || '-'}</td><td>{p.movieTitle || '-'}</td><td>{p.cinemaName || '-'}</td><td>{datePart(p.showDate)}</td>
-                  <td>{amountText(p.amount)}</td><td>{p.status}</td><td>{p.createdAt ? new Date(p.createdAt).toLocaleString() : '-'}</td>
+                  <td>{amountText(p.amount)}</td><td>{statusBadge(p.status)}</td><td>{p.createdAt ? new Date(p.createdAt).toLocaleString() : '-'}</td>
                   <td>{p.status === 'PENDING' ? <div className="admin-actions"><button className="btn btn-outline" onClick={() => simulatePayment(p.txnCode, true)}>Success</button><button className="btn btn-primary" onClick={() => simulatePayment(p.txnCode, false)}>Failure</button></div> : '-'}</td>
                 </tr>
               ))}
+              {visiblePayments.length === 0 && (
+                <tr><td colSpan={10} className="muted-text">No payments match the current filters.</td></tr>
+              )}
             </tbody>
           </table>
         </section>
       )}
+      </main>
     </div>
   );
 }

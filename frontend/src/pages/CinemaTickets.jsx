@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import { buildQrCodeImageUrl, formatCurrency } from '../utils/cinema';
 
@@ -174,6 +175,7 @@ function CinemaTickets() {
       <div className="cinema-shell">
         <div className="page-shell cinema-content">
           <CinemaModuleNav />
+          <CinemaBookingProgress currentStep="ticket" />
           <div className="cinema-page-header">
               <div>
                 <p className="cinema-section-eyebrow">{t('cinema.navTickets')}</p>

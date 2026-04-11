@@ -1,6 +1,7 @@
 ﻿import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import CinemaImage from '../components/CinemaImage';
 import { formatCurrency } from '../utils/cinema';
@@ -308,6 +309,7 @@ function CinemaMovieDetail() {
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+        <CinemaBookingProgress currentStep="cinema" />
 
         <section className="cinema-detail-backdrop-shell">
           <CinemaImage
@@ -436,12 +438,14 @@ function CinemaMovieDetail() {
             <div>
               <p className="cinema-section-eyebrow">{t('cinema.bookingFlow')}</p>
               <h2 className="cinema-section-title">{t('cinema.chooseCinemaDateShowtime')}</h2>
+              <p className="cinema-section-helper">{t('cinema.bookingPlannerHelper')}</p>
             </div>
             <span className="cinema-pill">{t('cinema.showtimesForYourSelection', { count: showtimesForBooking.length })}</span>
           </div>
 
           <div className="cinema-step-grid">
             <article className="cinema-step-card">
+              <span className="cinema-step-number">2</span>
               <h3>{t('cinema.selectCinema')}</h3>
               <div className="cinema-option-grid">
                 {cinemaOptions.map((cinema) => (
@@ -460,6 +464,7 @@ function CinemaMovieDetail() {
             </article>
 
             <article className="cinema-step-card">
+              <span className="cinema-step-number">3</span>
               <h3>{t('cinema.selectDate')}</h3>
               <div className="cinema-week-tabs compact">
                 {datesForSelectedCinema.map((showDate) => (
@@ -477,6 +482,7 @@ function CinemaMovieDetail() {
             </article>
 
             <article className="cinema-step-card">
+              <span className="cinema-step-number">4</span>
               <h3>{t('cinema.selectShowtime')}</h3>
               {showtimesForBooking.length === 0 ? (
                 <p className="cinema-empty">{t('cinema.noShowtimes')}</p>

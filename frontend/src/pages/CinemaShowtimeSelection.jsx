@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import CinemaImage from '../components/CinemaImage';
 import { formatShortDate, getTodayWeekIndex, getWeekDates } from '../utils/cinema';
@@ -160,6 +161,7 @@ function CinemaShowtimeSelection() {
     <div className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
+        <CinemaBookingProgress currentStep="showtime" />
         <div className="cinema-page-header cinema-page-header-rich">
           <div className="cinema-movie-summary">
             <CinemaImage
@@ -187,6 +189,7 @@ function CinemaShowtimeSelection() {
 
         <div className="cinema-step-grid">
           <div className="cinema-step-card">
+            <span className="cinema-step-number">2</span>
             <h3>{t('cinema.selectCinema')}</h3>
             <div className="cinema-option-grid">
               {cinemas.map((branch) => (
@@ -204,6 +207,7 @@ function CinemaShowtimeSelection() {
           </div>
 
           <div className="cinema-step-card">
+            <span className="cinema-step-number">3</span>
             <h3>{t('cinema.selectDate')}</h3>
             <div className="cinema-week-tabs compact">
               {weekDates.map((day) => (
@@ -221,6 +225,7 @@ function CinemaShowtimeSelection() {
           </div>
 
           <div className="cinema-step-card">
+            <span className="cinema-step-number">4</span>
             <h3>{t('cinema.selectShowtime')}</h3>
             {filteredShowtimes.length === 0 ? (
               <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
