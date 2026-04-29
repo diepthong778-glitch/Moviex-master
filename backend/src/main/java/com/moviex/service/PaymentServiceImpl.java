@@ -251,13 +251,20 @@ public class PaymentServiceImpl implements PaymentService {
 
     private String resolveRedirectPath(PaymentCreateRequest request, TargetDescriptor target) {
         String redirectPath = normalize(request.getRedirectPath());
-        if (redirectPath != null) {
+        if (isSafeInternalRedirectPath(redirectPath)) {
             return redirectPath;
         }
         if (target.targetType() == PaymentTargetType.MOVIE && target.movieId() != null) {
             return "/browse?play=" + target.movieId();
         }
         return "/browse";
+    }
+
+    private boolean isSafeInternalRedirectPath(String redirectPath) {
+        return redirectPath != null
+                && redirectPath.startsWith("/")
+                && !redirectPath.startsWith("//")
+                && !redirectPath.contains("\\");
     }
 
     private String generateTxnCode() {

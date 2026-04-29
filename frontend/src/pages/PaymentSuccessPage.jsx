@@ -6,6 +6,15 @@ import { useAuth } from '../context/AuthContext';
 import { getStoredToken } from '../utils/api';
 import { formatVnd } from '../utils/payment';
 
+const resolveSafeRedirectPath = (redirectPath) => {
+  if (typeof redirectPath !== 'string') return '/browse';
+  const trimmedPath = redirectPath.trim();
+  if (!trimmedPath.startsWith('/') || trimmedPath.startsWith('//') || trimmedPath.includes('\\')) {
+    return '/browse';
+  }
+  return trimmedPath;
+};
+
 function PaymentSuccessPage() {
   const { t } = useTranslation();
   const { txnCode } = useParams();
@@ -55,7 +64,7 @@ function PaymentSuccessPage() {
       setCountdown((current) => {
         if (current <= 1) {
           window.clearInterval(intervalId);
-          navigate(transaction.redirectPath, { replace: true });
+          navigate(resolveSafeRedirectPath(transaction.redirectPath), { replace: true });
           return 0;
         }
         return current - 1;
@@ -129,7 +138,7 @@ function PaymentSuccessPage() {
         <button
           type="button"
           className="btn btn-primary sandbox-btn"
-          onClick={() => navigate(transaction?.redirectPath || '/browse', { replace: true })}
+          onClick={() => navigate(resolveSafeRedirectPath(transaction?.redirectPath), { replace: true })}
         >
           {isSuccess ? t('paymentSuccessPage.backToMovie') : t('paymentSuccessPage.returnToMoviex')}
         </button>

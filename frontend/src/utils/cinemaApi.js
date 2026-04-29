@@ -9,13 +9,17 @@ const staticMoviesByTitle = new Map(
 );
 const staticCinemaById = new Map(cinemaBranches.map((cinema) => [cinema.id, cinema]));
 const localCinemaAssetOverrides = new Map([
+  ['mvx-011', {
+    posterUrl: '/posters/the-martian-poster.svg',
+    backdropUrl: '/posters/the-martian-backdrop.svg',
+  }],
   ['the martian', {
     posterUrl: '/posters/the-martian-poster.svg',
     backdropUrl: '/posters/the-martian-backdrop.svg',
   }],
 ]);
 
-export const DEFAULT_CINEMA_POSTER_URL = '/posters/p1.svg';
+export const DEFAULT_CINEMA_POSTER_URL = '/posters/movie-fallback.svg';
 export const DEFAULT_CINEMA_BACKDROP_URL = '/posters/p4.svg';
 
 const posterCache = new Map();
@@ -24,17 +28,20 @@ const backdropCache = new Map();
 const normalizeKey = (value) => String(value || '').trim().toLowerCase();
 
 const resolveLocalAssetOverride = (showtime, fallbackMovie) => {
-  const movieTitle = String(
-    showtime?.movieTitle
-      || fallbackMovie?.title
-      || ''
-  ).trim().toLowerCase();
+  const keys = [
+    showtime?.movieId,
+    fallbackMovie?.id,
+    showtime?.movieTitle,
+    fallbackMovie?.title,
+    fallbackMovie?.originalTitle,
+  ].map(normalizeKey).filter(Boolean);
 
-  if (!movieTitle) {
-    return null;
+  for (const key of keys) {
+    const override = localCinemaAssetOverrides.get(key);
+    if (override) return override;
   }
 
-  return localCinemaAssetOverrides.get(movieTitle) || null;
+  return null;
 };
 
 const hashText = (text) => {

@@ -28,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,25 @@ public class BookingService {
         BookingDraft draft = resolveBookingDraft(request);
 
         LocalDateTime now = LocalDateTime.now();
+
+        List<Booking> pendingBookings = bookingRepository.findByUserIdAndShowtimeIdAndBookingStatusOrderByCreatedAtDesc(
+                currentUser.getId(),
+                draft.showtime().getId(),
+                BookingStatus.PENDING
+        );
+        for (Booking pendingBooking : pendingBookings) {
+            if (!hasSameSeatSelection(pendingBooking, draft.bookingSeats())) {
+                continue;
+            }
+            if (pendingBooking.getHoldExpiresAt() == null || !pendingBooking.getHoldExpiresAt().isAfter(now)) {
+                continue;
+            }
+            if (!seatReservationService.hasActiveReservation(pendingBooking.getId())) {
+                continue;
+            }
+            return toBookingResponse(pendingBooking, null);
+        }
+
         Booking booking = new Booking();
         booking.setBookingCode(generateBookingCode());
         booking.setUserId(currentUser.getId());
@@ -245,6 +265,19 @@ public class BookingService {
             return SeatType.NORMAL;
         }
         return type;
+    }
+
+    private boolean hasSameSeatSelection(Booking booking, List<BookingSeat> requestedSeats) {
+        if (booking == null || booking.getSeats() == null) {
+            return false;
+        }
+        Set<String> existingSeatIds = booking.getSeats().stream()
+                .map(BookingSeat::getSeatId)
+                .collect(Collectors.toCollection(HashSet::new));
+        Set<String> requestedSeatIds = requestedSeats.stream()
+                .map(BookingSeat::getSeatId)
+                .collect(Collectors.toCollection(HashSet::new));
+        return existingSeatIds.equals(requestedSeatIds);
     }
 
     private String generateBookingCode() {

@@ -1,10 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaBookingSummary from '../components/CinemaBookingSummary';
 import CinemaModuleNav from '../components/CinemaModuleNav';
+import PageTransition from '../components/motion/PageTransition';
+import Reveal from '../components/motion/Reveal';
+import StaggerGroup from '../components/motion/StaggerGroup';
+import { useCinemaBooking } from '../context/CinemaBookingContext';
 import { fetchCinemaShowtimeDetail, quoteCinemaBooking } from '../utils/cinemaApi';
 
 const normalizeSeatType = (type) => {
@@ -48,7 +52,13 @@ function CinemaSeatSelection() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const showtimeId = location.state?.showtimeId;
+  const {
+    showtime: bookingShowtime,
+    seatIds: storedSeatIds,
+    setSelectedShowtime,
+    setSeatSelection,
+  } = useCinemaBooking();
+  const showtimeId = location.state?.showtimeId || bookingShowtime?.id;
 
   const [showtime, setShowtime] = useState(null);
   const [seatMap, setSeatMap] = useState([]);
@@ -59,9 +69,18 @@ function CinemaSeatSelection() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const storedSeatKey = useMemo(
+    () => (Array.isArray(storedSeatIds) ? storedSeatIds.join('|') : ''),
+    [storedSeatIds]
+  );
+
   useEffect(() => {
+    if (showtimeId && bookingShowtime?.id === showtimeId && storedSeatIds.length > 0) {
+      setSelectedSeats(storedSeatIds);
+      return;
+    }
     setSelectedSeats([]);
-  }, [showtimeId]);
+  }, [bookingShowtime?.id, showtimeId, storedSeatKey]);
 
   useEffect(() => {
     let active = true;
@@ -85,6 +104,7 @@ function CinemaSeatSelection() {
         if (!active) return;
 
         setShowtime(showtimeData);
+        setSelectedShowtime(showtimeData);
         setSeatMap(buildSeatRows(Array.isArray(seatData.data) ? seatData.data : []));
       } catch (fetchError) {
         if (active) {
@@ -118,6 +138,7 @@ function CinemaSeatSelection() {
     () => selectedSeats.map((id) => seatIndex.get(id)?.label || id),
     [selectedSeats, seatIndex]
   );
+  const selectedSeatLabelsKey = useMemo(() => selectedSeatLabels.join('|'), [selectedSeatLabels]);
 
   const selectedSeatKey = useMemo(() => selectedSeats.join('|'), [selectedSeats]);
 
@@ -162,6 +183,14 @@ function CinemaSeatSelection() {
   const totalPrice = useMemo(() => Number(bookingQuote?.total || 0), [bookingQuote?.total]);
   const checkoutDisabled = !selectedSeats.length || isQuoting || Boolean(quoteError) || !bookingQuote;
 
+  useEffect(() => {
+    setSeatSelection({
+      seatIds: selectedSeats,
+      seatLabels: selectedSeatLabels,
+      pricingBreakdown: bookingQuote,
+    });
+  }, [bookingQuote, selectedSeatKey, selectedSeatLabelsKey, setSeatSelection]);
+
   const toggleSeat = (seat) => {
     if (seat.status !== 'available') return;
     setSelectedSeats((current) =>
@@ -171,56 +200,48 @@ function CinemaSeatSelection() {
 
   const handleCheckout = () => {
     if (!showtime) return;
-
-    navigate('/cinema/checkout', {
-      state: {
-        showtimeId: showtime.id,
-        movieId: showtime.movieId,
-        movieTitle: showtime.movie.title,
-        cinemaId: showtime.cinemaId,
-        cinemaName: showtime.cinemaName,
-        auditoriumId: showtime.auditoriumId,
-        auditoriumName: showtime.auditoriumName,
-        showDate: showtime.showDate,
-        time: showtime.startTime,
-        seatIds: selectedSeats,
-        seats: selectedSeatLabels,
-        pricingBreakdown: bookingQuote,
-      },
+    setSelectedShowtime(showtime);
+    setSeatSelection({
+      seatIds: selectedSeats,
+      seatLabels: selectedSeatLabels,
+      pricingBreakdown: bookingQuote,
     });
+    navigate('/cinema/checkout');
   };
 
-  if (isLoading) {
-    return (
-      <div className="cinema-shell">
-        <div className="page-shell cinema-content">
-          <CinemaModuleNav />
-          <p className="cinema-empty">{t('common.loading')}</p>
-        </div>
+  const renderShell = (content) => (
+    <PageTransition as="div" className="cinema-shell">
+      <div className="page-shell cinema-content">
+        <CinemaModuleNav />
+        {content}
       </div>
-    );
+    </PageTransition>
+  );
+
+  if (isLoading) {
+    return renderShell(<p className="cinema-empty">{t('common.loading')}</p>);
   }
 
   if (!showtime || error) {
-    return (
-      <div className="cinema-shell">
-        <div className="page-shell cinema-content">
-          <CinemaModuleNav />
-          <p className="cinema-empty">{error || t('cinema.noShowtimes')}</p>
-          <Link to="/cinema/now-showing" className="btn btn-outline">
-            {t('cinema.navNowShowing')}
-          </Link>
-        </div>
-      </div>
+    return renderShell(
+      <>
+        <p className="cinema-empty">{error || t('cinema.noShowtimes')}</p>
+        <Link to="/cinema/now-showing" className="btn btn-outline">
+          {t('cinema.navNowShowing')}
+        </Link>
+      </>
     );
   }
 
   return (
-    <div className="cinema-shell">
+    <PageTransition as="div" className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
-        <CinemaBookingProgress currentStep="seats" />
-        <div className="cinema-page-header">
+        <Reveal delay={10}>
+          <CinemaBookingProgress currentStep="seats" />
+        </Reveal>
+
+        <Reveal className="cinema-page-header" delay={30} y={12}>
           <div>
             <p className="cinema-section-eyebrow">{t('cinema.selectSeats')}</p>
             <h1 className="cinema-title">{showtime.movie.title}</h1>
@@ -231,10 +252,10 @@ function CinemaSeatSelection() {
           <Link to={`/cinema/movie/${showtime.movieId}/showtimes`} className="btn btn-outline">
             {t('cinema.selectShowtime')}
           </Link>
-        </div>
+        </Reveal>
 
         <div className="cinema-seat-booking-layout">
-          <section className="cinema-seat-layout cinema-seat-map-panel" aria-label={t('cinema.selectSeats')}>
+          <Reveal as="section" className="cinema-seat-layout cinema-seat-map-panel" delay={50} aria-label={t('cinema.selectSeats')}>
             <div className="cinema-seat-map-head">
               <div>
                 <p className="cinema-section-eyebrow">{t('cinema.flowStep.seats')}</p>
@@ -244,9 +265,13 @@ function CinemaSeatSelection() {
             </div>
 
             <div className="cinema-screen">{t('cinema.screen')}</div>
-            <div className="cinema-seat-grid">
-              {seatMap.map((row) => (
-                <div key={row.row} className="cinema-seat-row">
+            <StaggerGroup className="cinema-seat-grid" threshold={0.02}>
+              {seatMap.map((row, rowIndex) => (
+                <div
+                  key={row.row}
+                  className="cinema-seat-row mx-stagger-item"
+                  style={{ '--motion-item-delay': `${Math.min(rowIndex, 9) * 34}ms` }}
+                >
                   <span>{row.row}</span>
                   <div
                     className="cinema-seat-row-items"
@@ -261,10 +286,11 @@ function CinemaSeatSelection() {
                         <button
                           key={seat.id}
                           type="button"
-                          className={seatClass}
+                          className={`${seatClass} mx-pressable`}
                           onClick={() => toggleSeat(seat)}
                           disabled={seat.status !== 'available'}
                           title={`${seat.label} ${String(seat.type || 'normal').toUpperCase()}`}
+                          aria-pressed={isSelected}
                         >
                           {seat.label}
                         </button>
@@ -273,7 +299,7 @@ function CinemaSeatSelection() {
                   </div>
                 </div>
               ))}
-            </div>
+            </StaggerGroup>
             <div className="cinema-seat-legend cinema-seat-legend-clear">
               <span><i className="legend-dot available" /> {t('cinema.legendAvailable')}</span>
               <span><i className="legend-dot selected" /> {t('cinema.legendSelected')}</span>
@@ -283,34 +309,35 @@ function CinemaSeatSelection() {
               <span className="legend-chip vip">{t('cinema.legendVip')}</span>
               <span className="legend-chip couple">{t('cinema.legendCouple')}</span>
             </div>
-          </section>
+          </Reveal>
 
-          <CinemaBookingSummary
-            movieTitle={showtime.movie.title}
-            cinemaName={showtime.cinemaName}
-            auditoriumName={showtime.auditoriumName}
-            showDate={showtime.showDate}
-            time={showtime.startTime}
-            selectedSeats={selectedSeatLabels}
-            pricingBreakdown={bookingQuote}
-            total={totalPrice}
-            isLoadingPrices={isQuoting}
-            priceError={quoteError}
-            actionLabel={t('cinema.ctaCheckout')}
-            actionDisabled={checkoutDisabled}
-            onAction={handleCheckout}
-          >
-            {selectedSeats.length > 0 && !quoteError && (
-              <p className="cinema-price-note">
-                {t('cinema.priceIsCalculatedByBackendAndWillBeVerifiedAgainAtCheckout')}
-              </p>
-            )}
-          </CinemaBookingSummary>
+          <Reveal delay={70} y={10}>
+            <CinemaBookingSummary
+              movieTitle={showtime.movie.title}
+              cinemaName={showtime.cinemaName}
+              auditoriumName={showtime.auditoriumName}
+              showDate={showtime.showDate}
+              time={showtime.startTime}
+              selectedSeats={selectedSeatLabels}
+              pricingBreakdown={bookingQuote}
+              total={totalPrice}
+              isLoadingPrices={isQuoting}
+              priceError={quoteError}
+              actionLabel={t('cinema.ctaCheckout')}
+              actionDisabled={checkoutDisabled}
+              onAction={handleCheckout}
+            >
+              {selectedSeats.length > 0 && !quoteError && (
+                <p className="cinema-price-note">
+                  {t('cinema.priceIsCalculatedByBackendAndWillBeVerifiedAgainAtCheckout')}
+                </p>
+              )}
+            </CinemaBookingSummary>
+          </Reveal>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
 
 export default CinemaSeatSelection;
-

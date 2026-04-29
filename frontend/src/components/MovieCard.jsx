@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IMAGE_FALLBACK, resolvePosterUrl } from '../utils/media';
 import { getYouTubeThumbnail } from '../utils/youtube';
 
 const isDirectVideoUrl = (url) => {
@@ -9,12 +10,8 @@ const isDirectVideoUrl = (url) => {
 
 function MovieCardImpl({ movie, onPlay, progress }) {
   const { t } = useTranslation();
-  const fallbackPoster = '/posters/p1.svg';
-
-  if (!movie || !movie.id) {
-    return null;
-  }
-
+  const fallbackPoster = IMAGE_FALLBACK;
+  const movieId = movie ? String(movie.id ?? movie._id ?? movie.movieId ?? '').trim() : '';
   const videoRef = useRef(null);
   const hoverTimerRef = useRef(null);
   const previewStopTimerRef = useRef(null);
@@ -23,18 +20,18 @@ function MovieCardImpl({ movie, onPlay, progress }) {
 
   // Keep hover previews lightweight: use image thumbnail for YouTube trailers.
   const previewVideoSrc = useMemo(
-    () => (isDirectVideoUrl(movie.trailerUrl) ? movie.trailerUrl : ''),
-    [movie.trailerUrl]
+    () => (isDirectVideoUrl(movie?.trailerUrl) ? movie.trailerUrl : ''),
+    [movie?.trailerUrl]
   );
   const [posterSrc, setPosterSrc] = useState(() => (
-    movie.posterUrl || movie.image || getYouTubeThumbnail(movie.trailerUrl) || fallbackPoster
+    resolvePosterUrl(movie, fallbackPoster)
   ));
   const shouldPlayVideoPreview = Boolean(previewMode === 'video' && previewVideoSrc);
 
   useEffect(() => {
-    const nextPoster = movie.posterUrl || movie.image || getYouTubeThumbnail(movie.trailerUrl) || fallbackPoster;
+    const nextPoster = resolvePosterUrl(movie, fallbackPoster);
     setPosterSrc(nextPoster);
-  }, [movie.posterUrl, movie.image, movie.trailerUrl]);
+  }, [movie?.id, movie?._id, movie?.movieId, movie?.title, movie?.posterUrl, movie?.image, movie?.trailerUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -90,13 +87,13 @@ function MovieCardImpl({ movie, onPlay, progress }) {
 
   const handlePlay = (event) => {
     event.stopPropagation();
-    onPlay(movie);
+    onPlay(resolvedMovie);
   };
 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onPlay(movie);
+      onPlay(resolvedMovie);
     }
   };
 
@@ -105,10 +102,16 @@ function MovieCardImpl({ movie, onPlay, progress }) {
       ? Math.min(100, Math.floor((progress.currentTime / progress.duration) * 100))
       : 0;
 
+  if (!movie || !movieId) {
+    return null;
+  }
+
+  const resolvedMovie = movie.id === movieId ? movie : { ...movie, id: movieId };
+
   return (
     <div
-      className="group flex w-full flex-col gap-3"
-      id={`movie-card-${movie.id}`}
+      className="group movie-card-premium mx-pressable flex w-full flex-col gap-3"
+      id={`movie-card-${movieId}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handlePlay}
@@ -120,11 +123,11 @@ function MovieCardImpl({ movie, onPlay, progress }) {
       data-hovered={isHovered}
       aria-label={t('movie.openDetailsFor', { title: movie.title })}
     >
-      <div className="relative aspect-[2/3] overflow-hidden rounded-2xl border border-white/10 bg-carbon/60 shadow-card">
+      <div className="movie-card-surface relative aspect-[2/3] overflow-hidden rounded-2xl border border-white/10 bg-carbon/60 shadow-card">
         {shouldPlayVideoPreview ? (
           <video
             ref={videoRef}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            className="movie-card-media-asset h-full w-full object-cover"
             src={previewVideoSrc}
             poster={posterSrc || fallbackPoster}
             muted
@@ -133,7 +136,7 @@ function MovieCardImpl({ movie, onPlay, progress }) {
           />
         ) : (
           <img
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            className="movie-card-media-asset h-full w-full object-cover"
             src={posterSrc || fallbackPoster}
             alt={movie.title}
             loading="lazy"
@@ -146,13 +149,13 @@ function MovieCardImpl({ movie, onPlay, progress }) {
             }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
-        <div className="absolute inset-0 flex items-end justify-between p-4 opacity-0 transition duration-300 group-hover:opacity-100">
+        <div className="movie-card-overlay-layer absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="movie-card-overlay-content-premium absolute inset-0 flex items-end justify-between p-4">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.2em] text-slate">Play</p>
             <h3 className="text-sm font-semibold text-white">{movie.title}</h3>
           </div>
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur">
+          <span className="movie-card-cta inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur">
             <svg viewBox="0 0 24 24" className="h-5 w-5 text-white">
               <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
             </svg>
@@ -163,7 +166,7 @@ function MovieCardImpl({ movie, onPlay, progress }) {
         <h3 className="text-sm font-semibold text-white">{movie.title}</h3>
         <div className="text-xs text-slate">
           <span>{movie.genre}</span>
-          {movie.year && <span className="mx-2 text-slate/60">•</span>}
+          {movie.year && <span className="mx-2 text-slate/60">|</span>}
           <span>{movie.year}</span>
         </div>
         {progressPercent > 0 && (

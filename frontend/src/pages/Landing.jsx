@@ -9,6 +9,15 @@ import { PLAN_OPTIONS, formatVnd } from '../utils/payment';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const resolveSafeRedirectPath = (redirect) => {
+  if (typeof redirect !== 'string') return '/browse';
+  const trimmed = redirect.trim();
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.includes('\\')) {
+    return '/browse';
+  }
+  return trimmed;
+};
+
 function Landing() {
   const { user, getToken, loading, login } = useAuth();
   const { t } = useTranslation();
@@ -34,8 +43,7 @@ function Landing() {
   const isAuthed = useMemo(() => Boolean(user && getToken()), [user, getToken]);
   const redirectTarget = useMemo(() => {
     const redirect = searchParams.get('redirect');
-    if (redirect && redirect.startsWith('/')) return redirect;
-    return '/browse';
+    return resolveSafeRedirectPath(redirect);
   }, [searchParams]);
   const genderOptions = useMemo(
     () => [
@@ -454,7 +462,7 @@ function Landing() {
                   loading="lazy"
                   className="h-full w-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = '/posters/p1.svg';
+                    e.currentTarget.src = '/posters/movie-fallback.svg';
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />

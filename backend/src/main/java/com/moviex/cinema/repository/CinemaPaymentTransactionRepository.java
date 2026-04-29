@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface CinemaPaymentTransactionRepository extends MongoRepository<PaymentTransaction, String> {
     Optional<PaymentTransaction> findByTxnCode(String txnCode);
     Optional<PaymentTransaction> findByBookingIdAndStatus(String bookingId, CinemaPaymentStatus status);
+    List<PaymentTransaction> findByBookingIdInOrderByCreatedAtDesc(List<String> bookingIds);
     List<PaymentTransaction> findAllByOrderByCreatedAtDesc();
 }

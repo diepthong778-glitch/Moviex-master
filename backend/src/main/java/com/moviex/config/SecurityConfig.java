@@ -102,7 +102,8 @@ public class SecurityConfig {
                         "/api/auth/register",
                         "/api/auth/email-exists",
                         "/api/auth/verify",
-                        "/api/auth/forgot-password"
+                        "/api/auth/forgot-password",
+                        "/api/ai/**"
                     ).permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/error").permitAll()

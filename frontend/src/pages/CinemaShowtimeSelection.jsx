@@ -1,9 +1,13 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
 import CinemaImage from '../components/CinemaImage';
+import PageTransition from '../components/motion/PageTransition';
+import Reveal from '../components/motion/Reveal';
+import StaggerGroup from '../components/motion/StaggerGroup';
+import { useCinemaBooking } from '../context/CinemaBookingContext';
 import { formatShortDate, getTodayWeekIndex, getWeekDates } from '../utils/cinema';
 import {
   DEFAULT_CINEMA_POSTER_URL,
@@ -18,6 +22,13 @@ function CinemaShowtimeSelection() {
   const navigate = useNavigate();
   const location = useLocation();
   const locale = i18n.language || 'en-US';
+  const {
+    showtime: bookingShowtime,
+    setSelectedShowtime,
+    clearSeatSelection,
+    clearCheckoutSession,
+  } = useCinemaBooking();
+
   const weekDates = useMemo(
     () => getWeekDates([
       t('cinema.weekdayMonday'),
@@ -36,14 +47,18 @@ function CinemaShowtimeSelection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const defaultDayIndex = location.state?.showDate
-    ? weekDates.find((day) => isoDateFromWeekDate(day.date) === location.state.showDate)?.key ?? getTodayWeekIndex()
+  const defaultDateSource = bookingShowtime?.showDate || location.state?.showDate;
+  const defaultDayIndex = defaultDateSource
+    ? weekDates.find((day) => isoDateFromWeekDate(day.date) === defaultDateSource)?.key ?? getTodayWeekIndex()
     : getTodayWeekIndex();
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(defaultDayIndex);
-  const [selectedCinemaId, setSelectedCinemaId] = useState(location.state?.cinemaId || '');
-  const [selectedTime, setSelectedTime] = useState(location.state?.time || null);
-  const [selectedShowtimeId, setSelectedShowtimeId] = useState(location.state?.showtimeId || null);
+  const [selectedCinemaId, setSelectedCinemaId] = useState(
+    bookingShowtime?.cinemaId || location.state?.cinemaId || ''
+  );
+  const [selectedShowtimeId, setSelectedShowtimeId] = useState(
+    bookingShowtime?.id || location.state?.showtimeId || null
+  );
 
   useEffect(() => {
     let ignore = false;
@@ -81,7 +96,7 @@ function CinemaShowtimeSelection() {
     return () => {
       ignore = true;
     };
-  }, [movieId]);
+  }, [movieId, t]);
 
   const movie = useMemo(() => allShowtimes[0]?.movie || null, [allShowtimes]);
 
@@ -91,78 +106,70 @@ function CinemaShowtimeSelection() {
   }, [weekDates, selectedDayIndex]);
 
   const filteredShowtimes = useMemo(() => {
-    return allShowtimes.filter((showtime) => {
-      if (selectedCinemaId && showtime.cinemaId !== selectedCinemaId) return false;
-      if (selectedDayIso && showtime.showDate !== selectedDayIso) return false;
-      return true;
-    });
+    return allShowtimes
+      .filter((showtime) => {
+        if (selectedCinemaId && showtime.cinemaId !== selectedCinemaId) return false;
+        if (selectedDayIso && showtime.showDate !== selectedDayIso) return false;
+        return true;
+      })
+      .sort((left, right) => left.startTime.localeCompare(right.startTime));
   }, [allShowtimes, selectedCinemaId, selectedDayIso]);
 
   useEffect(() => {
     if (!filteredShowtimes.length) {
-      setSelectedTime(null);
       setSelectedShowtimeId(null);
       return;
     }
 
-    const preferred = filteredShowtimes.find((showtime) => showtime.id === selectedShowtimeId)
-      || filteredShowtimes.find((showtime) => showtime.startTime === selectedTime)
-      || filteredShowtimes[0];
+    const selectedStillValid = filteredShowtimes.some((showtime) => showtime.id === selectedShowtimeId);
+    if (!selectedStillValid) {
+      setSelectedShowtimeId(filteredShowtimes[0].id);
+    }
+  }, [filteredShowtimes, selectedShowtimeId]);
 
-    setSelectedShowtimeId(preferred.id);
-    setSelectedTime(preferred.startTime);
-  }, [filteredShowtimes, selectedShowtimeId, selectedTime]);
+  const selectedShowtime = useMemo(
+    () => filteredShowtimes.find((showtime) => showtime.id === selectedShowtimeId) || null,
+    [filteredShowtimes, selectedShowtimeId]
+  );
 
   const handleContinue = () => {
-    const selectedShowtime = filteredShowtimes.find((showtime) => showtime.id === selectedShowtimeId);
     if (!selectedShowtime) return;
-
-    navigate('/cinema/seats', {
-      state: {
-        showtimeId: selectedShowtime.id,
-      },
-    });
+    setSelectedShowtime(selectedShowtime);
+    clearSeatSelection();
+    clearCheckoutSession();
+    navigate('/cinema/seats');
   };
 
-  if (loading) {
-    return (
-      <div className="cinema-shell">
-        <div className="page-shell cinema-content">
-          <CinemaModuleNav />
-          <p className="cinema-empty">{t('common.loading')}</p>
-        </div>
+  const renderShell = (content) => (
+    <PageTransition as="div" className="cinema-shell">
+      <div className="page-shell cinema-content">
+        <CinemaModuleNav />
+        {content}
       </div>
-    );
+    </PageTransition>
+  );
+
+  if (loading) {
+    return renderShell(<p className="cinema-empty">{t('common.loading')}</p>);
   }
 
   if (error) {
-    return (
-      <div className="cinema-shell">
-        <div className="page-shell cinema-content">
-          <CinemaModuleNav />
-          <p className="cinema-empty">{error}</p>
-        </div>
-      </div>
-    );
+    return renderShell(<p className="cinema-empty">{error}</p>);
   }
 
   if (!movie) {
-    return (
-      <div className="cinema-shell">
-        <div className="page-shell cinema-content">
-          <CinemaModuleNav />
-          <p className="cinema-empty">{t('common.unknownMovie')}</p>
-        </div>
-      </div>
-    );
+    return renderShell(<p className="cinema-empty">{t('common.unknownMovie')}</p>);
   }
 
   return (
-    <div className="cinema-shell">
+    <PageTransition as="div" className="cinema-shell">
       <div className="page-shell cinema-content">
         <CinemaModuleNav />
-        <CinemaBookingProgress currentStep="showtime" />
-        <div className="cinema-page-header cinema-page-header-rich">
+        <Reveal delay={10}>
+          <CinemaBookingProgress currentStep="showtime" />
+        </Reveal>
+
+        <Reveal className="cinema-page-header cinema-page-header-rich" delay={30} y={12}>
           <div className="cinema-movie-summary">
             <CinemaImage
               src={movie.posterUrl}
@@ -177,90 +184,77 @@ function CinemaShowtimeSelection() {
                 <p className="cinema-original-title">{movie.originalTitle}</p>
               )}
               <p className="cinema-subtitle">
-                {movie.genre} • {movie.runtime} • {movie.ageRating || t('common.unknown')} • {movie.releaseYear || t('common.unknown')}
+                {movie.genre} | {movie.runtime} | {movie.ageRating || t('common.unknown')}
               </p>
               <p className="cinema-card-synopsis">{movie.shortSynopsis}</p>
             </div>
           </div>
           <Link to={`/cinema/movie/${movie.id}`} className="btn btn-outline">
+            {t('cinema.movieInformation')}
+          </Link>
+        </Reveal>
+
+        <Reveal as="section" className="cinema-step-card" delay={50}>
+          <h3>{t('cinema.selectShowtime')}</h3>
+
+          <div className="admin-form-grid" style={{ marginBottom: '16px' }}>
+            <select
+              className="field-control"
+              value={selectedCinemaId}
+              onChange={(event) => setSelectedCinemaId(event.target.value)}
+            >
+              {cinemas.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name} - {branch.city}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="field-control"
+              value={selectedDayIndex}
+              onChange={(event) => setSelectedDayIndex(Number(event.target.value))}
+            >
+              {weekDates.map((day) => (
+                <option key={day.key} value={day.key}>
+                  {day.label} - {formatShortDate(day.date, locale)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {filteredShowtimes.length === 0 ? (
+            <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
+          ) : (
+            <StaggerGroup className="cinema-option-grid">
+              {filteredShowtimes.map((showtime, index) => (
+                <button
+                  key={showtime.id}
+                  type="button"
+                  className={`cinema-option mx-stagger-item mx-pressable${selectedShowtimeId === showtime.id ? ' is-active' : ''}`}
+                  style={{ '--motion-item-delay': `${Math.min(index, 7) * 45}ms` }}
+                  onClick={() => setSelectedShowtimeId(showtime.id)}
+                >
+                  <strong>{showtime.startTime} - {showtime.endTime}</strong>
+                  <span>{showtime.cinemaName}</span>
+                  <span>{showtime.auditoriumName}</span>
+                </button>
+              ))}
+            </StaggerGroup>
+          )}
+        </Reveal>
+
+        <Reveal className="cinema-action-bar" delay={70} y={10}>
+          <Link to="/cinema/now-showing" className="btn btn-outline">
             {t('cinema.navNowShowing')}
           </Link>
-        </div>
-
-        <div className="cinema-step-grid">
-          <div className="cinema-step-card">
-            <span className="cinema-step-number">2</span>
-            <h3>{t('cinema.selectCinema')}</h3>
-            <div className="cinema-option-grid">
-              {cinemas.map((branch) => (
-                <button
-                  key={branch.id}
-                  type="button"
-                  className={`cinema-option${selectedCinemaId === branch.id ? ' is-active' : ''}`}
-                  onClick={() => setSelectedCinemaId(branch.id)}
-                >
-                  <strong>{branch.name}</strong>
-                  <span>{branch.city}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="cinema-step-card">
-            <span className="cinema-step-number">3</span>
-            <h3>{t('cinema.selectDate')}</h3>
-            <div className="cinema-week-tabs compact">
-              {weekDates.map((day) => (
-                <button
-                  key={day.key}
-                  type="button"
-                  className={`cinema-week-tab${selectedDayIndex === day.key ? ' is-active' : ''}`}
-                  onClick={() => setSelectedDayIndex(day.key)}
-                >
-                  <span>{day.label}</span>
-                  <strong>{formatShortDate(day.date, locale)}</strong>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="cinema-step-card">
-            <span className="cinema-step-number">4</span>
-            <h3>{t('cinema.selectShowtime')}</h3>
-            {filteredShowtimes.length === 0 ? (
-              <p className="cinema-empty">{t('cinema.noShowtimes')}</p>
-            ) : (
-              <div className="cinema-time-grid">
-                {filteredShowtimes.map((showtime) => (
-                  <button
-                    key={showtime.id}
-                    type="button"
-                    className={`cinema-time-chip${selectedShowtimeId === showtime.id ? ' is-active' : ''}`}
-                    onClick={() => {
-                      setSelectedShowtimeId(showtime.id);
-                      setSelectedTime(showtime.startTime);
-                    }}
-                  >
-                    {showtime.startTime} - {showtime.auditoriumName}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="cinema-action-bar">
-          <Link to="/cinema" className="btn btn-outline">
-            {t('cinema.backToCinema')}
-          </Link>
-          <button type="button" className="btn btn-primary" onClick={handleContinue} disabled={!selectedTime}>
+          <button type="button" className="btn btn-primary" onClick={handleContinue} disabled={!selectedShowtime}>
             {t('cinema.ctaSelectSeats')}
           </button>
-        </div>
+        </Reveal>
       </div>
-    </div>
+    </PageTransition>
   );
 }
 
 export default CinemaShowtimeSelection;
-

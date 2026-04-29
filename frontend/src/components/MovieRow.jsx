@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { IMAGE_FALLBACK, resolvePosterUrl } from '../utils/media';
 
-const fallbackPoster = '/posters/p1.svg';
+const fallbackPoster = IMAGE_FALLBACK;
 
 function MovieRow({ title, subtitle, items = [], actionHref = '/browse' }) {
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ function MovieRow({ title, subtitle, items = [], actionHref = '/browse' }) {
           >
             <div className="relative aspect-[2/3] overflow-hidden">
               <img
-                src={item?.poster || item?.posterUrl || item?.image || fallbackPoster}
+                src={resolvePosterUrl(item, fallbackPoster)}
                 alt={item?.title || t('movieRow.posterAlt')}
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"

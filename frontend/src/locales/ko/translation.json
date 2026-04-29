@@ -684,7 +684,7 @@
     "movieInfo": "Movie Info",
     "showtimesToday": "Showtimes Today",
     "cinemaBranches": "Cinema Branches",
-    "branchShowSummary": "{{branchCount}} branches ? {{showCount}} showtimes",
+    "branchShowSummary": "{{branchCount}} branches | {{showCount}} showtimes",
     "moviesThisWeek": "Movies This Week",
     "moreMovies": "+{{count}} more movies",
     "availableCinemaLocations": "Available Cinema Locations",
@@ -824,6 +824,6 @@
     "ticketBarcodePreview": "Ticket barcode style preview",
     "loadTicketDataFailed": "Unable to load ticket data.",
     "loadTicketDetailFailed": "Unable to load ticket detail.",
-    "moviesShowtimesSummary": "{{movieCount}} movies ? {{showtimeCount}} showtimes"
+    "moviesShowtimesSummary": "{{movieCount}} movies | {{showtimeCount}} showtimes"
   }
 }

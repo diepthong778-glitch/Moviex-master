@@ -46,11 +46,19 @@ public class MovieServiceImpl implements MovieService {
         return new MovieDto(
             movie.getId(),
             movie.getTitle(),
+            movie.getOriginalTitle(),
             movie.getGenre(),
             movie.getYear(),
             movie.getDescription(),
             movie.getVideoUrl(),
             movie.getTrailerUrl(),
+            movie.getPosterUrl(),
+            movie.getBackdropUrl(),
+            movie.getRuntimeMinutes(),
+            movie.getAgeRating(),
+            movie.getDirector(),
+            movie.getCast(),
+            movie.getLanguage(),
             movie.getRequiredSubscription()
         );
     }

@@ -1,0 +1,23 @@
+<svg width="720" height="1080" viewBox="0 0 720 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="90" y1="40" x2="640" y2="1040" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171B2E"/>
+      <stop offset="0.52" stop-color="#2A3148"/>
+      <stop offset="1" stop-color="#121521"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(560 180) rotate(126.87) scale(280 220)">
+      <stop stop-color="#E50914" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#E50914" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="720" height="1080" rx="40" fill="url(#bg)"/>
+  <rect width="720" height="1080" rx="40" fill="url(#glow)"/>
+  <rect x="76" y="88" width="568" height="904" rx="34" fill="#0C0F19" fill-opacity="0.45" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M234 392C234 366.595 254.595 346 280 346H440C465.405 346 486 366.595 486 392V624C486 649.405 465.405 670 440 670H280C254.595 670 234 649.405 234 624V392Z" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="8"/>
+  <path d="M323 454L424 508L323 562V454Z" fill="#E50914"/>
+  <g fill="#F6F7FB" font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="360" y="800" font-size="34" letter-spacing="10">MOVIEX</text>
+    <text x="360" y="888" font-size="68" font-weight="700">POSTER</text>
+    <text x="360" y="948" font-size="30" opacity="0.72">COMING SOON</text>
+  </g>
+</svg>

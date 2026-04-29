@@ -1,7 +1,11 @@
 import { getYouTubeThumbnail } from './youtube';
 
-const FALLBACK_POSTER = '/posters/p1.svg';
+const FALLBACK_POSTER = '/posters/movie-fallback.svg';
 const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || '';
+const LOCAL_POSTER_OVERRIDES = new Map([
+  ['mvx-011', '/posters/the-martian-poster.svg'],
+  ['the martian', '/posters/the-martian-poster.svg'],
+]);
 
 const applyBaseUrl = (url) => {
   if (!url) return '';
@@ -16,6 +20,20 @@ const applyBaseUrl = (url) => {
 
 export const resolvePosterUrl = (item, fallback = FALLBACK_POSTER) => {
   if (!item) return fallback;
+
+  const overrideKeys = [
+    item.id,
+    item._id,
+    item.movieId,
+    item.title,
+    item.originalTitle,
+    item.name,
+  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+
+  for (const key of overrideKeys) {
+    const override = LOCAL_POSTER_OVERRIDES.get(key);
+    if (override) return override;
+  }
 
   const candidates = [
     item.poster,

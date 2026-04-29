@@ -4,6 +4,7 @@ import com.moviex.cinema.dto.BookingResponse;
 import com.moviex.cinema.dto.CinemaPaymentTransactionResponse;
 import com.moviex.cinema.dto.CreatePaymentRequest;
 import com.moviex.cinema.service.CinemaPaymentService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ public class CinemaPaymentController {
     }
 
     @PostMapping
-    public ResponseEntity<BookingResponse> createPayment(@RequestBody CreatePaymentRequest request) {
+    public ResponseEntity<BookingResponse> createPayment(@Valid @RequestBody CreatePaymentRequest request) {
         return ResponseEntity.ok(paymentService.createPayment(request));
     }
 

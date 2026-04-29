@@ -1,15 +1,19 @@
 import axios from 'axios';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { authHeaders } from '../utils/api';
 import { getYouTubeEmbedUrl } from '../utils/youtube';
+
+const TRAILER_EMBED_TIMEOUT_MS = 4200;
+const TRAILER_FALLBACK_IMAGE = '/posters/p4.svg';
 
 function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
   const { getToken, user } = useAuth();
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [trailerStatus, setTrailerStatus] = useState('unavailable');
   const trailerEmbedUrl = movie.trailerUrl
     ? getYouTubeEmbedUrl(movie.trailerUrl, {
         autoplay: 0,
@@ -19,6 +23,26 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
         playsinline: 1,
       })
     : '';
+  const trailerFallbackImage = movie.backdropUrl || movie.posterUrl || movie.image || TRAILER_FALLBACK_IMAGE;
+
+  useEffect(() => {
+    if (!trailerEmbedUrl) {
+      setTrailerStatus('unavailable');
+      return;
+    }
+
+    setTrailerStatus('loading');
+  }, [trailerEmbedUrl, movie.id]);
+
+  useEffect(() => {
+    if (trailerStatus !== 'loading') return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setTrailerStatus((current) => (current === 'loading' ? 'failed' : current));
+    }, TRAILER_EMBED_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [trailerStatus, trailerEmbedUrl]);
 
   const translatePlanLabel = (plan) => t(`common.plansLabel.${plan || 'NONE'}`);
   const requiredPlan = String(movie.requiredSubscription || 'BASIC').toUpperCase();
@@ -84,17 +108,25 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
           </button>
         </div>
 
-        {trailerEmbedUrl && (
-          <div className="detail-trailer">
+        <div className="detail-trailer detail-trailer-shell">
+          <img
+            className="detail-trailer-fallback"
+            src={trailerFallbackImage}
+            alt=""
+            loading="lazy"
+          />
+          {(trailerStatus === 'loading' || trailerStatus === 'ready') && trailerEmbedUrl && (
             <iframe
-              className="detail-trailer-frame"
+              className={`detail-trailer-frame${trailerStatus === 'ready' ? ' is-ready' : ''}`}
               src={trailerEmbedUrl}
               title={`${movie.title} trailer`}
               allow="autoplay; encrypted-media; picture-in-picture"
               loading="lazy"
+              onLoad={() => setTrailerStatus((current) => (current === 'loading' ? 'ready' : current))}
+              onError={() => setTrailerStatus('failed')}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         <p className="detail-description">
           {movie.description || t('movie.noSynopsis')}

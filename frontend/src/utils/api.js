@@ -9,10 +9,13 @@ if (apiBaseUrl) {
 
 const PUBLIC_API_PATH_PREFIXES = [
   '/api/movies',
+  '/api/ai',
   '/api/payment/public',
+  '/api/cinema/payments/public',
   '/api/cinema/showtimes',
   '/api/cinema/cinemas',
   '/api/cinema/auditoriums',
+  '/api/cinema/tickets/validate',
 ];
 const PUBLIC_API_EXACT_PATHS = [
   '/api/auth/login',
@@ -55,6 +58,47 @@ export const buildWebSocketUrl = (path = '') => {
 
 const isJsonLikeValue = (value) => {
   return typeof value === 'string' && value.trim() !== '';
+};
+
+const readNestedValue = (obj, path) => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  return path.reduce((current, key) => {
+    if (current == null || typeof current !== 'object') return undefined;
+    return current[key];
+  }, obj);
+};
+
+export const extractErrorMessage = (error, fallback = 'Request failed') => {
+  if (!error) return fallback;
+  if (typeof error === 'string' && error.trim()) return error;
+
+  const candidates = [
+    readNestedValue(error, ['response', 'data', 'message']),
+    readNestedValue(error, ['response', 'data', 'error']),
+    readNestedValue(error, ['data', 'message']),
+    error?.message,
+  ];
+
+  const resolved = candidates.find((value) => typeof value === 'string' && value.trim());
+  return resolved || fallback;
+};
+
+export const normalizeApiError = (error, fallbackMessage = 'Request failed') => {
+  if (error instanceof Error) {
+    if (!error.message || !error.message.trim()) {
+      error.message = extractErrorMessage(error, fallbackMessage);
+    }
+    return error;
+  }
+
+  const message = extractErrorMessage(error, fallbackMessage);
+  const normalized = new Error(message);
+  normalized.name = 'ApiError';
+  normalized.code = error?.code || error?.response?.status || 'API_ERROR';
+  normalized.status = error?.response?.status;
+  normalized.data = error?.response?.data ?? error?.data ?? error;
+  normalized.originalError = error;
+  return normalized;
 };
 
 export const parseStoredJson = (value, fallback = null) => {
@@ -129,6 +173,9 @@ export const cachedGet = async (url, options = {}) => {
       getCache.set(key, { timestamp: Date.now(), value: response.data });
       return response.data;
     })
+    .catch((error) => {
+      throw normalizeApiError(error);
+    })
     .finally(() => {
       inflightGetRequests.delete(key);
     });
@@ -158,8 +205,7 @@ const resolveRequestPath = (config = {}) => {
   const requestUrl = config.url || '';
   const baseUrl = config.baseURL || '';
 
-  const isAbsolute = /^https?:\/\//i.test(requestUrl);
-  if (isAbsolute) {
+  if (/^https?:\/\//i.test(requestUrl)) {
     try {
       return new URL(requestUrl).pathname;
     } catch {
@@ -167,10 +213,15 @@ const resolveRequestPath = (config = {}) => {
     }
   }
 
-  const normalizedBase = baseUrl ? `/${String(baseUrl).replace(/^\/+|\/+$/g, '')}` : '';
-  const normalizedPath = requestUrl ? `/${String(requestUrl).replace(/^\/+/, '')}` : '';
-  const joinedPath = `${normalizedBase}${normalizedPath}`;
-  return joinedPath || requestUrl;
+  if (/^https?:\/\//i.test(baseUrl)) {
+    try {
+      return new URL(requestUrl || '/', `${baseUrl.replace(/\/+$/, '')}/`).pathname;
+    } catch {
+      return requestUrl;
+    }
+  }
+
+  return normalizePath(requestUrl);
 };
 
 const isPublicApiPath = (path) => {
@@ -211,12 +262,12 @@ export const setupAxiosInterceptors = () => {
         redirectToLogin();
         const error = new Error('Missing authentication token');
         error.code = 'AUTH_TOKEN_MISSING';
-        return Promise.reject(error);
+        return Promise.reject(normalizeApiError(error, 'Missing authentication token'));
       }
 
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(normalizeApiError(error))
   );
 
   axios.interceptors.response.use(
@@ -228,7 +279,7 @@ export const setupAxiosInterceptors = () => {
         redirectToLogin();
       }
 
-      return Promise.reject(error);
+      return Promise.reject(normalizeApiError(error));
     }
   );
 };

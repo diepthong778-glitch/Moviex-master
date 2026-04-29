@@ -10,6 +10,7 @@ const isDirectVideoUrl = (url) => {
 
 const WATCH_PROGRESS_KEY = 'moviex.watch.progress';
 const SUBTITLE_LANGUAGE_STORAGE_KEY = 'moviex.subtitle.language';
+const YOUTUBE_PLAYER_TIMEOUT_MS = 4500;
 
 const readProgressMap = () => {
   const raw = localStorage.getItem(WATCH_PROGRESS_KEY);
@@ -26,12 +27,15 @@ const writeProgressMap = (map) => {
 };
 
 function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], onPlayMovie, onProgress }) {
+  const safeMovie = movie || {};
+  const movieId = String(safeMovie.id || '').trim();
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const { t, i18n } = useTranslation();
   const [resumeSeconds, setResumeSeconds] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState('');
+  const [youtubeStatus, setYouTubeStatus] = useState('unavailable');
   const [subtitleEnabled, setSubtitleEnabled] = useState(
     () => localStorage.getItem('moviex.subtitle.enabled') !== 'false'
   );
@@ -39,20 +43,14 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
     () => localStorage.getItem(SUBTITLE_LANGUAGE_STORAGE_KEY) || localStorage.getItem('moviex.language') || i18n.resolvedLanguage || 'en'
   );
 
-  // All hooks must be declared BEFORE any early returns
-  // Now do validation after hooks are initialized
-  if (!movie || !movie.id) {
-    return null;
-  }
-
   const playback = useMemo(() => {
-    if (isDirectVideoUrl(movie.videoUrl)) {
-      return { type: 'video', src: movie.videoUrl };
+    if (isDirectVideoUrl(safeMovie.videoUrl)) {
+      return { type: 'video', src: safeMovie.videoUrl };
     }
 
-    const trailerId = extractYouTubeVideoId(movie.trailerUrl);
+    const trailerId = extractYouTubeVideoId(safeMovie.trailerUrl);
     if (trailerId) {
-      const url = getYouTubeEmbedUrl(movie.trailerUrl, {
+      const url = getYouTubeEmbedUrl(safeMovie.trailerUrl, {
         autoplay: 1,
         mute: 0,
         controls: 1,
@@ -62,26 +60,45 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
       return { type: 'youtube', src: url };
     }
 
-    if (isDirectVideoUrl(movie.trailerUrl)) {
-      return { type: 'video', src: movie.trailerUrl };
+    if (isDirectVideoUrl(safeMovie.trailerUrl)) {
+      return { type: 'video', src: safeMovie.trailerUrl };
     }
 
     return { type: 'missing', src: '' };
-  }, [movie.trailerUrl, movie.videoUrl]);
+  }, [safeMovie.trailerUrl, safeMovie.videoUrl]);
 
-  const currentIndex = moviesQueue.findIndex((item) => item.id === movie.id);
+  const currentIndex = moviesQueue.findIndex((item) => item.id === movieId);
   const nextMovie = currentIndex >= 0 ? moviesQueue[currentIndex + 1] : null;
   const upNextList = moviesQueue.slice(Math.max(currentIndex, 0), Math.max(currentIndex, 0) + 6);
 
   // Warn if movie not found in queue (may indicate data inconsistency)
   if (moviesQueue.length > 0 && currentIndex < 0) {
     console.warn('[MoviePlayer] Selected movie not found in queue - may have stale data', {
-      movieId: movie.id,
-      movieTitle: movie.title,
+      movieId,
+      movieTitle: safeMovie.title,
       queueLength: moviesQueue.length,
       firstQueueIds: moviesQueue.slice(0, 3).map(m => ({ id: m.id, title: m.title })),
     });
   }
+
+  useEffect(() => {
+    if (!movieId || playback.type !== 'youtube' || !playback.src) {
+      setYouTubeStatus('unavailable');
+      return;
+    }
+
+    setYouTubeStatus('loading');
+  }, [movieId, playback.src, playback.type]);
+
+  useEffect(() => {
+    if (youtubeStatus !== 'loading') return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setYouTubeStatus((current) => (current === 'loading' ? 'failed' : current));
+    }, YOUTUBE_PLAYER_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [youtubeStatus]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -99,7 +116,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
 
   useEffect(() => {
     const video = videoRef.current;
-    if (playback.type !== 'video' || !video) return undefined;
+    if (!movieId || playback.type !== 'video' || !video) return undefined;
 
     let lastSyncAt = 0;
     let lastServerSyncAt = 0;
@@ -121,16 +138,16 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
 
       const nextMap = {
         ...readProgressMap(),
-        [movie.id]: payload,
+        [movieId]: payload,
       };
       writeProgressMap(nextMap);
-      if (onProgress) onProgress(movie.id, payload);
+      if (onProgress) onProgress(movieId, payload);
 
       if (force || now - lastServerSyncAt >= 10000) {
         lastServerSyncAt = now;
         axios.post('/api/history/save', {
-          movieId: movie.id,
-          movieTitle: movie.title,
+          movieId,
+          movieTitle: safeMovie.title,
           progress: payload.currentTime,
           duration: payload.duration,
         }).catch(() => {});
@@ -145,7 +162,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
         return;
       }
 
-      const saved = readProgressMap()[movie.id];
+      const saved = readProgressMap()[movieId];
       if (!saved || !saved.currentTime || !saved.duration) {
         setResumeSeconds(null);
         return;
@@ -179,11 +196,11 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [movie.id, nextMovie, onPlayMovie, onProgress, startAtSeconds]);
+  }, [movieId, nextMovie, onPlayMovie, onProgress, startAtSeconds, safeMovie.title]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (playback.type !== 'video' || !video || !video.textTracks) return;
+    if (!movieId || playback.type !== 'video' || !video || !video.textTracks) return;
 
     const tracks = Array.from(video.textTracks);
     if (!tracks.length) return;
@@ -192,7 +209,7 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
       const sameLanguage = !track.language || track.language === subtitleLanguage;
       track.mode = subtitleEnabled && sameLanguage ? 'showing' : 'disabled';
     });
-  }, [subtitleEnabled, subtitleLanguage, movie.id]);
+  }, [movieId, playback.type, subtitleEnabled, subtitleLanguage]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -258,6 +275,10 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
     localStorage.setItem(SUBTITLE_LANGUAGE_STORAGE_KEY, value);
   };
 
+  if (!movieId) {
+    return null;
+  }
+
   return (
     <div className="player-modal-overlay" id="movie-player-modal" onClick={handleOverlayClick}>
       <div className="player-modal player-layout" ref={containerRef}>
@@ -287,13 +308,21 @@ function MoviePlayer({ movie, startAtSeconds = null, onClose, moviesQueue = [], 
                 {t('movie.browserDoesNotSupportVideo')}
               </video>
             ) : playback.type === 'youtube' ? (
-              <iframe
-                className="detail-trailer-frame"
-                src={playback.src}
-                title={`${movie.title} trailer`}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                loading="lazy"
-              />
+              youtubeStatus === 'failed' ? (
+                <div style={{ color: 'var(--text-muted)', padding: '20px' }}>
+                  {t('movie.noPlayableVideo')}
+                </div>
+              ) : (
+                <iframe
+                  className={`detail-trailer-frame${youtubeStatus === 'ready' ? ' is-ready' : ''}`}
+                  src={playback.src}
+                  title={`${movie.title} trailer`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  loading="lazy"
+                  onLoad={() => setYouTubeStatus((current) => (current === 'loading' ? 'ready' : current))}
+                  onError={() => setYouTubeStatus('failed')}
+                />
+              )
             ) : (
               <div style={{ color: 'var(--text-muted)', padding: '20px' }}>
                 {t('movie.noPlayableVideo')}

@@ -395,10 +395,10 @@ function CinemaHome() {
             </div>
             <div className="cinema-quick-steps">
               <span>{t('cinema.chooseMovie')}</span>
-              <span>{t('cinema.selectBranch')}</span>
               <span>{t('cinema.pickShowtime')}</span>
               <span>{t('cinema.chooseSeats')}</span>
               <span>{t('cinema.checkoutTitle')}</span>
+              <span>{t('cinema.sandboxPayment')}</span>
             </div>
             <div className="cinema-booking-actions">
               <Link to="/cinema/now-showing" className="btn btn-primary">{t('cinema.navNowShowing')}</Link>

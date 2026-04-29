@@ -9,8 +9,10 @@ const TABS = [
   { key: 'seats', label: 'Seats', hint: 'Layouts' },
   { key: 'showtimes', label: 'Showtimes', hint: 'Schedules' },
   { key: 'bookings', label: 'Bookings', hint: 'Reservations' },
+  { key: 'tickets', label: 'Tickets', hint: 'Issued passes' },
   { key: 'payments', label: 'Payments', hint: 'Sandbox' },
   { key: 'revenue', label: 'Revenue', hint: 'Analytics' },
+  { key: 'users', label: 'Users', hint: 'Customer activity' },
 ];
 
 const BOOKING_STATUS_OPTIONS = ['PENDING', 'CONFIRMED', 'CANCELLED', 'EXPIRED'];
@@ -325,9 +327,9 @@ function AdminCinema() {
   });
 
   const clearFilters = () => setFilters(initialFilters);
-  const shouldShowFilterBar = ['showtimes', 'bookings', 'payments'].includes(tab);
-  const shouldShowBookingStatusFilter = ['bookings'].includes(tab);
-  const shouldShowPaymentStatusFilter = ['bookings', 'payments'].includes(tab);
+  const shouldShowFilterBar = ['showtimes', 'bookings', 'payments', 'tickets'].includes(tab);
+  const shouldShowBookingStatusFilter = ['bookings', 'tickets'].includes(tab);
+  const shouldShowPaymentStatusFilter = ['bookings', 'payments', 'tickets'].includes(tab);
 
   const filteredAuditoriumOptions = useMemo(() => {
     if (!showtimeForm.cinemaId) return reference.auditoriums;
@@ -361,6 +363,8 @@ function AdminCinema() {
     auditoriumName: auditoriumName.get(showtime.auditoriumId),
   }));
   const visibleBookings = bookings.filter(matchesSearch);
+  const visibleTickets = tickets.filter(matchesSearch);
+  const visibleUsers = users.filter(matchesSearch);
   const visiblePayments = payments.filter(matchesSearch);
 
   return (
@@ -828,13 +832,16 @@ function AdminCinema() {
           <table className="admin-table">
             <thead><tr><th>Ticket Code</th><th>Booking</th><th>User</th><th>Movie</th><th>Cinema</th><th>Auditorium</th><th>Showtime</th><th>Seat</th><th>Total</th><th>Booking</th><th>Payment</th><th>Issued</th></tr></thead>
             <tbody>
-              {tickets.map((ticket) => (
+              {visibleTickets.map((ticket) => (
                 <tr key={ticket.id}>
                   <td>{ticket.ticketCode || '-'}</td><td>{ticket.bookingCode || ticket.bookingId}</td><td>{ticket.userEmail || ticket.userId || '-'}</td>
                   <td>{ticket.movieTitle || '-'}</td><td>{ticket.cinemaName || '-'}</td><td>{ticket.auditoriumName || '-'}</td><td>{datePart(ticket.showDate)} {timePart(ticket.startTime)}</td>
                   <td>{ticket.seatLabel || '-'}</td><td>{amountText(ticket.totalPrice)}</td><td>{ticket.bookingStatus || '-'}</td><td>{ticket.paymentStatus || '-'}</td><td>{ticket.issuedAt ? new Date(ticket.issuedAt).toLocaleString() : '-'}</td>
                 </tr>
               ))}
+              {visibleTickets.length === 0 && (
+                <tr><td colSpan={12} className="muted-text">No tickets match the current filters.</td></tr>
+              )}
             </tbody>
           </table>
         </section>
@@ -845,7 +852,10 @@ function AdminCinema() {
           <table className="admin-table">
             <thead><tr><th>Email</th><th>Roles</th><th>Plan</th><th>Bookings</th><th>Tickets</th><th>Online</th><th>Last Login</th></tr></thead>
             <tbody>
-              {users.map((u) => (<tr key={u.id}><td>{u.email}</td><td>{u.roles}</td><td>{u.subscriptionPlan}</td><td>{u.bookingCount}</td><td>{u.ticketCount}</td><td>{u.online ? 'Yes' : 'No'}</td><td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '-'}</td></tr>))}
+              {visibleUsers.map((u) => (<tr key={u.id}><td>{u.email}</td><td>{u.roles}</td><td>{u.subscriptionPlan}</td><td>{u.bookingCount}</td><td>{u.ticketCount}</td><td>{u.online ? 'Yes' : 'No'}</td><td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : '-'}</td></tr>))}
+              {visibleUsers.length === 0 && (
+                <tr><td colSpan={7} className="muted-text">No users match the current search.</td></tr>
+              )}
             </tbody>
           </table>
         </section>

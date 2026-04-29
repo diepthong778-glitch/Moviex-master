@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/cinema';
 
@@ -24,9 +25,27 @@ function CinemaBookingSummary({
   const seatLabels = selectedSeats.length > 0 ? selectedSeats : [];
   const resolvedSubtotal = Number(subtotal ?? pricingBreakdown?.subtotal ?? total ?? 0);
   const resolvedTotal = Number(pricingBreakdown?.total ?? total ?? 0);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const seatLineKey = useMemo(
+    () =>
+      seatLines
+        .map((line) => `${line.seatId || line.seatLabel || '-'}:${line.lineTotal || line.unitPrice || 0}`)
+        .join('|'),
+    [seatLines]
+  );
+  const seatLabelKey = useMemo(() => seatLabels.join('|'), [seatLabels]);
+
+  useEffect(() => {
+    setIsUpdating(true);
+    const timer = window.setTimeout(() => setIsUpdating(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [isLoadingPrices, priceError, resolvedSubtotal, resolvedTotal, seatLabelKey, seatLineKey]);
 
   return (
-    <aside className="cinema-booking-side-summary" aria-label={t('cinema.bookingSummary')}>
+    <aside
+      className={`cinema-booking-side-summary${isUpdating ? ' is-updating' : ''}`}
+      aria-label={t('cinema.bookingSummary')}
+    >
       <div>
         <p className="cinema-section-eyebrow">{t('cinema.bookingSummary')}</p>
         <h3>{movieTitle || '-'}</h3>
@@ -74,7 +93,7 @@ function CinemaBookingSummary({
               <div key={line.seatId || line.seatLabel} className="cinema-summary-seat-line">
                 <div>
                   <strong>{line.seatLabel || line.seatId}</strong>
-                  <span>{(line.seatType || 'NORMAL').toString()} · {line.pricingRule || t('cinema.basePrice')}</span>
+                  <span>{(line.seatType || 'NORMAL').toString()} | {line.pricingRule || t('cinema.basePrice')}</span>
                 </div>
                 <strong>{formatCurrency(Number(line.lineTotal || line.unitPrice || 0))}</strong>
               </div>

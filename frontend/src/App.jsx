@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext';
+import { CinemaBookingProvider } from './context/CinemaBookingContext';
 import { useAuth } from './context/AuthContext';
 import './main.css';
 
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminCinema = lazy(() => import('./pages/AdminCinema'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AiAssistantWidget = lazy(() => import('./components/AiAssistantWidget'));
 const CinemaCheckout = lazy(() => import('./pages/CinemaCheckout'));
 const CinemaHome = lazy(() => import('./pages/CinemaHome'));
 const CinemaLocations = lazy(() => import('./pages/CinemaLocations'));
@@ -64,6 +66,12 @@ function AppLayout() {
   const { t } = useTranslation();
   const location = useLocation();
   const isLanding = location.pathname === '/';
+  const hideAssistant = isLanding
+    || location.pathname === '/login'
+    || location.pathname === '/register'
+    || location.pathname === '/forgot-password'
+    || location.pathname === '/verify'
+    || location.pathname.startsWith('/admin');
   const isCinemaModuleRoute = location.pathname.startsWith('/cinema') || location.pathname.startsWith('/admin/cinema');
   const activeModuleLabel = isCinemaModuleRoute ? t('cinema.moduleCinema') : t('cinema.moduleStreaming');
 
@@ -132,6 +140,12 @@ function AppLayout() {
           </p>
         </footer>
       )}
+
+      {!hideAssistant && (
+        <Suspense fallback={null}>
+          <AiAssistantWidget />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -139,9 +153,11 @@ function AppLayout() {
 function App() {
   return (
     <AuthProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppLayout />
-      </Router>
+      <CinemaBookingProvider>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AppLayout />
+        </Router>
+      </CinemaBookingProvider>
     </AuthProvider>
   );
 }
