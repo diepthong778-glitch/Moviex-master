@@ -25,37 +25,56 @@ const UI_COPY = {
   },
   vi: {
     badge: 'AI',
-    title: 'Tro ly Moviex',
-    subtitle: 'Phim, suat chieu, ghe, ve, goi dang ky va ho tro thanh toan.',
-    placeholder: 'Hoi ve phim, ve, hoac dat ve...',
-    send: 'Gui',
-    sending: 'Dang tra loi...',
-    open: 'Mo tro ly',
-    close: 'Dong tro ly',
-    suggestions: 'Ban co the hoi',
-    fallbackError: 'Tro ly chua tai duoc du lieu luc nay.',
-    welcome: 'Minh co the ho tro ve phim, suat chieu, ghe, ve, goi dang ky va thanh toan.',
-    signIn: 'Can dang nhap',
-    go: 'Mo',
+    title: 'Trợ lý Moviex',
+    subtitle: 'Phim, suất chiếu, ghế, vé, gói đăng ký và hỗ trợ thanh toán.',
+    placeholder: 'Hỏi về phim, vé, hoặc đặt vé...',
+    send: 'Gửi',
+    sending: 'Đang trả lời...',
+    open: 'Mở trợ lý',
+    close: 'Đóng trợ lý',
+    suggestions: 'Bạn có thể hỏi',
+    fallbackError: 'Trợ lý chưa tải được dữ liệu lúc này.',
+    welcome: 'Mình có thể hỗ trợ về phim, suất chiếu, ghế, vé, gói đăng ký và thanh toán.',
+    signIn: 'Cần đăng nhập',
+    go: 'Mở',
   },
+};
+
+const THINKING_STATES = {
+  en: [
+    'Understanding your request...',
+    'Checking movie database...',
+    'Looking for available showtimes...',
+    'Checking your booking...',
+    'Analyzing seat availability...',
+    'Reviewing payment status...'
+  ],
+  vi: [
+    'Đang hiểu yêu cầu...',
+    'Kiểm tra cơ sở dữ liệu phim...',
+    'Đang tìm suất chiếu phù hợp...',
+    'Đang kiểm tra vé của bạn...',
+    'Phân tích trạng thái ghế...',
+    'Đang kiểm tra thanh toán...'
+  ]
 };
 
 const PROMPTS_BY_PAGE = {
   default: {
     en: ['Recommend me a thriller movie', 'What movies are showing tonight?', 'What is included in Premium?'],
-    vi: ['Goi y phim thriller cho minh', 'Toi nay co phim nao dang chieu?', 'Premium gom nhung gi?'],
+    vi: ['Gợi ý phim thriller cho mình', 'Tối nay có phim nào đang chiếu?', 'Premium gồm những gì?'],
   },
   cinema: {
     en: ['Help me book tickets', 'Which seats are best for 2 people?', 'Show my upcoming tickets'],
-    vi: ['Huong dan dat ve', 'Ghe nao tot cho 2 nguoi?', 'Cho xem ve sap toi'],
+    vi: ['Hướng dẫn đặt vé', 'Ghế nào tốt cho 2 người?', 'Cho xem vé sắp tới'],
   },
   payment: {
     en: ['Why did my payment fail?', 'What is included in Premium?', 'Where do I manage my subscription?'],
-    vi: ['Vi sao thanh toan cua minh that bai?', 'Premium gom nhung gi?', 'Quan ly goi dang ky o dau?'],
+    vi: ['Vì sao thanh toán của mình thất bại?', 'Premium gồm những gì?', 'Quản lý gói đăng ký ở đâu?'],
   },
   subscription: {
     en: ['What is included in Premium?', 'Where do I manage my subscription?', 'Recommend me a thriller movie'],
-    vi: ['Premium gom nhung gi?', 'Quan ly goi dang ky o dau?', 'Goi y phim thriller cho minh'],
+    vi: ['Premium gồm những gì?', 'Quản lý gói đăng ký ở đâu?', 'Gợi ý phim thriller cho mình'],
   },
 };
 
@@ -63,11 +82,13 @@ const buildMessage = (payload) => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   role: payload.role,
   text: payload.text || '',
+  displayedText: payload.role === 'user' ? (payload.text || '') : '',
   cards: Array.isArray(payload.cards) ? payload.cards : [],
   suggestions: Array.isArray(payload.suggestions) ? payload.suggestions : [],
   handoffPath: payload.handoffPath || '',
   handoffLabel: payload.handoffLabel || '',
   requiresAuth: Boolean(payload.requiresAuth),
+  isStreaming: payload.role === 'assistant' && !payload.disableStreaming,
 });
 
 const resolveLocaleKey = (language) => (String(language || '').toLowerCase().startsWith('vi') ? 'vi' : 'en');
@@ -101,11 +122,13 @@ function AiAssistantWidget() {
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
+  const [thinkingIndex, setThinkingIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
     buildMessage({
       role: 'assistant',
       text: copy.welcome,
       suggestions: starterPrompts,
+      disableStreaming: true,
     }),
   ]);
 
@@ -131,6 +154,7 @@ function AiAssistantWidget() {
           role: 'assistant',
           text: copy.welcome,
           suggestions: starterPrompts,
+          disableStreaming: true,
         }),
       ];
     });
@@ -139,7 +163,47 @@ function AiAssistantWidget() {
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, isSending]);
+  }, [messages, isSending, thinkingIndex]);
+
+  useEffect(() => {
+    let interval;
+    if (isSending) {
+      setThinkingIndex(0);
+      interval = setInterval(() => {
+        setThinkingIndex((current) => (current + 1) % THINKING_STATES[localeKey].length);
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [isSending, localeKey]);
+
+  useEffect(() => {
+    const streamingMessageIndex = messages.findIndex(m => m.isStreaming);
+    if (streamingMessageIndex === -1) return;
+
+    const message = messages[streamingMessageIndex];
+    if (message.displayedText.length < message.text.length) {
+      const timeout = setTimeout(() => {
+        setMessages(current => {
+          const next = [...current];
+          next[streamingMessageIndex] = {
+            ...message,
+            displayedText: message.text.slice(0, message.displayedText.length + 1)
+          };
+          return next;
+        });
+      }, 15);
+      return () => clearTimeout(timeout);
+    } else {
+      setMessages(current => {
+        const next = [...current];
+        next[streamingMessageIndex] = {
+          ...message,
+          isStreaming: false
+        };
+        return next;
+      });
+    }
+  }, [messages]);
 
   const submitPrompt = async (prompt) => {
     const message = String(prompt || draft).trim();
@@ -210,7 +274,7 @@ function AiAssistantWidget() {
               <p>{copy.subtitle}</p>
             </div>
             <button type="button" className="ai-assistant-close" onClick={() => setIsOpen(false)} aria-label={copy.close}>
-              x
+              ×
             </button>
           </header>
 
@@ -221,12 +285,12 @@ function AiAssistantWidget() {
                 className={`ai-assistant-message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
               >
                 <div className="ai-assistant-bubble">
-                  <p>{message.text}</p>
+                  <p>{message.role === 'user' ? message.text : message.displayedText}</p>
 
-                  {message.cards.length > 0 && (
+                  {!message.isStreaming && message.cards.length > 0 && (
                     <div className="ai-assistant-card-list">
                       {message.cards.map((card, index) => (
-                        <div key={`${card.type || 'card'}-${index}`} className="ai-assistant-card">
+                        <div key={`${card.type || 'card'}-${index}`} className="ai-assistant-card ai-assistant-fade-in">
                           <div className="ai-assistant-card-head">
                             <strong>{card.title}</strong>
                             {card.subtitle && <span>{card.subtitle}</span>}
@@ -252,14 +316,14 @@ function AiAssistantWidget() {
                     </div>
                   )}
 
-                  {message.handoffPath && (
-                    <button type="button" className="btn btn-primary ai-assistant-link" onClick={() => navigate(message.handoffPath)}>
+                  {!message.isStreaming && message.handoffPath && (
+                    <button type="button" className="btn btn-primary ai-assistant-link ai-assistant-fade-in" onClick={() => navigate(message.handoffPath)}>
                       {message.handoffLabel || (message.requiresAuth ? copy.signIn : copy.go)}
                     </button>
                   )}
 
-                  {message.suggestions.length > 0 && (
-                    <div className="ai-assistant-suggestions">
+                  {!message.isStreaming && message.suggestions.length > 0 && (
+                    <div className="ai-assistant-suggestions ai-assistant-fade-in">
                       {message.suggestions.map((suggestion) => (
                         <button key={suggestion} type="button" className="ai-assistant-chip" onClick={() => submitPrompt(suggestion)}>
                           {suggestion}
@@ -273,8 +337,8 @@ function AiAssistantWidget() {
 
             {isSending && (
               <article className="ai-assistant-message is-assistant">
-                <div className="ai-assistant-bubble is-loading">
-                  <p>{copy.sending}</p>
+                <div className="ai-assistant-bubble is-loading ai-assistant-shimmer">
+                  <p>{THINKING_STATES[localeKey][thinkingIndex]}</p>
                 </div>
               </article>
             )}

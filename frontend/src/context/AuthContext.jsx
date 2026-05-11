@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
     axios.post('/api/auth/logout').catch(() => {});
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('moviex_cinema_checkout_session');
     clearApiCache();
   }, []);
 

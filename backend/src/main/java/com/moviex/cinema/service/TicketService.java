@@ -1,6 +1,8 @@
 package com.moviex.cinema.service;
 
 import com.moviex.cinema.dto.CinemaTicketViewResponse;
+import com.moviex.cinema.dto.TicketScanRequest;
+import com.moviex.cinema.dto.TicketScanResponse;
 import com.moviex.cinema.model.Auditorium;
 import com.moviex.cinema.model.Booking;
 import com.moviex.cinema.model.BookingSeat;
@@ -104,8 +106,13 @@ public class TicketService {
 
     public CinemaTicketViewResponse getTicketDetailForCurrentUser(String bookingId) {
         User currentUser = currentUserService.getCurrentUser();
-        Booking booking = bookingRepository.findByIdAndUserId(bookingId, currentUser.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        boolean isAdmin = currentUser.getRoles().contains(com.moviex.model.Role.ROLE_ADMIN);
+        
+        Optional<Booking> bookingOpt = isAdmin 
+                ? bookingRepository.findById(bookingId)
+                : bookingRepository.findByIdAndUserId(bookingId, currentUser.getId());
+                
+        Booking booking = bookingOpt.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         return toTicketView(booking);
     }
 
@@ -118,8 +125,12 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByTicketCode(ticketCode.trim())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        Booking booking = bookingRepository.findByIdAndUserId(ticket.getBookingId(), currentUser.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        boolean isAdmin = currentUser.getRoles().contains(com.moviex.model.Role.ROLE_ADMIN);
+        Optional<Booking> bookingOpt = isAdmin
+                ? bookingRepository.findById(ticket.getBookingId())
+                : bookingRepository.findByIdAndUserId(ticket.getBookingId(), currentUser.getId());
+
+        Booking booking = bookingOpt.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         return toTicketView(booking);
     }
 
@@ -156,17 +167,97 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found");
         }
 
-        boolean alreadyCheckedIn = bookingTickets.stream().allMatch(item -> item.getStatus() == TicketStatus.CHECKED_IN);
+        boolean alreadyCheckedIn = bookingTickets.stream().allMatch(item -> item.getStatus() == TicketStatus.USED);
         if (!alreadyCheckedIn) {
             LocalDateTime now = LocalDateTime.now();
+            User admin = currentUserService.getCurrentUser();
+            String staffInfo = admin.getId() + " (" + admin.getEmail() + ")";
             bookingTickets.forEach(item -> {
-                item.setStatus(TicketStatus.CHECKED_IN);
-                item.setCheckedInAt(now);
+                item.setStatus(TicketStatus.USED);
+                item.setScannedAt(now);
+                item.setScannedBy(staffInfo);
             });
             ticketRepository.saveAll(bookingTickets);
         }
 
         return toTicketView(booking);
+    }
+
+    public TicketScanResponse scanTicket(TicketScanRequest request) {
+        validateAdmin();
+        if (request == null || request.getQrToken() == null || request.getQrToken().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "qrToken is required");
+        }
+
+        Ticket ticket = ticketRepository.findByQrToken(request.getQrToken().trim())
+                .orElseThrow(() -> {
+                    TicketScanResponse fail = new TicketScanResponse();
+                    fail.setState(TicketScanResponse.ScanState.INVALID);
+                    fail.setMessage("Invalid QR Token. Ticket not found.");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found");
+                });
+
+        Booking booking = bookingRepository.findById(ticket.getBookingId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        TicketScanResponse response = new TicketScanResponse();
+        response.setTicketDetail(toTicketView(booking));
+
+        // Validation logic
+        if (booking.getPaymentStatus() != CinemaPaymentStatus.PAID) {
+            response.setState(TicketScanResponse.ScanState.PAYMENT_PENDING);
+            response.setMessage("Payment is not completed for this booking.");
+            return response;
+        }
+
+        if (ticket.getStatus() == TicketStatus.CANCELLED) {
+            response.setState(TicketScanResponse.ScanState.INVALID);
+            response.setMessage("This ticket has been cancelled.");
+            return response;
+        }
+
+        if (ticket.getStatus() == TicketStatus.USED) {
+            response.setState(TicketScanResponse.ScanState.ALREADY_USED);
+            response.setMessage("This ticket has already been used.");
+            response.setScannedAt(ticket.getScannedAt());
+            response.setScannedBy(ticket.getScannedBy());
+            return response;
+        }
+
+        if (ticket.getStatus() == TicketStatus.EXPIRED) {
+            response.setState(TicketScanResponse.ScanState.EXPIRED);
+            response.setMessage("This ticket has expired.");
+            return response;
+        }
+
+        // Showtime validation
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime showTime = LocalDateTime.of(ticket.getShowDate(), ticket.getStartTime());
+        // Allow scan up to 2 hours after start
+        if (now.isAfter(showTime.plusHours(2))) {
+            ticket.setStatus(TicketStatus.EXPIRED);
+            ticketRepository.save(ticket);
+            response.setState(TicketScanResponse.ScanState.EXPIRED);
+            response.setMessage("This showtime has already ended.");
+            return response;
+        }
+
+        // Successful scan
+        User admin = currentUserService.getCurrentUser();
+        ticket.setStatus(TicketStatus.USED);
+        ticket.setScannedAt(now);
+        ticket.setScannedBy(admin.getId() + " (" + admin.getEmail() + ")");
+        ticketRepository.save(ticket);
+
+        response.setState(TicketScanResponse.ScanState.VALID);
+        response.setMessage("Ticket successfully validated. Enjoy the movie!");
+        response.setScannedAt(ticket.getScannedAt());
+        response.setScannedBy(ticket.getScannedBy());
+
+        // Refresh ticket detail with updated status
+        response.setTicketDetail(toTicketView(booking));
+
+        return response;
     }
 
     public List<CinemaTicketViewResponse> listBookingHistoryForAdmin() {
@@ -234,7 +325,8 @@ public class TicketService {
         response.setCreatedAt(booking.getCreatedAt() == null ? issuedAt : booking.getCreatedAt());
         response.setUpcoming(isUpcoming(booking, showDate, startTime));
         response.setTicketStatus(resolveTicketStatus(tickets));
-        response.setCheckedInAt(resolveCheckedInAt(tickets));
+        response.setCheckedInAt(resolveCheckedInAt(tickets)); // Keep for DTO compatibility but it maps to scannedAt in build phase if needed
+
         List<String> ticketCodes = tickets.stream()
                 .map(Ticket::getTicketCode)
                 .filter(code -> code != null && !code.isBlank())
@@ -242,6 +334,14 @@ public class TicketService {
                 .toList();
         response.setTicketCodes(ticketCodes);
         response.setTicketCode(ticketCodes.stream().findFirst().orElse(null));
+
+        List<String> qrTokens = tickets.stream()
+                .map(Ticket::getQrToken)
+                .filter(token -> token != null && !token.isBlank())
+                .distinct()
+                .toList();
+        response.setQrTokens(qrTokens);
+        response.setQrToken(qrTokens.stream().findFirst().orElse(null));
 
         if (includeUserMeta) {
             response.setUserId(booking.getUserId());
@@ -337,8 +437,8 @@ public class TicketService {
         if (tickets == null || tickets.isEmpty()) {
             return TicketStatus.ACTIVE;
         }
-        if (tickets.stream().anyMatch(ticket -> ticket.getStatus() == TicketStatus.CHECKED_IN)) {
-            return TicketStatus.CHECKED_IN;
+        if (tickets.stream().anyMatch(ticket -> ticket.getStatus() == TicketStatus.USED)) {
+            return TicketStatus.USED;
         }
         if (tickets.stream().anyMatch(ticket -> ticket.getStatus() == TicketStatus.CANCELLED)) {
             return TicketStatus.CANCELLED;
@@ -355,7 +455,7 @@ public class TicketService {
             return null;
         }
         return tickets.stream()
-                .map(Ticket::getCheckedInAt)
+                .map(Ticket::getScannedAt)
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(null);

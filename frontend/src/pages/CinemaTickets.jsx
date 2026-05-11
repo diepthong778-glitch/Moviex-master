@@ -2,10 +2,12 @@
 import axios from 'axios';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { QRCodeCanvas } from 'qrcode.react';
+import { HiOutlineQrcode, HiOutlineSearch } from 'react-icons/hi';
 import { useAuth } from '../context/AuthContext';
 import CinemaBookingProgress from '../components/CinemaBookingProgress';
 import CinemaModuleNav from '../components/CinemaModuleNav';
-import { buildQrCodeImageUrl, formatCurrency } from '../utils/cinema';
+import { formatCurrency } from '../utils/cinema';
 
 const formatShowtime = (ticket) => {
   const date = ticket?.showDate || '-';
@@ -25,6 +27,14 @@ const resolveTicketCode = (ticket) => {
   if (ticket?.ticketCode) return ticket.ticketCode;
   if (Array.isArray(ticket?.ticketCodes) && ticket.ticketCodes.length > 0) {
     return ticket.ticketCodes[0];
+  }
+  return '';
+};
+
+const resolveQrToken = (ticket) => {
+  if (ticket?.qrToken) return ticket.qrToken;
+  if (Array.isArray(ticket?.qrTokens) && ticket.qrTokens.length > 0) {
+    return ticket.qrTokens[0];
   }
   return '';
 };
@@ -134,6 +144,10 @@ function CinemaTickets() {
     return `${window.location.origin}/cinema/check-in/${encodeURIComponent(code)}`;
   }, [detail]);
 
+  const qrPayload = useMemo(() => {
+    return resolveQrToken(detail) || resolveTicketCode(detail);
+  }, [detail]);
+
   const handleCheckIn = async () => {
     const code = resolveTicketCode(detail);
     if (!code || !isAdmin) return;
@@ -163,11 +177,10 @@ function CinemaTickets() {
 
   if (bookingId || ticketCode) {
     const displayCode = resolveTicketCode(detail);
-    const qrUrl = buildQrCodeImageUrl(validationUrl, 260);
     const backTarget = isCheckInRoute ? '/cinema' : '/cinema/tickets';
     const canCheckIn = isAdmin
       && detail
-      && detail.ticketStatus !== 'CHECKED_IN'
+      && detail.ticketStatus !== 'USED'
       && detail.bookingStatus === 'CONFIRMED'
       && detail.paymentStatus === 'PAID';
 
@@ -186,9 +199,17 @@ function CinemaTickets() {
                   : t('cinema.digitalBookingTicketDetails')}
               </p>
             </div>
-            <Link to={backTarget} className="btn btn-outline">
-              {t('common.previous')}
-            </Link>
+            <div className="cinema-actions">
+              {isAdmin && (
+                <Link to="/cinema/scanner" className="btn btn-primary flex items-center gap-2">
+                  <HiOutlineSearch className="text-xl" />
+                  OPEN SCANNER
+                </Link>
+              )}
+              <Link to={backTarget} className="btn btn-outline">
+                {t('common.previous')}
+              </Link>
+            </div>
           </div>
 
           {detailLoading ? (
@@ -246,25 +267,25 @@ function CinemaTickets() {
                   <span>{t('cinema.createdAt')}</span>
                   <strong>{formatDateTime(detail.createdAt || detail.issuedAt, locale)}</strong>
                 </div>
-                {validationUrl && (
-                  <div className="cinema-checkout-row cinema-checkout-row-wrap">
-                    <span>{t('cinema.validationUrl')}</span>
-                    <strong className="cinema-validation-url">{validationUrl}</strong>
-                  </div>
-                )}
               </div>
 
               <div className="cinema-checkout-card accent">
                 <h3>{isCheckInRoute ? t('cinema.ticketValidationQrTitle') : t('cinema.ticketQrTitle')}</h3>
-                {displayCode ? (
+                {qrPayload ? (
                   <>
-                    <div className="cinema-ticket-qr-shell">
-                      <img className="cinema-ticket-qr" src={qrUrl} alt={t('cinema.ticketQrAlt', { code: displayCode })} loading="lazy" />
+                    <div className="cinema-ticket-qr-shell p-4 bg-white rounded-2xl inline-block mx-auto mb-4">
+                      <QRCodeCanvas 
+                        value={qrPayload} 
+                        size={220}
+                        level="H"
+                        includeMargin={false}
+                        className="mx-auto"
+                      />
                     </div>
-                    <div className="cinema-ticket-barcode" aria-label={t('cinema.ticketCodeDisplay')}>
+                    <div className="cinema-ticket-barcode font-mono text-lg tracking-widest text-white/80" aria-label={t('cinema.ticketCodeDisplay')}>
                       <span>{displayCode}</span>
                     </div>
-                    <p className="cinema-price-note">
+                    <p className="cinema-price-note mt-4">
                       {isCheckInRoute ? t('cinema.ticketQrOpensCheckInPage') : t('cinema.ticketQrOpensDetailPage')}
                     </p>
                     <p className="cinema-price-note">
@@ -290,7 +311,7 @@ function CinemaTickets() {
                   <p className="cinema-note">{t('cinema.adminLoginRequiredToConfirmCheckIn')}</p>
                 )}
 
-                {actionMessage && <p className="cinema-note">{actionMessage}</p>}
+                {actionMessage && <p className="cinema-note text-emerald-500">{actionMessage}</p>}
                 {actionError && <p className="cinema-note cinema-note-error">{actionError}</p>}
               </div>
             </div>
@@ -310,6 +331,12 @@ function CinemaTickets() {
             <h1 className="cinema-title">{title}</h1>
             <p className="cinema-subtitle">{t('cinema.upcomingUsedAndCancelledCinemaBookings')}</p>
           </div>
+          {isAdmin && (
+            <Link to="/cinema/scanner" className="btn btn-primary flex items-center gap-2">
+              <HiOutlineQrcode className="text-xl" />
+              OPEN SCANNER
+            </Link>
+          )}
         </div>
 
         <div className="cinema-actions cinema-actions-spaced">

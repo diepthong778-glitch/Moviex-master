@@ -17,6 +17,7 @@ const CinemaHome = lazy(() => import('./pages/CinemaHome'));
 const CinemaLocations = lazy(() => import('./pages/CinemaLocations'));
 const CinemaMovieDetail = lazy(() => import('./pages/CinemaMovieDetail'));
 const CinemaNowShowing = lazy(() => import('./pages/CinemaNowShowing'));
+const CinemaScanner = lazy(() => import('./pages/CinemaScanner'));
 const CinemaPaymentSandboxPage = lazy(() => import('./pages/CinemaPaymentSandboxPage'));
 const CinemaSchedule = lazy(() => import('./pages/CinemaSchedule'));
 const CinemaSeatSelection = lazy(() => import('./pages/CinemaSeatSelection'));
@@ -128,6 +129,7 @@ function AppLayout() {
             <Route path="/admin/cinema" element={<LazyPage><AdminCinema /></LazyPage>} />
             <Route path="/admin/users" element={<LazyPage><UserManagement /></LazyPage>} />
             <Route path="/admin/realtime" element={<LazyPage><RealtimeActivity /></LazyPage>} />
+            <Route path="/cinema/scanner" element={<LazyPage><CinemaScanner /></LazyPage>} />
             <Route path="/admin" element={<LazyPage><Admin /></LazyPage>} />
           </Route>
         </Routes>

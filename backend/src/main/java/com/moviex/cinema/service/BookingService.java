@@ -132,8 +132,13 @@ public class BookingService {
 
     public BookingResponse releaseBooking(String bookingId) {
         User currentUser = currentUserService.getCurrentUser();
-        Booking booking = bookingRepository.findByIdAndUserId(bookingId, currentUser.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        boolean isAdmin = currentUser.getRoles().contains(com.moviex.model.Role.ROLE_ADMIN);
+
+        Optional<Booking> bookingOpt = isAdmin
+                ? bookingRepository.findById(bookingId)
+                : bookingRepository.findByIdAndUserId(bookingId, currentUser.getId());
+
+        Booking booking = bookingOpt.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
 
         if (booking.getBookingStatus() != BookingStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending bookings can be released");

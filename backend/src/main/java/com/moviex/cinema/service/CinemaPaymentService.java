@@ -320,6 +320,7 @@ public class CinemaPaymentService {
             ticket.setTotalAmount(booking.getTotalPrice());
             ticket.setBookingStatus(booking.getBookingStatus());
             ticket.setTicketCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            ticket.setQrToken(UUID.randomUUID().toString());
             ticket.setStatus(TicketStatus.ACTIVE);
             ticket.setIssuedAt(issuedAt);
             return ticket;

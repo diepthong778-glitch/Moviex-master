@@ -364,3 +364,24 @@ export const filterShowtimesByWeek = (showtimes, weekDates) => {
 export const getTodayIsoDate = () => toIsoDate(new Date());
 
 export const isoDateFromWeekDate = (date) => toIsoDate(date);
+
+export const fetchUpcomingTickets = async () => {
+  const response = await axios.get('/api/cinema/tickets/upcoming');
+  return response.data || [];
+};
+
+export const fetchTicketHistory = async () => {
+  const response = await axios.get('/api/cinema/tickets/history');
+  return response.data || [];
+};
+
+export const fetchTicketDetailByCode = async (ticketCode) => {
+  const response = await axios.get(`/api/cinema/tickets/code/${encodeURIComponent(ticketCode)}`);
+  return response.data || {};
+};
+
+export const scanCinemaTicket = async (qrToken) => {
+  const response = await axios.post('/api/cinema/tickets/scan', { qrToken });
+  return response.data || {};
+};
+

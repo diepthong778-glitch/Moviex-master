@@ -1,6 +1,8 @@
 package com.moviex.cinema.controller;
 
 import com.moviex.cinema.dto.CinemaTicketViewResponse;
+import com.moviex.cinema.dto.TicketScanRequest;
+import com.moviex.cinema.dto.TicketScanResponse;
 import com.moviex.cinema.service.TicketService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -51,6 +53,12 @@ public class TicketController {
     @GetMapping("/validate/{ticketCode}")
     public ResponseEntity<CinemaTicketViewResponse> validateTicket(@PathVariable String ticketCode) {
         return ResponseEntity.ok(ticketService.getTicketValidationByCode(ticketCode));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/scan")
+    public ResponseEntity<TicketScanResponse> scanTicket(@RequestBody TicketScanRequest request) {
+        return ResponseEntity.ok(ticketService.scanTicket(request));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

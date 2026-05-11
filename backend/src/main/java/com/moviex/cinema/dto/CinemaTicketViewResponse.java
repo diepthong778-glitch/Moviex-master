@@ -29,6 +29,8 @@ public class CinemaTicketViewResponse {
     private LocalDateTime createdAt;
     private String ticketCode;
     private List<String> ticketCodes = new ArrayList<>();
+    private String qrToken;
+    private List<String> qrTokens = new ArrayList<>();
     private TicketStatus ticketStatus;
     private LocalDateTime checkedInAt;
     private String userId;
@@ -70,6 +72,10 @@ public class CinemaTicketViewResponse {
     public void setTicketCode(String ticketCode) { this.ticketCode = ticketCode; }
     public List<String> getTicketCodes() { return ticketCodes; }
     public void setTicketCodes(List<String> ticketCodes) { this.ticketCodes = ticketCodes; }
+    public String getQrToken() { return qrToken; }
+    public void setQrToken(String qrToken) { this.qrToken = qrToken; }
+    public List<String> getQrTokens() { return qrTokens; }
+    public void setQrTokens(List<String> qrTokens) { this.qrTokens = qrTokens; }
     public TicketStatus getTicketStatus() { return ticketStatus; }
     public void setTicketStatus(TicketStatus ticketStatus) { this.ticketStatus = ticketStatus; }
     public LocalDateTime getCheckedInAt() { return checkedInAt; }

@@ -34,8 +34,11 @@ public class Ticket {
     private BookingStatus bookingStatus = BookingStatus.CONFIRMED;
     @Indexed
     private String ticketCode;
+    @Indexed
+    private String qrToken;
     private TicketStatus status = TicketStatus.ACTIVE;
-    private LocalDateTime checkedInAt;
+    private LocalDateTime scannedAt;
+    private String scannedBy;
     private LocalDateTime issuedAt = LocalDateTime.now();
 
     public Ticket() {}
@@ -78,10 +81,14 @@ public class Ticket {
     public void setBookingStatus(BookingStatus bookingStatus) { this.bookingStatus = bookingStatus; }
     public String getTicketCode() { return ticketCode; }
     public void setTicketCode(String ticketCode) { this.ticketCode = ticketCode; }
+    public String getQrToken() { return qrToken; }
+    public void setQrToken(String qrToken) { this.qrToken = qrToken; }
     public TicketStatus getStatus() { return status; }
     public void setStatus(TicketStatus status) { this.status = status; }
-    public LocalDateTime getCheckedInAt() { return checkedInAt; }
-    public void setCheckedInAt(LocalDateTime checkedInAt) { this.checkedInAt = checkedInAt; }
+    public LocalDateTime getScannedAt() { return scannedAt; }
+    public void setScannedAt(LocalDateTime scannedAt) { this.scannedAt = scannedAt; }
+    public String getScannedBy() { return scannedBy; }
+    public void setScannedBy(String scannedBy) { this.scannedBy = scannedBy; }
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
 }
