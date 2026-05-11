@@ -83,10 +83,19 @@ public class WatchlistServiceImpl implements WatchlistService {
                 movie.getPosterUrl(),
                 movie.getBackdropUrl(),
                 movie.getRuntimeMinutes(),
+                movie.getDurationMinutes(),
                 movie.getAgeRating(),
                 movie.getDirector(),
                 movie.getCast(),
                 movie.getLanguage(),
+                movie.getStreamType(),
+                movie.isHasFullMovie(),
+                movie.getSubtitleUrls(),
+                movie.getSubtitles(),
+                movie.getAvailableQualities(),
+                movie.getIntroStart(),
+                movie.getIntroEnd(),
+                movie.getQualityMetadata(),
                 movie.getRequiredSubscription()
         );
     }

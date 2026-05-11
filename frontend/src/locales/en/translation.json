@@ -19,6 +19,8 @@
     "page": "Page",
     "tryAgain": "Try Again",
     "close": "Close",
+    "retry": "Retry",
+    "cancel": "Cancel",
     "user": "User",
     "language": "Language",
     "darkMode": "Dark Mode",
@@ -185,7 +187,22 @@
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit Fullscreen",
     "nextMovie": "Next: {{title}}",
-    "upNext": "Up Next"
+    "upNext": "Up Next",
+    "speed": "Speed",
+    "quality": "Quality",
+    "subtitles": "Subtitles",
+    "skipIntro": "Skip Intro",
+    "trailerPreview": "Trailer Preview",
+    "streamingFull": "Full Movie",
+    "playbackError": "Playback Error",
+    "watchTrailerInstead": "Watch Trailer Instead"
+  },
+  "watchHistory": {
+    "title": "Watch History",
+    "subtitle": "Review your cinematic journey and resume where you left off.",
+    "recentActivity": "Recent Activity",
+    "itemsCount": "{{count}} items",
+    "empty": "Your history is clear. Start your next adventure!"
   },
   "plansPage": {
     "badge": "Movie Plans",

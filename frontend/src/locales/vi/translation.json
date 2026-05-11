@@ -168,6 +168,7 @@
     "couldNotAddToWatchlist": "Không thể thêm vào danh sách xem.",
     "closeDetails": "Đóng chi tiết",
     "playNow": "Phát ngay",
+    "purchaseWithSandbox": "Thanh toán bằng sandbox",
     "saving": "Đang lưu...",
     "addToWatchlist": "Thêm vào danh sách xem",
     "noSynopsis": "Chưa có phần tóm tắt cho nội dung này.",
@@ -184,7 +185,22 @@
     "fullscreen": "Toàn màn hình",
     "exitFullscreen": "Thoát toàn màn hình",
     "nextMovie": "Tiếp theo: {{title}}",
-    "upNext": "Tiếp theo"
+    "upNext": "Tiếp theo",
+    "speed": "Tốc độ",
+    "quality": "Chất lượng",
+    "subtitles": "Phụ đề",
+    "skipIntro": "Bỏ qua đoạn đầu",
+    "trailerPreview": "Xem trước Trailer",
+    "streamingFull": "Xem Phim Đầy Đủ",
+    "playbackError": "Lỗi Phát Lại",
+    "watchTrailerInstead": "Xem Trailer Thay Thế"
+  },
+  "watchHistory": {
+    "title": "Lịch sử xem",
+    "subtitle": "Xem lại hành trình điện ảnh của bạn và tiếp tục từ nơi bạn đã dừng lại.",
+    "recentActivity": "Hoạt động gần đây",
+    "itemsCount": "{{count}} mục",
+    "empty": "Lịch sử của bạn đang trống. Hãy bắt đầu một cuộc phiêu lưu mới!"
   },
   "plansPage": {
     "badge": "Gói xem phim",

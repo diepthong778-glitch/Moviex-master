@@ -19,6 +19,32 @@ const HERO_VIDEO_TIMEOUT_MS = 4500;
 const HERO_POSTER_FALLBACK = '/posters/p4.svg';
 const HOME_REVEAL_FAILSAFE_MS = 450;
 
+function PlayerSuspenseFallback() {
+  return (
+    <div className="player-modal-overlay">
+      <div className="player-layout">
+        <main className="player-main">
+          <div className="player-video-container">
+            <div className="player-poster-backdrop">
+              <img src={HERO_POSTER_FALLBACK} alt="" className="player-poster-img" />
+              <div className="player-poster-overlay" />
+            </div>
+            <div className="player-loader-container">
+              <div className="player-loading-skeleton">
+                <span className="player-loading-bar" />
+                <span className="player-loading-bar" />
+                <span className="player-loading-bar" />
+              </div>
+              <div className="player-loader loading-spinner" />
+            </div>
+          </div>
+        </main>
+        <aside className="player-side-panel" />
+      </div>
+    </div>
+  );
+}
+
 const getMovieIdentifier = (movie) => {
   const rawId = movie?.id ?? movie?._id ?? movie?.movieId;
   if (rawId == null) return '';
@@ -165,8 +191,39 @@ function Home() {
 
   useEffect(() => {
     fetchMovies();
-    setWatchProgress(readProgressMap());
-  }, [fetchMovies]);
+    const loadProgress = async () => {
+      const local = readProgressMap();
+      if (user) {
+        try {
+          const response = await axios.get('/api/history/me');
+          const history = response.data || [];
+          const remoteMap = {};
+          history.forEach((item) => {
+            remoteMap[item.movieId] = {
+              currentTime: item.progress,
+              duration: item.duration,
+              updatedAt: new Date(item.watchedAt).getTime(),
+            };
+          });
+
+          const merged = { ...local };
+          Object.keys(remoteMap).forEach((id) => {
+            if (!merged[id] || remoteMap[id].updatedAt > merged[id].updatedAt) {
+              merged[id] = remoteMap[id];
+            }
+          });
+
+          setWatchProgress(merged);
+          writeProgressMap(merged);
+          return;
+        } catch (err) {
+          console.warn('[Home] Failed to fetch remote watch history.', err);
+        }
+      }
+      setWatchProgress(local);
+    };
+    loadProgress();
+  }, [fetchMovies, user]);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -262,15 +319,18 @@ function Home() {
         ? subscription.planType
         : entitlements?.subscriptionPlan || 'BASIC';
     const movieUnlocked = hasMovieUnlock(canonicalMovie.id);
+    const isTrailerMode = Boolean(normalizedMovie.isTrailerOnly || !canonicalMovie.hasFullMovie);
 
-    if (!movieUnlocked && !canPlanAccess(effectivePlan, canonicalMovie.requiredSubscription)) {
+    if (!isTrailerMode && !movieUnlocked && !canPlanAccess(effectivePlan, canonicalMovie.requiredSubscription)) {
       navigate(`/payment?movieId=${encodeURIComponent(canonicalMovie.id)}`);
       return { status: 'redirected', destination: 'payment' };
     }
 
-    setRequestedStartAtSeconds(resolvedStart);
-    saveWatchStart(canonicalMovie, resolvedStart ?? 0);
-    setSelectedMovie(canonicalMovie);
+    setRequestedStartAtSeconds(isTrailerMode ? null : resolvedStart);
+    if (!isTrailerMode) {
+      saveWatchStart(canonicalMovie, resolvedStart ?? 0);
+    }
+    setSelectedMovie({ ...canonicalMovie, isTrailerOnly: isTrailerMode });
     return { status: 'opened', movieId: canonicalMovie.id };
   }, [movies, navigate, user, subscription, entitlements, canPlanAccess, hasMovieUnlock, saveWatchStart]);
 
@@ -739,7 +799,7 @@ function Home() {
         </Reveal>
       </PageTransition>
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<PlayerSuspenseFallback />}>
         {detailMovie && (
           <MovieDetailModal
             movie={detailMovie}

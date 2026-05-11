@@ -39,6 +39,7 @@ public class Ticket {
     private TicketStatus status = TicketStatus.ACTIVE;
     private LocalDateTime scannedAt;
     private String scannedBy;
+    private LocalDateTime checkedInAt;
     private LocalDateTime issuedAt = LocalDateTime.now();
 
     public Ticket() {}
@@ -89,6 +90,8 @@ public class Ticket {
     public void setScannedAt(LocalDateTime scannedAt) { this.scannedAt = scannedAt; }
     public String getScannedBy() { return scannedBy; }
     public void setScannedBy(String scannedBy) { this.scannedBy = scannedBy; }
+    public LocalDateTime getCheckedInAt() { return checkedInAt; }
+    public void setCheckedInAt(LocalDateTime checkedInAt) { this.checkedInAt = checkedInAt; }
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
 }

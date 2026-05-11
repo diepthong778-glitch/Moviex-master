@@ -95,6 +95,9 @@ public class WatchHistoryServiceImpl implements WatchHistoryService {
                         : movie.getTitle()
         );
         history.setProgress(request.getProgress());
+        if (request.getDuration() != null && request.getDuration() > 0) {
+            history.setDuration(request.getDuration());
+        }
         history.setWatchedAt(LocalDateTime.now());
 
         WatchHistory saved = watchHistoryRepository.save(history);
@@ -157,6 +160,7 @@ public class WatchHistoryServiceImpl implements WatchHistoryService {
                 history.getMovieId(),
                 movieTitle,
                 history.getProgress(),
+                history.getDuration(),
                 history.getWatchedAt()
         );
     }

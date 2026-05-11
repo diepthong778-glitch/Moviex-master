@@ -87,6 +87,8 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
             <h2 className="detail-title">{movie.title}</h2>
             <p className="detail-meta">
               {movie.genre} | {movie.year} | {translatePlanLabel(requiredPlan)}
+              {movie.durationMinutes && ` | ${movie.durationMinutes} min`}
+              {movie.hasFullMovie && movie.availableQualities && movie.availableQualities.length > 0 && ` | ${movie.availableQualities.join(', ')}`}
             </p>
           </div>
           <button className="player-close-btn" onClick={onClose} aria-label={t('movie.closeDetails')}>
@@ -95,9 +97,16 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
         </header>
 
         <div className="detail-actions">
-          <button className="btn btn-primary" onClick={() => onPlay(movie)}>
-            {t('movie.playNow')}
-          </button>
+          {movie.hasFullMovie ? (
+            <button className="btn btn-primary" onClick={() => onPlay(movie)}>
+              <span className="icon">▶</span> {t('movie.playNow')}
+            </button>
+          ) : (
+            <button className="btn btn-primary" onClick={() => onPlay({ ...movie, isTrailerOnly: true })}>
+              <span className="icon">▶</span> {t('movie.watchTrailer') || 'Watch Trailer'}
+            </button>
+          )}
+
           {requiredPlan !== 'BASIC' && typeof onPurchaseMovie === 'function' && (
             <button className="btn btn-primary" onClick={() => onPurchaseMovie(movie)}>
               {t('plansPage.payWithSandboxQr')}
@@ -132,17 +141,19 @@ function MovieDetailModal({ movie, onClose, onPlay, onPurchaseMovie }) {
           {movie.description || t('movie.noSynopsis')}
         </p>
 
-        <section>
-          <h3 className="player-side-title">{t('movie.episodeList')}</h3>
-          <div className="detail-episode-list">
-            {quickEpisodes.map((episode) => (
-              <button key={episode.id} className="player-next-item" onClick={() => onPlay(movie)}>
-                <span className="player-next-name">{episode.title}</span>
-                <span className="player-next-meta">{episode.duration}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+        {movie.isSeries && (
+          <section>
+            <h3 className="player-side-title">{t('movie.episodeList')}</h3>
+            <div className="detail-episode-list">
+              {quickEpisodes.map((episode) => (
+                <button key={episode.id} className="player-next-item" onClick={() => onPlay(movie)}>
+                  <span className="player-next-name">{episode.title}</span>
+                  <span className="player-next-meta">{episode.duration}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {message && <p className="muted-text">{message}</p>}
       </article>

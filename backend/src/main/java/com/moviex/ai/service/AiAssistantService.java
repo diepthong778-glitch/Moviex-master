@@ -263,7 +263,7 @@ public class AiAssistantService {
                 "/cinema/tickets",
                 label(vietnamese, "Open My Tickets", "Mo ve cua toi"),
                 tickets.stream()
-                        .map(ticket -> "Ticket: " + safe(ticket.getMovieTitle()) + " | " + formatDate(ticket.getShowDate()) + " " + formatTime(ticket.getStartTime()) + " | Seats: " + String.join(", ", ticket.getSeats()))
+                        .map(ticket -> "Ticket: " + safe(ticket.getMovieTitle()) + " | " + formatDate(ticket.getShowDate()) + " " + formatTime(ticket.getStartTime()) + " | Seats: " + (ticket.getSeats() != null ? String.join(", ", ticket.getSeats()) : "-"))
                         .toList()
         );
     }
@@ -588,18 +588,14 @@ public class AiAssistantService {
         AiAssistantCard card = new AiAssistantCard();
         card.setType("movie");
         card.setTitle(safe(movie.getTitle()));
-        card.setSubtitle(joinParts(safe(movie.getGenre()), movie.getYear() > 0 ? String.valueOf(movie.getYear()) : ""));
+        card.setSubtitle(joinParts(safe(movie.getGenre()), safe(movie.getYear())));
         card.setDescription(trimDescription(movie.getDescription()));
         card.setBadges(List.of(
                 safePlan(movie.getRequiredSubscription()),
                 label(vietnamese, "Streaming", "Streaming")
         ));
-        card.setDetails(List.of(
-                label(vietnamese, "Genre", "The loai") + ": " + safe(movie.getGenre()),
-                label(vietnamese, "Plan", "Goi") + ": " + safePlan(movie.getRequiredSubscription())
-        ));
         card.setActionPath("/browse?play=" + movie.getId());
-        card.setActionLabel(label(vietnamese, "Open Movie", "Mo phim"));
+        card.setActionLabel(label(vietnamese, "Watch Now", "Xem ngay"));
         return card;
     }
 
@@ -607,16 +603,16 @@ public class AiAssistantService {
         AiAssistantCard card = new AiAssistantCard();
         card.setType("showtime");
         card.setTitle(safe(showtime.getMovieTitle()));
-        card.setSubtitle(joinParts(formatDate(showtime.getShowDate()), formatTime(showtime.getStartTime())));
-        card.setDescription(safe(showtime.getCinemaName()) + " | " + safe(showtime.getAuditoriumName()));
+        card.setSubtitle(showtime.getCinemaName());
+        card.setDescription(formatDate(showtime.getShowDate()) + " at " + formatTime(showtime.getStartTime()));
         card.setBadges(List.of(safe(showtime.getCinemaCity()), formatAmount(showtime.getBasePrice())));
         card.setDetails(List.of(
                 label(vietnamese, "Cinema", "Rap") + ": " + safe(showtime.getCinemaName()),
                 label(vietnamese, "Auditorium", "Phong chieu") + ": " + safe(showtime.getAuditoriumName()),
                 label(vietnamese, "Time", "Gio") + ": " + formatTime(showtime.getStartTime())
         ));
-        card.setActionPath("/cinema/movie/" + showtime.getMovieId() + "/showtimes");
-        card.setActionLabel(label(vietnamese, "Open Showtimes", "Mo suat chieu"));
+        card.setActionPath("/cinema/seats/" + showtime.getId());
+        card.setActionLabel(label(vietnamese, "Book Seats", "Dat cho"));
         return card;
     }
 
@@ -651,11 +647,11 @@ public class AiAssistantService {
         card.setDescription(safe(ticket.getCinemaName()) + " | " + safe(ticket.getAuditoriumName()));
         card.setBadges(List.of(safe(ticket.getBookingCode()), safe(ticket.getPaymentStatus())));
         card.setDetails(List.of(
-                label(vietnamese, "Seats", "Ghe") + ": " + String.join(", ", ticket.getSeats()),
+                label(vietnamese, "Seats", "Ghe") + ": " + (ticket.getSeats() != null ? String.join(", ", ticket.getSeats()) : "-"),
                 label(vietnamese, "Total", "Tong tien") + ": " + formatAmount(ticket.getTotalAmount())
         ));
         card.setActionPath("/cinema/tickets/" + ticket.getBookingId());
-        card.setActionLabel(label(vietnamese, "Open Ticket", "Mo ve"));
+        card.setActionLabel(label(vietnamese, "View Ticket", "Xem ve"));
         return card;
     }
 

@@ -24,6 +24,7 @@ public class AdminMovieController {
     @PostMapping
     @CacheEvict(cacheNames = {"movie-search", "movie-all", "movie-by-id"}, allEntries = true)
     public ResponseEntity<Movie> createMovie(@RequestBody Movie movie) {
+        if (movie.getStreamType() == null) movie.setStreamType("MP4");
         Movie savedMovie = movieRepository.save(movie);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedMovie);
     }
@@ -45,6 +46,11 @@ public class AdminMovieController {
         movie.setVideoUrl(movieDetails.getVideoUrl());
         movie.setTrailerUrl(movieDetails.getTrailerUrl());
         movie.setRequiredSubscription(movieDetails.getRequiredSubscription());
+        movie.setHasFullMovie(movieDetails.isHasFullMovie());
+        movie.setStreamType(movieDetails.getStreamType());
+        movie.setDurationMinutes(movieDetails.getDurationMinutes());
+        movie.setSubtitleUrls(movieDetails.getSubtitleUrls());
+        movie.setQualityMetadata(movieDetails.getQualityMetadata());
 
         return ResponseEntity.ok(movieRepository.save(movie));
     }

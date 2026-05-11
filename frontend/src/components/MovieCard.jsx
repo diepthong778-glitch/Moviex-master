@@ -124,6 +124,13 @@ function MovieCardImpl({ movie, onPlay, progress }) {
       aria-label={t('movie.openDetailsFor', { title: movie.title })}
     >
       <div className="movie-card-surface relative aspect-[2/3] overflow-hidden rounded-2xl border border-white/10 bg-carbon/60 shadow-card">
+        {movie.hasFullMovie && (
+          <div className="absolute left-3 top-3 z-10">
+            <span className="cinema-pill">
+              4K STREAM
+            </span>
+          </div>
+        )}
         {shouldPlayVideoPreview ? (
           <video
             ref={videoRef}

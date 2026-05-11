@@ -1,64 +1,79 @@
-import { useEffect, useState } from 'react';
-import { cachedGet } from '../utils/api';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { cachedGet, extractErrorMessage } from '../utils/api';
+import HistorySection from '../components/HistorySection';
+import PageTransition from '../components/motion/PageTransition';
 
 function WatchHistoryPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const data = await cachedGet('/api/history/me', {
-          ttlMs: 10000,
-          config: { params: { limit: 100 } },
-        });
-        setHistory(Array.isArray(data) ? data : []);
-      } catch {
-        setError('Failed to load watch history.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
+  const fetchHistory = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await cachedGet('/api/history/me', {
+        ttlMs: 5000,
+        config: { params: { limit: 100 } },
+      });
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Failed to load watch history.'));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const handleContinue = (item) => {
+    navigate(`/browse?play=${item.movieId}&t=${item.progress || 0}`);
+  };
+
+  const handleRestart = (item) => {
+    navigate(`/browse?play=${item.movieId}&t=0`);
+  };
+
+  const handleRemove = async (item) => {
+    try {
+      await axios.delete(`/api/history/me/${item.movieId}`);
+      setHistory((prev) => prev.filter((h) => h.movieId !== item.movieId));
+    } catch (err) {
+      console.error('Failed to remove history item:', err);
+    }
+  };
+
   return (
-    <div className="page-shell">
+    <PageTransition className="page-shell">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Watch History</h2>
-          <p className="page-subtitle">Movies you watched, time and progress</p>
+          <h2 className="page-title">{t('watchHistory.title') || 'Watch History'}</h2>
+          <p className="page-subtitle">{t('watchHistory.subtitle') || 'Movies you have watched on Moviex'}</p>
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading history...</p>}
-      {error && <p className="error-text">{error}</p>}
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {error && <p className="error-text mb-6">{error}</p>}
 
-      <div className="history-list">
-        {!loading && !error && history.length === 0 && (
-          <div className="empty-state">
-            <h3 className="empty-title">No watch history yet</h3>
-          </div>
-        )}
-
-        {history.map((item) => (
-          <article className="history-item" key={`${item.movieId}-${item.watchedAt || item.updatedAt}`}>
-            <div>
-              <h3>{item.movieTitle}</h3>
-              <p className="muted-text">Movie ID: {item.movieId}</p>
-            </div>
-            <div className="history-meta">
-              <span>Progress: {item.progress ?? item.watchTime ?? 0}s</span>
-              <span>{item.watchedAt ? new Date(item.watchedAt).toLocaleString() : '-'}</span>
-            </div>
-          </article>
-        ))}
+        <HistorySection
+          items={history}
+          loading={loading}
+          onContinue={handleContinue}
+          onRestart={handleRestart}
+          onRemove={handleRemove}
+          title={t('watchHistory.recentActivity') || 'Recent Activity'}
+          countLabel={t('watchHistory.itemsCount', { count: history.length }) || `${history.length} items`}
+          emptyLabel={t('watchHistory.empty') || 'No watch history yet. Start watching some movies!'}
+        />
       </div>
-    </div>
+    </PageTransition>
   );
 }
 

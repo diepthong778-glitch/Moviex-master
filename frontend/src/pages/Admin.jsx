@@ -11,6 +11,14 @@ const emptyForm = {
   videoUrl: '',
   trailerUrl: '',
   requiredSubscription: 'BASIC',
+  hasFullMovie: false,
+  streamType: 'MP4',
+  durationMinutes: '',
+  subtitleUrlsRaw: '',
+  availableQualitiesRaw: '',
+  qualityMetadata: '',
+  introStart: '',
+  introEnd: '',
 };
 
 function Admin() {
@@ -47,8 +55,8 @@ function Admin() {
   };
 
   const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (event) => {
@@ -56,11 +64,19 @@ function Admin() {
     const isEditing = Boolean(editingId);
     const url = isEditing ? `/api/admin/movies/${editingId}` : '/api/admin/movies';
 
+    const payload = {
+      ...form,
+      subtitleUrls: form.subtitleUrlsRaw.split(',').map(s => s.trim()).filter(Boolean),
+      availableQualities: form.availableQualitiesRaw.split(',').map(s => s.trim()).filter(Boolean),
+    };
+    delete payload.subtitleUrlsRaw;
+    delete payload.availableQualitiesRaw;
+
     try {
       await axios({
         method: isEditing ? 'PUT' : 'POST',
         url,
-        data: form,
+        data: payload,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -85,6 +101,14 @@ function Admin() {
       videoUrl: movie.videoUrl ?? '',
       trailerUrl: movie.trailerUrl ?? '',
       requiredSubscription: movie.requiredSubscription ?? 'BASIC',
+      hasFullMovie: movie.hasFullMovie ?? false,
+      streamType: movie.streamType ?? 'MP4',
+      durationMinutes: movie.durationMinutes ?? '',
+      subtitleUrlsRaw: Array.isArray(movie.subtitleUrls) ? movie.subtitleUrls.join(', ') : '',
+      availableQualitiesRaw: Array.isArray(movie.availableQualities) ? movie.availableQualities.join(', ') : '',
+      qualityMetadata: movie.qualityMetadata ?? '',
+      introStart: movie.introStart ?? '',
+      introEnd: movie.introEnd ?? '',
     });
     setEditingId(movie.id);
   };
@@ -210,6 +234,80 @@ function Admin() {
             placeholder={t('adminMoviePage.fields.trailerUrl')}
             required
           />
+          <div className="admin-form-row admin-form-wide" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <input
+              type="number"
+              name="durationMinutes"
+              value={form.durationMinutes}
+              onChange={handleInputChange}
+              className="field-control"
+              placeholder="Duration (min)"
+            />
+            <select
+              name="streamType"
+              value={form.streamType}
+              onChange={handleInputChange}
+              className="field-control"
+            >
+              <option value="MP4">MP4 (Byte-Range)</option>
+              <option value="HLS">HLS (M3U8)</option>
+              <option value="EXTERNAL">External Embed</option>
+            </select>
+            <input
+              type="text"
+              name="qualityMetadata"
+              value={form.qualityMetadata}
+              onChange={handleInputChange}
+              className="field-control"
+              placeholder="Quality (e.g. 1080p)"
+            />
+          </div>
+          <div className="admin-form-row admin-form-wide" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                name="hasFullMovie"
+                checked={form.hasFullMovie}
+                onChange={handleInputChange}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <span style={{ fontWeight: '600' }}>Has Full Movie (Enable Streaming Mode)</span>
+            </label>
+          </div>
+          <input
+            type="text"
+            name="subtitleUrlsRaw"
+            value={form.subtitleUrlsRaw}
+            onChange={handleInputChange}
+            className="field-control admin-form-wide"
+            placeholder="Subtitle URLs (comma separated)"
+          />
+          <input
+            type="text"
+            name="availableQualitiesRaw"
+            value={form.availableQualitiesRaw}
+            onChange={handleInputChange}
+            className="field-control admin-form-wide"
+            placeholder="Available Qualities (e.g. 480p, 720p, 1080p)"
+          />
+          <div className="admin-form-row admin-form-wide" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <input
+              type="number"
+              name="introStart"
+              value={form.introStart}
+              onChange={handleInputChange}
+              className="field-control"
+              placeholder="Intro Start (seconds)"
+            />
+            <input
+              type="number"
+              name="introEnd"
+              value={form.introEnd}
+              onChange={handleInputChange}
+              className="field-control"
+              placeholder="Intro End (seconds)"
+            />
+          </div>
           <div className="admin-form-actions admin-form-wide">
             <button type="submit" className="btn btn-primary">
               {editingId ? t('adminMoviePage.updateMovie') : t('adminMoviePage.saveMovie')}
@@ -240,6 +338,7 @@ function Admin() {
             <thead>
               <tr>
                 <th>{t('adminMoviePage.columns.title')}</th>
+                <th>Mode</th>
                 <th>{t('adminMoviePage.columns.genre')}</th>
                 <th>{t('adminMoviePage.columns.year')}</th>
                 <th>{t('adminMoviePage.columns.description')}</th>
@@ -251,6 +350,11 @@ function Admin() {
               {movies.map((movie) => (
                 <tr key={movie.id}>
                   <td>{movie.title}</td>
+                  <td>
+                    <span className={`cinema-pill ${movie.hasFullMovie ? 'is-movie' : 'is-trailer'}`} style={{ fontSize: '10px' }}>
+                      {movie.hasFullMovie ? 'MOVIE' : 'TRAILER'}
+                    </span>
+                  </td>
                   <td>{movie.genre}</td>
                   <td>{movie.year}</td>
                   <td>
